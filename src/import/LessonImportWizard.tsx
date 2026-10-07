@@ -6,7 +6,6 @@ import {
   FileText,
   FileUp,
   Sparkles,
-  CheckCircle2,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -27,6 +26,9 @@ import type {
 } from "./model";
 import { analysisSchema } from "./model";
 import { AnalysisReview } from "./AnalysisReview";
+import { BlueprintReview } from "../blueprint/BlueprintReview";
+import { LessonBlueprintGenerator } from "../blueprint/generator";
+import { createBlueprintDraft, type BlueprintDraft } from "../blueprint/draft";
 import { DocumentDiagnostics } from "./DocumentDiagnostics";
 import {
   confirmAnalysis,
@@ -54,6 +56,9 @@ export function LessonImportWizard({
   const [rawText, setRawText] = useState("");
   const [document, setDocument] = useState<ImportedLessonDocument | null>(null);
   const [draft, setDraft] = useState<AnalysisDraft | null>(null);
+  const [blueprintDraft, setBlueprintDraft] = useState<BlueprintDraft | null>(
+    null,
+  );
   const [step, setStep] = useState<
     "input" | "analyzing" | "review" | "confirmed"
   >("input");
@@ -142,6 +147,7 @@ export function LessonImportWizard({
       if (result.sourceDocumentId !== doc.id)
         throw new Error("Kết quả chưa khớp kế hoạch nguồn. Vui lòng thử lại.");
       setDraft({ document: doc, analysis: result, confirmedAt: null });
+      setBlueprintDraft(null);
       setAnalysisSource(outcome);
       setStep("review");
     } catch (e) {
@@ -168,6 +174,7 @@ export function LessonImportWizard({
     onClose();
   }
   function edit(field: keyof PedagogicalAnalysis, value: unknown) {
+    setBlueprintDraft(null);
     if (draft)
       setDraft({
         ...draft,
@@ -215,7 +222,7 @@ export function LessonImportWizard({
           </span>
           <ArrowRight size={14} />
           <span className={step === "confirmed" ? "current" : ""}>
-            04 · Xác nhận
+            04 · Duyệt kịch bản
           </span>
         </nav>
         {error && (
@@ -475,6 +482,7 @@ export function LessonImportWizard({
                         ),
                         confirmedAt: null,
                       });
+                      setBlueprintDraft(null);
                       setError("");
                     } catch (e) {
                       setError((e as Error).message);
@@ -487,50 +495,43 @@ export function LessonImportWizard({
               back={() => setStep("input")}
               reanalyze={() => requestAnalysis()}
               confirm={() => {
-                setDraft(confirmAnalysis(draft, true));
-                setStep("confirmed");
+                const confirmed = confirmAnalysis(draft, true);
+                setDraft(confirmed);
+                if (blueprintDraft) setStep("confirmed");
+                else
+                  void new LessonBlueprintGenerator()
+                    .generate(confirmed)
+                    .then((b) => {
+                      const now = new Date().toISOString();
+                      setBlueprintDraft(
+                        createBlueprintDraft({
+                          ...b,
+                          createdAt: now,
+                          updatedAt: now,
+                        }),
+                      );
+                      setStep("confirmed");
+                    })
+                    .catch((e) =>
+                      setError(
+                        e instanceof Error
+                          ? e.message
+                          : "Chưa tạo được kịch bản. Hãy thử lại.",
+                      ),
+                    );
               }}
             />
           </>
         )}
-        {step === "confirmed" && draft && (
-          <section className="analysis-confirmed">
-            <CheckCircle2 size={48} />
-            <span className="eyebrow">ĐÃ XÁC NHẬN NỘI DUNG</span>
-            <h1>Kế hoạch đã sẵn sàng cho bước tiếp theo</h1>
-            <h2>
-              {draft.analysis.lessonTitle || "Kế hoạch bài dạy của thầy/cô"}
-            </h2>
-            <p>
-              {draft.analysis.subject || "Chưa xác định môn"}
-              {draft.analysis.curriculumGrade
-                ? ` · Lớp ${draft.analysis.curriculumGrade}`
-                : ""}
-              {draft.analysis.durationMinutes !== null
-                ? ` · ${draft.analysis.durationMinutes} phút`
-                : ""}
-            </p>
-            <p>
-              Đã giữ bản phân tích và các chỉnh sửa của thầy/cô trong phiên làm
-              việc này.
-            </p>
-            <div className="next-phase-note">
-              <strong>Tiếp theo: xây dựng cấu trúc bài e-learning</strong>
-              <p>
-                Tính năng tự tạo cấu trúc và trang bài giảng sẽ có ở giai đoạn
-                tiếp theo. Hiện tại chưa tạo bài giảng mới.
-              </p>
-            </div>
-            <div className="wizard-actions">
-              <button onClick={() => setStep("review")}>
-                Kiểm tra lại nội dung
-              </button>
-              <button disabled>Tạo bài e-learning · Sắp hỗ trợ</button>
-              <button className="primary" onClick={close}>
-                Về bài giảng gần đây
-              </button>
-            </div>
-          </section>
+        {step === "confirmed" && draft && blueprintDraft && (
+          <BlueprintReview
+            key={blueprintDraft.current.id}
+            analysis={draft.analysis}
+            initialDraft={blueprintDraft}
+            onChange={setBlueprintDraft}
+            back={() => setStep("review")}
+            close={close}
+          />
         )}
       </main>
       {replacePrompt && (

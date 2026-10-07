@@ -1,0 +1,226 @@
+.blueprint-review {
+  --bp-border: #dce5df;
+  --bp-muted: #536d61;
+}
+.blueprint-heading h1 {
+  font-size: 30px;
+  margin: 8px 0;
+}
+.blueprint-heading h2 {
+  font-size: 19px;
+  font-weight: 500;
+  margin: 8px 0;
+}
+.blueprint-heading p,
+.blueprint-card p {
+  color: var(--bp-muted);
+}
+.blueprint-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  padding: 20px 0;
+  border-block: 1px solid var(--bp-border);
+  margin: 24px 0 16px;
+}
+.blueprint-stats strong {
+  font-size: 22px;
+  color: var(--import-accent);
+}
+.blueprint-stats span {
+  font-size: 12px;
+}
+.blueprint-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.blueprint-toolbar span {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--bp-muted);
+}
+.blueprint-sequence {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.blueprint-card {
+  display: flex;
+  gap: 16px;
+  background: white;
+  border: 1px solid var(--bp-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.blueprint-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--import-accent);
+  padding-top: 2px;
+}
+.blueprint-card-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.blueprint-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 11px;
+  color: var(--bp-muted);
+}
+.blueprint-meta strong {
+  color: var(--import-accent);
+}
+.blueprint-card h3 {
+  margin: 10px 0 8px;
+  font-size: 18px;
+}
+.blueprint-card p {
+  margin: 8px 0;
+  font-size: 13px;
+}
+.blueprint-intents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.blueprint-intents span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #edf5ef;
+  font-size: 11px;
+}
+.blueprint-card details {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.blueprint-card summary,
+.blueprint-warnings summary,
+.blueprint-plans summary {
+  cursor: pointer;
+}
+.blueprint-card-actions {
+  display: flex;
+  align-items: start;
+  gap: 4px;
+  flex-wrap: wrap;
+  max-width: 112px;
+}
+.blueprint-card-actions button {
+  padding: 8px;
+}
+.blueprint-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  border-top: 1px solid var(--bp-border);
+  padding-top: 16px;
+}
+.blueprint-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.blueprint-form input,
+.blueprint-form select,
+.blueprint-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #a9bdb1;
+  border-radius: 5px;
+  font: inherit;
+  background: white;
+  color: var(--import-ink);
+}
+.blueprint-form textarea {
+  resize: vertical;
+}
+.blueprint-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 120px;
+  gap: 12px;
+}
+.blueprint-form fieldset {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--bp-border);
+  border-radius: 5px;
+  min-width: 0;
+}
+.blueprint-form legend {
+  font-size: 12px;
+  padding: 0 4px;
+}
+.blueprint-form .blueprint-check {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+}
+.blueprint-check input {
+  width: auto;
+  margin-top: 2px;
+}
+.blueprint-form > button {
+  justify-self: start;
+}
+.blueprint-warnings,
+.blueprint-plans {
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid var(--bp-border);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  background: #fffdf5;
+}
+.blueprint-plans {
+  background: white;
+}
+.blueprint-dialog {
+  border: 1px solid var(--bp-border);
+  color: #233f36;
+}
+.blueprint-dialog::backdrop {
+  background: #162c2366;
+}
+.blueprint-footer {
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+@media (max-width: 640px) {
+  .blueprint-card {
+    gap: 10px;
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+  .blueprint-card-body {
+    flex-basis: calc(100% - 40px);
+  }
+  .blueprint-card-actions {
+    max-width: none;
+    margin-left: 30px;
+  }
+  .blueprint-fields {
+    grid-template-columns: 1fr;
+  }
+  .blueprint-toolbar span {
+    margin: 8px 0;
+    width: 100%;
+  }
+  .blueprint-heading h1 {
+    font-size: 25px;
+  }
+}

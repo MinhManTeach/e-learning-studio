@@ -206,13 +206,13 @@ describe("Phase 2A functional controls", () => {
     );
     expect(
       await screen.findByRole("heading", {
-        name: "Kế hoạch đã sẵn sàng cho bước tiếp theo",
+        name: "Đề xuất kịch bản bài giảng",
       }),
     ).toBeTruthy();
     expect(
       (
         screen.getByRole("button", {
-          name: "Tạo bài e-learning · Sắp hỗ trợ",
+          name: "Tạo bài giảng · Sắp hỗ trợ — Phase 2C",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);

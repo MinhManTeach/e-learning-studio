@@ -152,6 +152,8 @@ export interface AiLessonAnalysisProvider extends LessonAnalysisProvider {
   readonly kind: "AI";
 }
 
+/** @deprecated Phase 2A preview contract retained for compatibility tests only.
+ * Active blueprint workflows use ../blueprint/model and never this placeholder. */
 export const blueprintSlideSchema = z.object({
   id: text.min(1),
   type: z.enum([
@@ -199,7 +201,10 @@ export const blueprintSchema = z
         message: "Unknown proposed slide reference",
       });
   });
-export type LessonBlueprint = z.infer<typeof blueprintSchema>;
+/** @deprecated Use LessonBlueprint from ../blueprint/model. */
+export type LegacyLessonBlueprint = z.infer<typeof blueprintSchema>;
+export type { LessonBlueprint } from "../blueprint/model";
+import type { LessonBlueprint } from "../blueprint/model";
 export interface LessonGenerationProvider {
   createBlueprint(analysis: PedagogicalAnalysis): Promise<LessonBlueprint>;
   generateLesson(blueprint: LessonBlueprint): Promise<LessonProject>;
