@@ -27,13 +27,15 @@ export function Editor({
   project,
   store,
   back,
+  initialPreview = false,
 }: {
   project: LessonProject;
   store: ProjectStore;
   back: () => void;
+  initialPreview?: boolean;
 }) {
   const [state, dispatch] = useReducer(editorReducer, project, editorState);
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(initialPreview);
   const [savedRevision, setSavedRevision] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");

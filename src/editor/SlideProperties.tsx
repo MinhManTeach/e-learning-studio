@@ -25,6 +25,12 @@ export function SlideProperties({
   return (
     <>
       <div className="property-type">{Entry.label}</div>
+      {s.media.suggestion && !asset?.url && (
+        <p className="callout" role="status">
+          Cần học liệu minh họa · Mở “Hình ảnh minh họa” để xem gợi ý và bổ
+          sung.
+        </p>
+      )}
       <Field
         label="Tiêu đề"
         value={s.title}

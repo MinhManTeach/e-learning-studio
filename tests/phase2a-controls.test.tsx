@@ -212,7 +212,7 @@ describe("Phase 2A functional controls", () => {
     expect(
       (
         screen.getByRole("button", {
-          name: "Tạo bài giảng · Sắp hỗ trợ — Phase 2C",
+          name: "Tạo bài giảng",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);

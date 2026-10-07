@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { LessonProject } from "../model/schema";
+import type { ProjectStore } from "../storage/projects";
+import { outcomeCatalog } from "../blueprint/model";
+import { LessonGenerationService } from "../generation/service";
+import { GenerationPanel } from "../generation/GenerationPanel";
+import type { GenerationResult } from "../generation/model";
 import {
   ArrowLeft,
   ArrowRight,
@@ -44,6 +50,8 @@ export function LessonImportWizard({
   provider,
   service = defaultService,
   aiConfigured = false,
+  store,
+  openGenerated,
 }: {
   active: boolean;
   initialMode: "paste" | "file";
@@ -51,6 +59,8 @@ export function LessonImportWizard({
   provider?: LessonAnalysisProvider;
   service?: LessonAnalysisService;
   aiConfigured?: boolean;
+  store?: ProjectStore;
+  openGenerated?: (project: LessonProject, preview: boolean) => void;
 }) {
   const [mode, setMode] = useState(initialMode);
   const [rawText, setRawText] = useState("");
@@ -59,6 +69,40 @@ export function LessonImportWizard({
   const [blueprintDraft, setBlueprintDraft] = useState<BlueprintDraft | null>(
     null,
   );
+  const generation = useMemo(
+    () => (store ? new LessonGenerationService(store) : null),
+    [store],
+  );
+  const [generationProgress, setGenerationProgress] = useState<number | null>(
+    null,
+  );
+  const [generationResult, setGenerationResult] =
+    useState<GenerationResult | null>(null);
+  const [showGeneration, setShowGeneration] = useState(false);
+  const generationLock = useRef(false);
+  async function generateLesson(current: BlueprintDraft) {
+    if (!generation || !draft || generationLock.current) return;
+    generationLock.current = true;
+    setError("");
+    setGenerationResult(null);
+    setGenerationProgress(0);
+    setShowGeneration(true);
+    try {
+      const result = await generation.generate(current, {
+        projectId: crypto.randomUUID(),
+        now: new Date().toISOString(),
+        outcomes: outcomeCatalog(draft.analysis),
+        onProgress: setGenerationProgress,
+      });
+      setGenerationResult(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Chưa tạo được bài giảng.");
+      setShowGeneration(false);
+    } finally {
+      generationLock.current = false;
+      setGenerationProgress(null);
+    }
+  }
   const [step, setStep] = useState<
     "input" | "analyzing" | "review" | "confirmed"
   >("input");
@@ -148,6 +192,7 @@ export function LessonImportWizard({
         throw new Error("Kết quả chưa khớp kế hoạch nguồn. Vui lòng thử lại.");
       setDraft({ document: doc, analysis: result, confirmedAt: null });
       setBlueprintDraft(null);
+      setShowGeneration(false);
       setAnalysisSource(outcome);
       setStep("review");
     } catch (e) {
@@ -175,6 +220,7 @@ export function LessonImportWizard({
   }
   function edit(field: keyof PedagogicalAnalysis, value: unknown) {
     setBlueprintDraft(null);
+    setShowGeneration(false);
     if (draft)
       setDraft({
         ...draft,
@@ -523,7 +569,15 @@ export function LessonImportWizard({
             />
           </>
         )}
-        {step === "confirmed" && draft && blueprintDraft && (
+        {step === "confirmed" && showGeneration && (
+          <GenerationPanel
+            progress={generationProgress}
+            result={generationResult}
+            open={openGenerated}
+            back={() => setShowGeneration(false)}
+          />
+        )}
+        {step === "confirmed" && draft && blueprintDraft && !showGeneration && (
           <BlueprintReview
             key={blueprintDraft.current.id}
             analysis={draft.analysis}
@@ -531,6 +585,9 @@ export function LessonImportWizard({
             onChange={setBlueprintDraft}
             back={() => setStep("review")}
             close={close}
+            generate={
+              generation ? (current) => void generateLesson(current) : undefined
+            }
           />
         )}
       </main>

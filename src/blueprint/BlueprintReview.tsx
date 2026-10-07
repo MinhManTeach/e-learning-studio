@@ -34,12 +34,14 @@ export function BlueprintReview({
   onChange,
   back,
   close,
+  generate,
 }: {
   analysis: PedagogicalAnalysis;
   initialDraft: BlueprintDraft;
   onChange?: (d: BlueprintDraft) => void;
   back: () => void;
   close: () => void;
+  generate?: (draft: BlueprintDraft) => void;
 }) {
   const [draft, setDraft] = useState(initialDraft);
   const [editing, setEditing] = useState<string | null>(null);
@@ -326,7 +328,16 @@ export function BlueprintReview({
         >
           {draft.approvedAt ? "Đã duyệt kịch bản" : "Duyệt kịch bản"}
         </button>
-        <button disabled>Tạo bài giảng · Sắp hỗ trợ — Phase 2C</button>
+        <button
+          disabled={
+            !draft.approvedAt ||
+            !generate ||
+            warnings.some((w) => w.severity === "ERROR")
+          }
+          onClick={() => generate?.(draft)}
+        >
+          Tạo bài giảng
+        </button>
         <button onClick={close}>Về bài giảng gần đây</button>
       </div>
       {prompt && (

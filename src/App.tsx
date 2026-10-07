@@ -30,6 +30,8 @@ export function App() {
     fallback: boolean;
   } | null>(null);
   const [project, setProject] = useState<LessonProject | null>(null);
+  const [initialPreview, setInitialPreview] = useState(false);
+  const [openError, setOpenError] = useState("");
   const [error, setError] = useState(false);
   const [importMode, setImportMode] = useState<"paste" | "file" | null>(null);
   useEffect(() => {
@@ -51,6 +53,12 @@ export function App() {
     return <div className="startup">Đang mở không gian bài giảng…</div>;
   return (
     <>
+      {openError && (
+        <div role="alert">
+          {openError}
+          <button onClick={() => setOpenError("")}>Đóng</button>
+        </div>
+      )}
       {!project && !importMode && (
         <button
           className="ai-settings-button"
@@ -78,18 +86,45 @@ export function App() {
         onClose={() => setImportMode(null)}
         service={aiStatus.configured ? aiService : undefined}
         aiConfigured={aiStatus.configured}
+        store={storage.store}
+        openGenerated={(generated, preview) => {
+          void storage.store
+            .list()
+            .then(({ projects }) => {
+              const saved = projects.find(
+                (p) => p.projectId === generated.projectId,
+              );
+              if (!saved)
+                throw new Error(
+                  "Bài giảng không còn trong kho. Hãy tạo lại từ kịch bản đã duyệt.",
+                );
+              setOpenError("");
+              setInitialPreview(preview);
+              setProject(saved);
+              setImportMode(null);
+            })
+            .catch(() =>
+              setOpenError(
+                "Chưa mở được bài giảng đã lưu. Hãy kiểm tra kho bài giảng rồi thử lại.",
+              ),
+            );
+        }}
       />
       {importMode ? null : project ? (
         <Editor
           key={project.projectId}
           project={project}
           store={storage.store}
+          initialPreview={initialPreview}
           back={() => setProject(null)}
         />
       ) : (
         <Dashboard
           store={storage.store}
-          open={setProject}
+          open={(p) => {
+            setInitialPreview(false);
+            setProject(p);
+          }}
           startImport={setImportMode}
         />
       )}
