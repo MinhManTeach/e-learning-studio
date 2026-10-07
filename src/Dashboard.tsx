@@ -18,9 +18,11 @@ import { Field } from "./editor/Fields";
 export function Dashboard({
   store,
   open,
+  startImport,
 }: {
   store: ProjectStore;
   open: (project: LessonProject) => void;
+  startImport: (mode: "paste" | "file") => void;
 }) {
   const [projects, setProjects] = useState<LessonProject[]>([]);
   const [error, setError] = useState("");
@@ -102,45 +104,59 @@ export function Dashboard({
         </span>
       </header>
       <main className="dashboard-main">
-        <section className="dashboard-hero">
+        <section className="dashboard-hero plan-first-hero">
           <div>
-            <span className="eyebrow">
-              DẠY BẰNG TÂM HUYẾT. SOẠN BẰNG CẢM HỨNG.
-            </span>
+            <span className="eyebrow">✨ TẠO BÀI GIẢNG E-LEARNING</span>
             <h1>
-              Mỗi bài giảng,
+              Tạo bài giảng
               <br />
-              một hành trình khám phá<span>.</span>
+              bằng AI<span>.</span>
             </h1>
             <p>
-              Một không gian đơn giản để thầy cô biến kiến thức
-              <br />
-              thành những bài học đầy cảm hứng.
+              Đưa kế hoạch bài dạy vào và để E-Learning Studio phân tích cấu
+              trúc bài học cho thầy cô.
+            </p>
+            <div className="plan-entry-actions">
+              <button
+                className="primary large"
+                onClick={() => startImport("paste")}
+              >
+                <Sparkles size={18} />
+                Dán nội dung kế hoạch
+                <ArrowRight size={18} />
+              </button>
+              <button className="large" onClick={() => startImport("file")}>
+                <FileUp size={18} />
+                Nhập tệp kế hoạch
+              </button>
+            </div>
+            <p className="plan-local-note">
+              Phân tích cục bộ · Giáo viên kiểm tra trước khi tiếp tục
             </p>
             <button
-              className="primary large"
+              className="manual-entry"
               onClick={() => setNewProject(true)}
             >
-              <Plus size={20} /> Tạo bài giảng mới
-              <ArrowRight size={19} />
+              <Plus size={14} />
+              Tạo bài thủ công
             </button>
           </div>
           <div className="hero-art" aria-hidden="true">
             <div className="art-circle" />
             <div className="art-note">
-              <span>✦ KHÁM PHÁ KIẾN THỨC</span>
+              <span>✦ TỪ KẾ HOẠCH ĐẾN BÀI HỌC</span>
               <strong>
-                Hôm nay,
+                Kế hoạch của thầy cô,
                 <br />
-                mình học điều mới!
+                khởi đầu bài học hay.
               </strong>
               <div className="art-line" />
               <div className="art-line short" />
-              <BookOpen size={55} />
-              <div className="art-dots">● ● ●</div>
+              <FileUp size={48} />
+              <div className="art-dots">NHẬP → PHÂN TÍCH → KIỂM TRA</div>
             </div>
             <div className="art-label">
-              <Sparkles size={18} /> Từ ý tưởng đến bài học
+              <Sparkles size={18} /> Thầy cô luôn là người quyết định
             </div>
             <span className="art-star">✳</span>
           </div>
@@ -150,7 +166,7 @@ export function Dashboard({
             <div>
               <span className="eyebrow">KHÔNG GIAN CỦA BẠN</span>
               <h2>
-                Bài giảng của tôi <span>{projects.length}</span>
+                Bài giảng gần đây <span>{projects.length}</span>
               </h2>
             </div>
             <button onClick={() => file.current?.click()}>
@@ -194,14 +210,14 @@ export function Dashboard({
           )}
           <div className="project-grid">
             <button
-              className="new-project-card"
-              onClick={() => setNewProject(true)}
+              className="new-project-card plan-project-card"
+              onClick={() => startImport("paste")}
             >
               <span>
                 <Plus size={27} />
               </span>
-              <strong>Bắt đầu một bài học mới</strong>
-              <p>Ý tưởng tiếp theo của thầy cô là gì?</p>
+              <strong>Tạo từ kế hoạch bài dạy</strong>
+              <p>Dán nội dung, phân tích và kiểm tra.</p>
             </button>
             {projects.map((project) => (
               <article key={project.projectId} className="project-card">

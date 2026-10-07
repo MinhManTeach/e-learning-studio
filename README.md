@@ -1,4 +1,4 @@
-# E-Learning Studio — Phase 1
+# E-Learning Studio — Phase 2A
 
 Ứng dụng biên soạn bài giảng cho giáo viên bằng React, TypeScript và Vite. Schema hiện tại: **2.2**.
 
@@ -17,7 +17,13 @@ Mở địa chỉ Vite in ra, mặc định http://127.0.0.1:5173. Giữ tiến 
 
 ## Cách dùng
 
-1. Chọn **Tạo bài giảng mới**, hoặc **Mở bài mẫu Phase 1** để khám phá bài 14 trang với tình huống và 10 câu hỏi. Mẫu cố ý có lớp chương trình 4 và lớp học sinh 5 để kiểm tra cảnh báo.
+Luồng chính: **Dán nội dung kế hoạch** hoặc **Nhập tệp kế hoạch** → phân tích cục bộ → giáo viên sửa/đối chiếu nguồn → đánh dấu đã kiểm tra → xác nhận. TXT UTF-8 được hỗ trợ (dưới 2 MB, tối đa 200.000 ký tự); DOCX/PDF hiển thị “Sắp hỗ trợ”, có thể sao chép văn bản để dán. Không gọi dịch vụ AI, không tự tạo slide ở Phase 2A. Các bước tiến độ phản ánh xử lý thực tế, có thể hoàn tất rất nhanh.
+
+Bản phân tích và chỉnh sửa chỉ giữ trong phiên hiện tại; quay lại dashboard/editor không làm mất bản nháp, nhưng tải lại trang sẽ xóa bản nháp phân tích. Không lưu văn bản nguồn vào bài giảng. Trường thiếu giữ trống, số tiết không tự đổi thành phút; cảnh báo không ngăn xác nhận. Phân tích lại bản đã sửa cần xác nhận thay thế.
+
+Luồng biên soạn thủ công Phase 1:
+
+1. Chọn **Tạo bài thủ công**, hoặc **Mở bài mẫu Phase 1** để khám phá bài 14 trang với tình huống và 10 câu hỏi. Mẫu cố ý có lớp chương trình 4 và lớp học sinh 5 để kiểm tra cảnh báo.
 2. **Thông tin bài giảng** cho phép sửa metadata, mục tiêu, giao diện và điều kiện hoàn thành. Hai trường lớp độc lập; cảnh báo chỉ gợi ý, không sửa dữ liệu.
 3. **Thêm trang** có tám loại: mở đầu, mục tiêu, nội dung, khởi động, tình huống, trắc nghiệm, tổng kết, hoàn thành. Chọn trang bên trái để sửa thuộc tính ở bên phải.
 4. Mở **Bố cục & giai đoạn**, **Hình ảnh minh họa**, **Lời thuyết minh & ghi chú**, **Khả năng tiếp cận** khi cần. Chọn **Không dùng ảnh** để nội dung giãn hết chiều rộng. Ảnh HTTP(S) cần kết nối tới nguồn; ảnh không tải được có thông báo thay thế.
@@ -35,6 +41,7 @@ Mở địa chỉ Vite in ra, mặc định http://127.0.0.1:5173. Giữ tiến 
 - `src/player`: phiên học độc lập, điểm có trọng số, tiến độ, điều kiện hoàn thành; giữ ranh giới `LmsAdapter`.
 - `src/fixtures`, `examples/lesson-2.2.json`: bài mẫu phát triển.
 - `src/storage`: IndexedDB/localStorage với validation khi đọc/ghi.
+- `src/import`: document riêng, analyzer xác định bằng quy tắc, provenance, review; chỉ khai báo ranh giới blueprint/generation cho giai đoạn sau.
 - `reference`: nguyên trạng tài liệu người dùng, không đưa vào runtime.
 
 **The current edited canonical LessonProject is the single source of truth for export.** Export không chạy lại AI hoặc dựng lại bài từ tài liệu nguồn.
@@ -42,3 +49,5 @@ Mở địa chỉ Vite in ra, mặc định http://127.0.0.1:5173. Giữ tiến 
 Không render HTML do giáo viên nhập. Không dùng backend, CDN/font mạng hoặc AI API. Media Library, thu âm, AI, SCORM/HTML5 ZIP và chứng nhận để các phase sau.
 
 Xem `SCHEMA_2_2.md` và `PHASE_1_CHECKPOINT.md`. `SCHEMA_2_1.md` và `PHASE_0_CHECKPOINT.md` được giữ làm hồ sơ lịch sử.
+
+Phase 2A: xem `PHASE_2A_ARCHITECTURE.md` và `PHASE_2A_CHECKPOINT.md`.

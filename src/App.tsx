@@ -3,6 +3,7 @@ import { Dashboard } from "./Dashboard";
 import { Editor } from "./editor/Editor";
 import type { LessonProject } from "./model/schema";
 import { openProjectStore, type ProjectStore } from "./storage/projects";
+import { LessonImportWizard } from "./import/LessonImportWizard";
 export function App() {
   const [storage, setStorage] = useState<{
     store: ProjectStore;
@@ -10,6 +11,7 @@ export function App() {
   } | null>(null);
   const [project, setProject] = useState<LessonProject | null>(null);
   const [error, setError] = useState(false);
+  const [importMode, setImportMode] = useState<"paste" | "file" | null>(null);
   useEffect(() => {
     void openProjectStore()
       .then(setStorage)
@@ -35,7 +37,12 @@ export function App() {
           thiết bị này.
         </div>
       )}
-      {project ? (
+      <LessonImportWizard
+        active={importMode !== null}
+        initialMode={importMode ?? "paste"}
+        onClose={() => setImportMode(null)}
+      />
+      {importMode ? null : project ? (
         <Editor
           key={project.projectId}
           project={project}
@@ -43,7 +50,11 @@ export function App() {
           back={() => setProject(null)}
         />
       ) : (
-        <Dashboard store={storage.store} open={setProject} />
+        <Dashboard
+          store={storage.store}
+          open={setProject}
+          startImport={setImportMode}
+        />
       )}
     </>
   );
