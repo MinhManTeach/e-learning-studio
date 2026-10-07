@@ -1,0 +1,327 @@
+import { useEffect, useReducer, useRef, useState } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowLeft,
+  Check,
+  Copy,
+  Eye,
+  GraduationCap,
+  LayoutTemplate,
+  Pencil,
+  Save,
+  Trash2,
+  Settings,
+} from "lucide-react";
+import type { LessonProject } from "../model/schema";
+import type { ProjectStore } from "../storage/projects";
+import { editorReducer, editorState } from "./reducer";
+import { SlideList } from "./SlideList";
+import { Properties } from "./Properties";
+import { SlideCanvas } from "../renderers/SlideCanvas";
+import { StudentPreview } from "../player/StudentPreview";
+
+export function Editor({
+  project,
+  store,
+  back,
+}: {
+  project: LessonProject;
+  store: ProjectStore;
+  back: () => void;
+}) {
+  const [state, dispatch] = useReducer(editorReducer, project, editorState);
+  const [preview, setPreview] = useState(false);
+  const [savedRevision, setSavedRevision] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const savingRef = useRef(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const dirty = state.revision !== savedRevision;
+  const slide = state.project.slides.find((s) => s.id === state.selectedId);
+  const index = state.project.slides.findIndex(
+    (s) => s.id === state.selectedId,
+  );
+  async function save() {
+    if (savingRef.current) return false;
+    savingRef.current = true;
+    setSaving(true);
+    setError("");
+    try {
+      let snapshot;
+      do {
+        snapshot = stateRef.current;
+        await store.save(snapshot.project);
+        setSavedRevision(snapshot.revision);
+      } while (stateRef.current.revision !== snapshot.revision);
+      return true;
+    } catch {
+      setError(
+        "Không thể lưu bài. Dữ liệu đang chỉnh sửa vẫn còn ở đây. Hãy kiểm tra dung lượng trình duyệt rồi thử lưu lại.",
+      );
+      return false;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+  useEffect(() => {
+    if (!dirty) return;
+    const timeout = window.setTimeout(() => {
+      void save();
+    }, 900);
+    return () => window.clearTimeout(timeout);
+    // Every edit restarts the explicit, visible autosave countdown. Manual retry handles failures.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.revision, dirty]);
+  useEffect(() => {
+    function leave(event: BeforeUnloadEvent) {
+      if (dirty) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    }
+    window.addEventListener("beforeunload", leave);
+    return () => window.removeEventListener("beforeunload", leave);
+  }, [dirty]);
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void save();
+      }
+    }
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
+  async function goBack() {
+    if (dirty && !(await save())) return;
+    back();
+  }
+  return (
+    <div className={"studio " + (preview ? "preview-mode" : "")}>
+      <header className="topbar">
+        <button
+          className="brand"
+          onClick={() => void goBack()}
+          aria-label="Bài giảng của tôi"
+        >
+          <span className="brand-icon">
+            <GraduationCap size={25} />
+          </span>
+          <span>
+            E-Learning<span className="brand-light"> Studio</span>
+          </span>
+        </button>
+        <span className="top-divider" />
+        <div className="project-name">
+          <strong>
+            {state.project.metadata.projectTitle || "Bài giảng chưa đặt tên"}
+          </strong>
+          <span>Không gian soạn bài của bạn</span>
+        </div>
+        <div className="top-actions">
+          <span
+            className={"save-status " + (dirty ? "unsaved" : "")}
+            role="status"
+          >
+            {saving ? (
+              "Đang lưu…"
+            ) : error ? (
+              "Lưu chưa thành công"
+            ) : dirty ? (
+              "Chưa lưu"
+            ) : (
+              <>
+                <Check size={14} /> Đã lưu
+              </>
+            )}
+          </span>
+          <button onClick={() => setPreview((v) => !v)}>
+            <Eye size={17} /> {preview ? "Về chỉnh sửa" : "Xem trước"}
+          </button>
+          <button
+            className="primary"
+            onClick={() => void save()}
+            disabled={saving}
+          >
+            <Save size={17} /> Lưu bài
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Cài đặt"
+            onClick={() => setShowSettings((v) => !v)}
+          >
+            <Settings size={19} />
+          </button>
+        </div>
+      </header>
+      {showSettings && (
+        <div className="settings-popover">
+          <strong>Lưu trữ trên thiết bị</strong>
+          <p>
+            Bài giảng tự động lưu sau khi bạn ngừng nhập. Theo dõi trạng thái
+            “Đã lưu” trước khi đóng trang.
+          </p>
+          <p>
+            Bài giảng nằm trong trình duyệt này. Xóa dữ liệu trình duyệt sẽ xóa
+            các bài đã lưu.
+          </p>
+          <button onClick={() => setShowSettings(false)}>Đã hiểu</button>
+        </div>
+      )}
+      {error && (
+        <div className="error-banner" role="alert">
+          {error}
+          <button onClick={() => void save()}>Thử lưu lại</button>
+        </div>
+      )}
+      {preview ? (
+        <StudentPreview project={state.project} initialId={state.selectedId} />
+      ) : (
+        <div className="editor-layout">
+          <SlideList
+            slides={state.project.slides}
+            selectedId={state.selectedId}
+            select={(id) => dispatch({ type: "select", id })}
+            add={(slideType) => dispatch({ type: "add", slideType })}
+          />
+          <main className="workspace">
+            <div className="workspace-heading">
+              <div>
+                <span className="eyebrow">KHÔNG GIAN SÁNG TẠO</span>
+                <h2>
+                  {slide
+                    ? "Biến ý tưởng thành bài học"
+                    : "Một bài học, nhiều điều mới"}
+                </h2>
+              </div>
+              <div className="mode-toggle">
+                <button className="active">
+                  <Pencil size={14} /> Chỉnh sửa
+                </button>
+                <button onClick={() => setPreview(true)}>
+                  <Eye size={14} /> Xem trước
+                </button>
+              </div>
+            </div>
+            <div className="canvas-toolbar">
+              <span>
+                <LayoutTemplate size={16} />{" "}
+                {slide
+                  ? `Trang ${index + 1} / ${state.project.slides.length}`
+                  : "Tổng quan bài giảng"}
+              </span>
+              <span className="canvas-ratio">16 : 9</span>
+            </div>
+            <SlideCanvas slide={slide} />
+            {slide && (
+              <div className="slide-tools">
+                <div>
+                  <button
+                    disabled={index <= 0}
+                    onClick={() =>
+                      dispatch({ type: "move", id: slide.id, direction: -1 })
+                    }
+                  >
+                    <ArrowUp size={16} /> Lên
+                  </button>
+                  <button
+                    disabled={index === state.project.slides.length - 1}
+                    onClick={() =>
+                      dispatch({ type: "move", id: slide.id, direction: 1 })
+                    }
+                  >
+                    <ArrowDown size={16} /> Xuống
+                  </button>
+                </div>
+                <div>
+                  <button
+                    onClick={() =>
+                      dispatch({ type: "duplicate", id: slide.id })
+                    }
+                  >
+                    <Copy size={16} /> Nhân bản
+                  </button>
+                  <button
+                    className="danger-text"
+                    onClick={() => setDeleteTarget(slide.id)}
+                  >
+                    <Trash2 size={16} /> Xóa
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="workspace-tip">
+              <span className="tip-icon">✦</span>
+              <div>
+                <strong>Bài học hay bắt đầu từ bạn</strong>
+                <p>
+                  Chọn trang bên trái, chỉnh nội dung bên phải. Mọi thay đổi
+                  hiển thị ngay trên bài học.
+                </p>
+              </div>
+            </div>
+            <button className="back-link" onClick={() => void goBack()}>
+              <ArrowLeft size={15} /> Bài giảng của tôi
+            </button>
+          </main>
+          <Properties
+            metadata={state.project.metadata}
+            slide={slide}
+            editMetadata={(metadata) =>
+              dispatch({ type: "metadata", metadata })
+            }
+            editSlide={(slide) => dispatch({ type: "edit", slide })}
+          />
+        </div>
+      )}
+      <footer className="app-footer">
+        <span>
+          <span className="status-dot" /> Lưu trên thiết bị của bạn
+        </span>
+        <span>
+          {preview ? "Xem trước bài học" : "Tự động lưu • Ctrl + S để lưu ngay"}
+          <span className="footer-divider">|</span>Phiên bản khởi đầu · 0.1
+        </span>
+      </footer>
+      {deleteTarget && (
+        <div className="modal-overlay">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+            className="modal"
+          >
+            <div className="modal-icon danger-text">
+              <Trash2 size={25} />
+            </div>
+            <h2 id="delete-title">Xóa trang này?</h2>
+            <p>
+              Trang “
+              {state.project.slides.find((s) => s.id === deleteTarget)?.title}”
+              sẽ bị xóa khỏi bài giảng. Thao tác này không thể hoàn tác.
+            </p>
+            <div className="modal-actions">
+              <button autoFocus onClick={() => setDeleteTarget(null)}>
+                Giữ lại trang
+              </button>
+              <button
+                className="danger"
+                onClick={() => {
+                  dispatch({ type: "delete", id: deleteTarget });
+                  setDeleteTarget(null);
+                }}
+              >
+                Xóa trang
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}

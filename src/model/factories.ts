@@ -1,0 +1,38 @@
+import {
+  metadataSchema,
+  type LessonProject,
+  type BasicSlide,
+  type SlideType,
+} from "./schema";
+export function createSlide(type: SlideType): BasicSlide {
+  return {
+    id: crypto.randomUUID(),
+    type,
+    stepNumber: 1,
+    stepName: "",
+    title: type === "welcome" ? "Trang mở đầu" : "Nội dung bài học",
+    subtitle: "",
+    voiceScript: "",
+    notes: "",
+    data: {
+      body: "",
+      bulletPoints: [],
+      keyTakeaway: "",
+      imageUrl: "",
+      imageCaption: "",
+    },
+  };
+}
+export function createProject(projectTitle = "Bài giảng mới"): LessonProject {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: "2.0",
+    projectId: crypto.randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+    metadata: metadataSchema.parse({ projectTitle }),
+    settings: { theme: "studio", passingScore: 80 },
+    slides: [createSlide("welcome"), createSlide("content")],
+    assets: [],
+  };
+}

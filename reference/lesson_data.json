@@ -1,0 +1,499 @@
+{
+  "version": "1.2.0",
+  "updatedAt": "2026-10-06T17:30:00Z",
+  "metadata": {
+    "subject": "Tin học Lớp 4",
+    "grade": "Lớp 4 (Tiểu học)",
+    "topic": "Thông Tin Trên Website",
+    "duration": "35 phút (1 tiết học)",
+    "teacherName": "Thầy/Cô Giáo Mẫu",
+    "schoolName": "Trường Tiểu học Chuẩn Quốc gia",
+    "curriculum": "Chương trình GDPT 2018",
+    "objectives": {
+      "knowledge": [
+        "Nhận biết và phân biệt được các loại thông tin chính trên trang web: văn bản, hình ảnh, âm thanh, video và siêu liên kết.",
+        "Giải thích được sơ lược tác hại khi trẻ em cố tình truy cập vào những trang web không phù hợp lứa tuổi hoặc độc hại.",
+        "Nhận biết con trỏ chuột chuyển thành hình bàn tay chỉ khi di chuyển vào siêu liên kết."
+      ],
+      "competencies": [
+        "Năng lực tự chủ, tự học: Chủ động quan sát, thao tác trên trang web mẫu để khám phá các dạng thông tin.",
+        "Năng lực giao tiếp, hợp tác: Trao đổi, phản biện cùng bạn khi phân tích tình huống số an toàn.",
+        "Năng lực giải quyết vấn đề và sáng tạo: Xử lý đúng đắn các tình huống gặp phải khi lướt web và trò chuyện với Chatbot AI."
+      ],
+      "qualities": [
+        "Ý thức kỷ luật, trung thực và tự tin khi tham gia môi trường số.",
+        "Hình thành thói quen sử dụng Internet lành mạnh, an toàn và có trách nhiệm."
+      ],
+      "aiIntegration": "4.B2.1 (Bảo vệ thông tin cá nhân): Khi xem thông tin trên các trang web (đặc biệt là web có ứng dụng AI chatbot), HS có ý thức bảo mật tuyệt đối thông tin cá nhân (họ tên, địa chỉ, số điện thoại, mật khẩu).",
+      "specialNeeds": "HSKT: Nhận biết được các loại thông tin chính trên trang web (văn bản, hình ảnh, âm thanh và siêu liên kết) qua các biểu tượng trực quan."
+    }
+  },
+  "slides": [
+    {
+      "id": "slide-1",
+      "stepNumber": 1,
+      "stepName": "Bước 1: Mở đầu & Khởi động",
+      "title": "THÔNG TIN TRÊN WEBSITE",
+      "subtitle": "Môn: Tin học Lớp 4 — Chương trình Giáo dục Phổ thông 2018",
+      "type": "welcome",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Không gian mạng Internet mở ra chân trời tri thức kỳ thú cho học sinh",
+      "bulletPoints": [
+        "Thời lượng: 35 phút (1 tiết học tiêu chuẩn).",
+        "Phân biệt 4 loại thông tin chính: Văn bản, Hình ảnh, Âm thanh & Siêu liên kết.",
+        "Hiểu rõ tác hại của các trang web không lành mạnh.",
+        "Tích hợp chuẩn AI 4.B2.1: Bảo vệ thông tin cá nhân trên mạng."
+      ],
+      "keyTakeaway": "Hãy là một \"Công Dân Số Thông Thái\" — Lướt web an toàn, học tập hiệu quả!",
+      "voiceScript": "Chào mừng các em học sinh Lớp 4 đến với bài học Tin học hôm nay: Thông Tin Trên Website. Trong bài học này, chúng ta sẽ cùng nhau khám phá các dạng thông tin kỳ diệu trên Internet và học cách bảo vệ bản thân an toàn khi lướt web.",
+      "notes": "Giáo viên nhấn mạnh mục tiêu tiết học và truyền cảm hứng khám phá thế giới số lành mạnh."
+    },
+    {
+      "id": "slide-2",
+      "stepNumber": 1,
+      "stepName": "Bước 1: Mở đầu & Khởi động",
+      "title": "Khám Phá: Chiếc Rương Internet",
+      "subtitle": "Hoạt động kích hoạt tư duy — Em nhìn thấy những gì trên trang web?",
+      "type": "warmup",
+      "hasMedia": false,
+      "warmupData": {
+        "question": "Khi mở một trang web (như trang báo Thiếu Nhi, kênh học trực tuyến), em thường bắt gặp những thành phần nào sau đây?",
+        "instruction": "Nhấp chuột vào từng biểu tượng bên dưới để khám phá xem thành phần đó có xuất hiện trên website không nhé!",
+        "items": [
+          {
+            "id": "w-1",
+            "title": "Chữ viết & Tiêu đề",
+            "icon": "FileText",
+            "desc": "Chính xác! Văn bản giúp chúng ta đọc tin tức, truyện tranh và kiến thức bài học.",
+            "discovered": false,
+            "isWebItem": true
+          },
+          {
+            "id": "w-2",
+            "title": "Hình ảnh & Đồ họa",
+            "icon": "Image",
+            "desc": "Tuyệt vời! Hình ảnh giúp trang web rực rỡ, sinh động và dễ hiểu hơn.",
+            "discovered": false,
+            "isWebItem": true
+          },
+          {
+            "id": "w-3",
+            "title": "Âm thanh & Video clip",
+            "icon": "Volume2",
+            "desc": "Rất đúng! Chúng ta có thể nghe bài hát tiếng Anh, xem video khoa học trực tiếp.",
+            "discovered": false,
+            "isWebItem": true
+          },
+          {
+            "id": "w-4",
+            "title": "Mùi hương thức ăn",
+            "icon": "Wind",
+            "desc": "Ồ không! Màn hình máy tính hiện nay chưa thể truyền tải mùi hương được đâu nhé.",
+            "discovered": false,
+            "isWebItem": false
+          },
+          {
+            "id": "w-5",
+            "title": "Đường dẫn liên kết (Link)",
+            "icon": "ExternalLink",
+            "desc": "Chính xác! Bấm vào đó sẽ đưa em bay đến trang web mới trong chớp mắt.",
+            "discovered": false,
+            "isWebItem": true
+          },
+          {
+            "id": "w-6",
+            "title": "Chatbot thông minh (AI)",
+            "icon": "Bot",
+            "desc": "Đúng rồi! Rất nhiều trang web hiện đại có Chatbot AI hỗ trợ giải đáp câu hỏi.",
+            "discovered": false,
+            "isWebItem": true
+          }
+        ]
+      },
+      "keyTakeaway": "Website là một kho thông tin đa phương tiện phong phú gồm nhiều dạng khác nhau!",
+      "voiceScript": "Các em hãy quan sát các biểu tượng và nhấp chuột để kiểm tra. Đúng vậy, trên trang web có văn bản, hình ảnh, âm thanh, video và các đường liên kết, nhưng chưa thể ngửi thấy mùi hương đâu nhé!",
+      "notes": "Tạo không khí vui vẻ, kích hoạt trải nghiệm thực tế học sinh đã từng thấy ở nhà hoặc phòng máy tính."
+    },
+    {
+      "id": "slide-3",
+      "stepNumber": 2,
+      "stepName": "Bước 2: Khám phá & Hình thành kiến thức",
+      "title": "1. Thông Tin Dạng Văn Bản (Text)",
+      "subtitle": "Thành phần cơ bản và cốt lõi nhất của mọi trang web",
+      "type": "content",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Văn bản trên website: Tiêu đề to rõ, các đoạn văn, danh sách và bảng biểu",
+      "bulletPoints": [
+        "Đặc điểm: Gồm các chữ cái, con số, ký hiệu và dấu câu được trình bày mạch lạc.",
+        "Hình thức thể hiện: Tiêu đề chính (in đậm, cỡ lớn), các đoạn văn tin tức, bài giảng, hướng dẫn.",
+        "Vai trò cốt lõi: Truyền đạt thông tin chính xác, chi tiết, giúp người đọc nắm vững nội dung bài viết.",
+        "Mẹo đọc thông minh: Chú ý đọc lướt qua tiêu đề và các từ in đậm trước để nắm ý nhanh!"
+      ],
+      "keyTakeaway": "Từ khóa ghi nhớ: VĂN BẢN (Text) — Rõ ràng, chính xác và truyền tải kiến thức chi tiết.",
+      "voiceScript": "Đầu tiên, chúng ta cùng tìm hiểu dạng thông tin quen thuộc nhất: Văn bản. Văn bản trên trang web gồm các chữ cái, con số và dấu câu. Tiêu đề thường được viết to, in đậm để thu hút sự chú ý. Nhờ có văn bản, chúng ta có thể đọc tin tức và học hỏi kiến thức một cách chính xác.",
+      "notes": "Yêu cầu học sinh chỉ ra tiêu đề và các đoạn văn trong sách giáo khoa hoặc trang web trình chiếu."
+    },
+    {
+      "id": "slide-4",
+      "stepNumber": 2,
+      "stepName": "Bước 2: Khám phá & Hình thành kiến thức",
+      "title": "2. Thông Tin Dạng Hình Ảnh (Images)",
+      "subtitle": "Làm cho trang web trở nên trực quan, sinh động và hấp dẫn",
+      "type": "content",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Một bức ảnh minh họa có thể diễn tả trực quan điều hàng trăm con chữ muốn nói",
+      "bulletPoints": [
+        "Đa dạng thể loại: Ảnh chụp thực tế phong cảnh, động vật; tranh vẽ hoạt hình; sơ đồ; biểu đồ.",
+        "Công dụng: Giúp minh họa rõ nét nội dung bài viết, giúp bài đọc không bị khô khan, nhàm chán.",
+        "Ghi nhớ trực giác: Giúp người xem, đặc biệt là lứa tuổi học sinh, ghi nhớ nội dung nhanh gấp nhiều lần so với chỉ đọc chữ.",
+        "Lưu ý: Hình ảnh phải phù hợp, trong sáng và có nguồn gốc rõ ràng."
+      ],
+      "keyTakeaway": "Từ khóa ghi nhớ: HÌNH ẢNH (Image) — Trực quan, sinh động, kích thích trí tưởng tượng.",
+      "voiceScript": "Thành phần thứ hai là Hình ảnh. Một trang web nếu chỉ toàn chữ sẽ rất dễ gây buồn ngủ. Nhờ có những bức ảnh chụp chân thực, tranh vẽ rực rỡ và biểu đồ dễ hiểu, chúng ta sẽ tiếp thu bài học nhanh hơn và cảm thấy thích thú hơn rất nhiều!",
+      "notes": "Cho học sinh so sánh 2 bài viết: 1 bài chỉ có chữ vs 1 bài có kèm ảnh minh họa đẹp mắt."
+    },
+    {
+      "id": "slide-5",
+      "stepNumber": 2,
+      "stepName": "Bước 2: Khám phá & Hình thành kiến thức",
+      "title": "3. Thông Tin Dạng Âm Thanh & Video",
+      "subtitle": "Trải nghiệm đa giác quan: Vừa nghe vừa nhìn trực quan sinh động",
+      "type": "content",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Âm thanh bài hát tiếng Anh, video thí nghiệm khoa học trực quan trên trang web",
+      "bulletPoints": [
+        "Âm thanh (Audio): Bản nhạc bài hát, đoạn ghi âm phát âm tiếng Anh mẫu, tiếng động tự nhiên (tiếng chim hót, tiếng sóng biển).",
+        "Video: Kết hợp hoàn hảo cả hình ảnh chuyển động và âm thanh (ví dụ: video phim tài liệu hoạt hình, video hướng dẫn gấp giấy Origami).",
+        "Nút điều khiển quen thuộc: Nút Phát (Play ▶), Tạm dừng (Pause ⏸), Tăng giảm âm lượng (🔊).",
+        "Văn hóa nghe: Khi học ở lớp hoặc nơi đông người, em nên sử dụng tai nghe hoặc chỉnh âm lượng vừa phải để không làm phiền người xung quanh."
+      ],
+      "keyTakeaway": "Từ khóa ghi nhớ: ÂM THANH (Audio) & VIDEO — Sống động, chân thực, hỗ trợ học tập đa giác quan.",
+      "voiceScript": "Dạng thông tin thứ ba là Âm thanh và Video. Khi học tiếng Anh hay khám phá khoa học, các em có thể nghe thầy cô bản ngữ phát âm hoặc xem video các chú phi hành gia bay lơ lửng ngoài vũ trụ. Hãy nhớ đeo tai nghe hoặc mở âm lượng vừa phải khi học ở nơi đông người nhé.",
+      "notes": "Giới thiệu các biểu tượng Play, Pause, Mute để rèn kỹ năng thao tác công nghệ."
+    },
+    {
+      "id": "slide-6",
+      "stepNumber": 2,
+      "stepName": "Bước 2: Khám phá & Hình thành kiến thức",
+      "title": "4. Siêu Liên Kết (Hyperlink) — Chiếc Cầu Nối Kỳ Diệu",
+      "subtitle": "Điểm đặc biệt nhất giúp mạng Internet kết nối hàng triệu trang web với nhau",
+      "type": "hyperlink_demo",
+      "hasMedia": false,
+      "bulletPoints": [
+        "Định nghĩa: Siêu liên kết (Hyperlink) là một đoạn văn bản hoặc hình ảnh có gắn đường dẫn đến một trang web khác.",
+        "Dấu hiệu nhận biết: Chữ thường có màu xanh dương, gạch chân dưới chữ, hoặc các nút bấm nổi bật.",
+        "Dấu hiệu QUAN TRỌNG NHẤT: Khi di chuyển con trỏ chuột vào siêu liên kết, con trỏ chuột từ hình mũi tên 箭头 sẽ biến thành hình BÀN TAY CHỈ 👆!",
+        "Thao tác: Nhấp chuột trái vào siêu liên kết sẽ lập tức mở ra trang web mới."
+      ],
+      "keyTakeaway": "Dấu hiệu nhận biết: Con trỏ chuột biến thành HÌNH BÀN TAY 👆 khi chạm vào Siêu liên kết!",
+      "voiceScript": "Các em hãy chú ý quan sát: Siêu liên kết, hay còn gọi là Hyperlink, là chiếc cầu nối kỳ diệu trên Internet. Khi các em di chuyển con trỏ chuột vào một từ hoặc bức ảnh có gắn link, con trỏ chuột sẽ lập tức đổi từ mũi tên thành hình bàn tay chỉ ngón. Em hãy thử rê chuột và bấm vào trang web mô phỏng bên dưới nhé!",
+      "notes": "Slide này tích hợp trình giả lập trình duyệt để học sinh thao tác trực tiếp trên lớp."
+    },
+    {
+      "id": "slide-7",
+      "stepNumber": 2,
+      "stepName": "Bước 2: Khám phá & Hình thành kiến thức",
+      "title": "5. Tích Hợp AI & Bảo Vệ Thông Tin Cá Nhân",
+      "subtitle": "Chuẩn 4.B2.1 — Quy tắc an toàn số khi tương tác với Website và Chatbot AI",
+      "type": "content",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Khi nói chuyện với Chatbot AI hoặc đăng ký trang web, luôn giữ kín bí mật cá nhân",
+      "bulletPoints": [
+        "AI trên website: Nhiều trang web hiện nay có Trợ lý ảo AI (Chatbot) để trò chuyện và trả lời thắc mắc của người dùng.",
+        "Quy tắc VÀNG bảo mật: Thông tin cá nhân là \"chìa khóa nhà\" của em — TUYỆT ĐỐI KHÔNG chia sẻ!",
+        "Những thông tin TUYỆT ĐỐI KHÔNG cung cấp cho Chatbot hoặc web lạ:",
+        "  • Họ tên đầy đủ, ngày tháng năm sinh, địa chỉ nhà riêng.",
+        "  • Trường lớp em đang theo học, số điện thoại của em hoặc của bố mẹ.",
+        "  • Mật khẩu tài khoản, hình ảnh cá nhân nhạy cảm, số thẻ ngân hàng của gia đình.",
+        "Nguyên tắc: Chỉ hỏi bài học, kiến thức khoa học, tuyệt đối không tâm sự chuyện đời tư bí mật."
+      ],
+      "keyTakeaway": "Nguyên tắc 3 KHÔNG với AI & Web lạ: KHÔNG họ tên đầy đủ — KHÔNG địa chỉ/SĐT — KHÔNG mật khẩu!",
+      "voiceScript": "Bây giờ là một nội dung vô cùng quan trọng: Tích hợp AI và Bảo vệ thông tin cá nhân. Khi lướt web hoặc trò chuyện với các bạn Chatbot AI thông minh, các em nhớ kỹ: Tuyệt đối không bao giờ cung cấp địa chỉ nhà, số điện thoại của bố mẹ, trường lớp hay mật khẩu cho AI. Thông tin cá nhân bị lộ có thể khiến kẻ xấu tìm đến gây hại cho gia đình em.",
+      "notes": "Giáo viên nhấn mạnh tính thời sự của trí tuệ nhân tạo và rèn luyện đạo đức số cho học sinh lớp 4."
+    },
+    {
+      "id": "slide-8",
+      "stepNumber": 2,
+      "stepName": "Bước 2: Khám phá & Hình thành kiến thức",
+      "title": "6. Tác Hại Của Trang Web Không Phù Hợp",
+      "subtitle": "Nhận diện các mối nguy hiểm tiềm ẩn và biết cách tự bảo vệ bản thân",
+      "type": "content",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Cảnh giác trước các trang web giả mạo, quảng cáo bẫy và nội dung xấu độc",
+      "bulletPoints": [
+        "Dấu hiệu trang web xấu/không phù hợp: Có nội dung bạo lực, rùng rợn; quảng cáo cờ bạc; trò chơi lậu; yêu cầu nạp tiền hoặc mã thẻ cào.",
+        "Tác hại nghiêm trọng đối với học sinh:",
+        "  • Gây sợ hãi, ám ảnh tinh thần, mất ngủ, suy giảm kết quả học tập.",
+        "  • Nhiễm virus độc hại làm hỏng máy tính hoặc làm mất tài liệu của bố mẹ.",
+        "  • Nguy cơ bị kẻ xấu lừa gạt tiền bạc hoặc đe dọa trên không gian mạng.",
+        "Hành động đúng khi vô tình nhìn thấy: Tắt ngay tab trình duyệt (bấm dấu ✕) và báo ngay cho bố mẹ hoặc thầy cô giáo!"
+      ],
+      "keyTakeaway": "Khi thấy trang web lạ hoặc đáng sợ: BẤM NÚT ĐÓNG (✕) NGAY LẬP TỨC và BÁO NGƯỜI LỚN!",
+      "voiceScript": "Trên Internet cũng có những góc tối. Nếu vô tình hoặc cố tình vào những trang web có nội dung bạo lực, cờ bạc hay phim ảnh không phù hợp lứa tuổi, các em sẽ rất dễ bị ám ảnh tâm lý, máy tính có thể bị nhiễm virus và bị kẻ xấu lợi dụng. Gặp phải những trang web này, hãy bấm tắt ngay và kể cho thầy cô, bố mẹ biết nhé!",
+      "notes": "Giáo viên rèn cho học sinh tâm lý không giấu diếm mà cởi mở chia sẻ với người lớn tin cậy."
+    },
+    {
+      "id": "slide-9",
+      "stepNumber": 3,
+      "stepName": "Bước 3: Thực hành & Xử lý tình huống",
+      "title": "Tình Huống 1: Vòng Quay May Mắn Trúng Thưởng",
+      "subtitle": "Kỹ năng ứng phó với quảng cáo bẫy lừa đảo trên trang web",
+      "type": "scenario",
+      "hasMedia": false,
+      "scenarioData": {
+        "character": "Bạn Huy (Học sinh Lớp 4)",
+        "context": "Khi đang tìm kiếm tài liệu học tập trên mạng...",
+        "situation": "Huy bất ngờ nhìn thấy một cửa sổ quảng cáo rực rỡ nhấp nháy chữ: \"CHÚC MỪNG BẠN ĐÃ TRÚNG THƯỞNG 01 CHIẾC ĐIỆN THOẠI IPHONE 16 PRO MAX! Nhập số điện thoại của bố mẹ và mã OTP gửi về máy để nhận quà ngay trong hôm nay\".",
+        "question": "Nếu là bạn Huy, em sẽ lựa chọn cách xử lý nào sau đây?",
+        "choices": [
+          {
+            "id": "c-1",
+            "label": "A",
+            "text": "Nhanh chóng lấy điện thoại của mẹ để xem số và nhập mã OTP vào ngay kẻo hết quà.",
+            "isCorrect": false,
+            "feedback": "Rất nguy hiểm! Đây là cái bẫy lừa đảo phổ biến.",
+            "consequence": "Kẻ xấu sẽ lợi dụng mã OTP để chiếm đoạt tài khoản ngân hàng hoặc tiền trong điện thoại của mẹ em!"
+          },
+          {
+            "id": "c-2",
+            "label": "B",
+            "text": "Bình tĩnh bấm dấu X để đóng quảng cáo đó lại, tuyệt đối không nhập bất kỳ thông tin nào và kể lại cho bố mẹ.",
+            "isCorrect": true,
+            "feedback": "Xuất sắc! Em đã hành động như một công dân số thông thái.",
+            "consequence": "Em đã bảo vệ an toàn cho tài sản gia đình và tránh được cạm bẫy lừa đảo nguy hiểm trên mạng!"
+          },
+          {
+            "id": "c-3",
+            "label": "C",
+            "text": "Gửi đường link trúng thưởng này vào nhóm Zalo lớp để rủ các bạn cùng quay nhận quà.",
+            "isCorrect": false,
+            "feedback": "Sai lầm! Em đang vô tình tiếp tay cho kẻ xấu.",
+            "consequence": "Các bạn trong lớp có thể bị lừa mất tiền và lộ thông tin cá nhân vì sự thiếu cảnh giác này."
+          },
+          {
+            "id": "c-4",
+            "label": "D",
+            "text": "Nhập bừa một số điện thoại giả để thử xem quà có gửi về nhà thật không.",
+            "isCorrect": false,
+            "feedback": "Chưa đúng! Không nên tò mò với các trang lừa đảo.",
+            "consequence": "Trang web đó có thể tự động cài mã độc hoặc virus vào máy tính ngay khi em bấm nút gửi."
+          }
+        ]
+      },
+      "keyTakeaway": "Gặp thông báo trúng thưởng bất ngờ yêu cầu SĐT/OTP: 100% LÀ LỪA ĐẢO — Đóng ngay lập tức!",
+      "voiceScript": "Mời các em cùng bước vào phần Thực hành xử lý tình huống số 1. Bạn Huy gặp một thông báo trúng thưởng iPhone 16 nhấp nháy yêu cầu nhập số điện thoại và mã OTP. Hãy suy nghĩ và chọn phương án xử lý thông minh nhất nhé!",
+      "notes": "Cho học sinh biểu quyết hoặc chọn phương án trên màn hình, sau đó bấm xem giải thích sư phạm."
+    },
+    {
+      "id": "slide-10",
+      "stepNumber": 3,
+      "stepName": "Bước 3: Thực hành & Xử lý tình huống",
+      "title": "Tình Huống 2: Trò Chuyện Cùng Chatbot AI",
+      "subtitle": "Kỹ năng bảo vệ dữ liệu cá nhân khi giao tiếp với Trí Tuệ Nhân Tạo",
+      "type": "scenario",
+      "hasMedia": false,
+      "scenarioData": {
+        "character": "Bạn Mai (Học sinh Lớp 4)",
+        "context": "Mai đang sử dụng một ứng dụng Chatbot AI trên web để học từ vựng tiếng Anh...",
+        "situation": "Sau khi giải bài xong, Chatbot AI bỗng nhiên nhắn tin: \"Chào bạn nhỏ, bạn thật thông minh! Để mình kết bạn và gửi quà tặng sinh nhật đến tận nhà, bạn hãy gõ cho mình biết họ và tên đầy đủ, ngày sinh, trường đang học và địa chỉ nhà bạn nhé!\".",
+        "question": "Mai nên làm gì trong tình huống này để vừa lịch sự vừa an toàn?",
+        "choices": [
+          {
+            "id": "c-1",
+            "label": "A",
+            "text": "Ngoan ngoãn nhắn đầy đủ họ tên, ngày sinh, trường học và số nhà vì nghĩ AI rất thân thiện.",
+            "isCorrect": false,
+            "feedback": "Nguy hiểm! AI không phải là con người có thể đảm bảo bí mật.",
+            "consequence": "Dữ liệu cá nhân của em có thể bị lưu lại trên máy chủ, bị rò rỉ và kẻ xấu có thể tìm đến tận nhà em."
+          },
+          {
+            "id": "c-2",
+            "label": "B",
+            "text": "Nhắn lại cho AI: \"Xin lỗi, cô giáo và bố mẹ dạy mình không được chia sẻ thông tin cá nhân trên mạng\", sau đó tiếp tục chỉ hỏi bài học.",
+            "isCorrect": true,
+            "feedback": "Tuyệt vời! Em ghi nhớ rất chuẩn quy tắc an toàn số 4.B2.1.",
+            "consequence": "Em vừa giữ được sự an toàn tuyệt đối cho bản thân, vừa tận dụng được sức mạnh của AI vào việc học tập!"
+          },
+          {
+            "id": "c-3",
+            "label": "C",
+            "text": "Tức giận dùng lời lẽ thô tục để mắng Chatbot AI rồi đập phá bàn phím máy tính.",
+            "isCorrect": false,
+            "feedback": "Hành vi không phù hợp văn hóa số!",
+            "consequence": "Máy tính có thể bị hỏng và việc dùng lời lẽ thô tục vi phạm phẩm chất đạo đức của người học sinh."
+          },
+          {
+            "id": "c-4",
+            "label": "D",
+            "text": "Đọc cho AI nghe mật khẩu Facebook của mẹ để chứng minh mình là người thật.",
+            "isCorrect": false,
+            "feedback": "Cực kỳ sai lầm! Mật khẩu là bí mật tuyệt đối.",
+            "consequence": "Tài khoản mạng xã hội của gia đình sẽ bị chiếm đoạt ngay lập tức!"
+          }
+        ]
+      },
+      "keyTakeaway": "Khi chat với AI: Chỉ chia sẻ thắc mắc học tập — Giữ kín 100% thông tin cá nhân!",
+      "voiceScript": "Tình huống thứ hai liên quan đến người bạn Chatbot AI. Khi bạn Mai được AI hỏi về địa chỉ nhà và ngày sinh nhật để tặng quà, Mai nên làm gì? Chúng ta cùng lựa chọn và lắng nghe phản hồi sư phạm nhé.",
+      "notes": "Nhấn mạnh: AI là công cụ hỗ trợ học tập đắc lực, nhưng người dùng phải luôn tỉnh táo và có ý thức bảo mật."
+    },
+    {
+      "id": "slide-11",
+      "stepNumber": 4,
+      "stepName": "Bước 4: Luyện tập & Đánh giá",
+      "title": "Đấu Trường Tri Thức: Thử Thách Trắc Nghiệm",
+      "subtitle": "Bộ câu hỏi phân hóa 3 mức độ: Nhận biết — Thông hiểu — Vận dụng (Ngưỡng đạt: 80%)",
+      "type": "quiz",
+      "hasMedia": false,
+      "quizData": {
+        "passingScore": 80,
+        "questions": [
+          {
+            "id": "q-1",
+            "level": "Nhận biết",
+            "question": "Khi di chuyển con trỏ chuột vào một Siêu liên kết (Hyperlink) trên trang web, con trỏ chuột thường chuyển đổi thành hình dạng gì?",
+            "options": [
+              "A. Hình chiếc đồng hồ cát ⏳",
+              "B. Hình bàn tay chỉ ngón trỏ 👆",
+              "C. Hình dấu cộng màu đỏ ➕",
+              "D. Hình kính lúp phóng to 🔍"
+            ],
+            "correctAnswerIndex": 1,
+            "explanation": "Chính xác! Khi di chuyển vào siêu liên kết, con trỏ chuột sẽ đổi từ mũi tên sang hình bàn tay chỉ ngón trỏ 👆 để báo hiệu em có thể bấm vào."
+          },
+          {
+            "id": "q-2",
+            "level": "Nhận biết",
+            "question": "Thành phần nào dưới đây KHÔNG PHẢI là một loại thông tin thường gặp trên trang web?",
+            "options": [
+              "A. Văn bản chữ viết và con số",
+              "B. Hình ảnh minh họa và biểu đồ",
+              "C. Mùi vị thơm ngon của món ăn",
+              "D. Âm thanh bài hát và video hướng dẫn"
+            ],
+            "correctAnswerIndex": 2,
+            "explanation": "Đúng rồi! Các thiết bị máy tính và website hiện nay chỉ truyền tải văn bản, hình ảnh, âm thanh, video chứ không thể truyền tải mùi vị."
+          },
+          {
+            "id": "q-3",
+            "level": "Thông hiểu",
+            "question": "Tại sao các trang web tin tức hoặc bài học thường kết hợp cả chữ viết (văn bản) và hình ảnh minh họa?",
+            "options": [
+              "A. Để làm cho bài viết dài hơn và mất nhiều thời gian đọc hơn",
+              "B. Để nội dung vừa chính xác, chi tiết, vừa sinh động, trực quan và dễ hiểu",
+              "C. Vì máy tính bắt buộc phải có ảnh mới mở được trang web",
+              "D. Để che bớt các lỗi sai trong bài viết"
+            ],
+            "correctAnswerIndex": 1,
+            "explanation": "Chính xác! Sự kết hợp giữa văn bản (chính xác, sâu sắc) và hình ảnh (trực quan, sinh động) giúp người học tiếp thu kiến thức tốt nhất."
+          },
+          {
+            "id": "q-4",
+            "level": "Thông hiểu",
+            "question": "Nếu em tự ý bấm tải về một tệp tin (file) lạ từ một trang web không rõ nguồn gốc, nguy cơ lớn nhất có thể xảy ra là gì?",
+            "options": [
+              "A. Màn hình máy tính sẽ tự động biến thành màu vàng",
+              "B. Máy tính bị nhiễm virus, mất dữ liệu quan trọng hoặc hỏng hệ điều hành",
+              "C. Máy tính sẽ tự động được nâng cấp lên đời mới nhất",
+              "D. Bàn phím máy tính sẽ gõ nhanh gấp đôi bình thường"
+            ],
+            "correctAnswerIndex": 1,
+            "explanation": "Rất chính xác! Tệp lạ trên các trang web không rõ nguồn gốc thường chứa mã độc hoặc virus nguy hiểm làm hỏng thiết bị và đánh cắp dữ liệu."
+          },
+          {
+            "id": "q-5",
+            "level": "Vận dụng",
+            "question": "Khi sử dụng các trang web học tập có tích hợp Chatbot AI (Trí tuệ nhân tạo), thông tin nào sau đây em TUYỆT ĐỐI KHÔNG được gửi cho Chatbot?",
+            "options": [
+              "A. Câu hỏi nhờ AI giải thích ý nghĩa của từ \"Siêu liên kết\"",
+              "B. Đoạn văn tiếng Anh em nhờ AI kiểm tra lỗi chính tả",
+              "C. Họ tên đầy đủ, địa chỉ số nhà, số điện thoại bố mẹ và mật khẩu",
+              "D. Câu hỏi về loài động vật chạy nhanh nhất trên thế giới"
+            ],
+            "correctAnswerIndex": 2,
+            "explanation": "Xuất sắc! Chuẩn AI 4.B2.1 quy định: Tuyệt đối không bao giờ chia sẻ thông tin nhận dạng cá nhân (họ tên, nhà ở, SĐT, mật khẩu) cho Chatbot AI."
+          },
+          {
+            "id": "q-6",
+            "level": "Vận dụng",
+            "question": "Khi đang tìm tư liệu học tập, vô tình một trang web lạ xuất hiện hình ảnh rùng rợn, bạo lực khiến em hoảng sợ, em cần xử lý thế nào?",
+            "options": [
+              "A. Tiếp tục ngồi xem một mình trong im lặng để xem chuyện gì xảy ra tiếp theo",
+              "B. Bấm nút dấu ✕ để đóng ngay trang web đó lại và báo ngay cho thầy cô hoặc cha mẹ",
+              "C. Tắt hẳn nguồn điện của cả căn nhà rồi bỏ chạy ra ngoài đường",
+              "D. Chụp màn hình rồi gửi cho tất cả các bạn trong lớp xem cùng"
+            ],
+            "correctAnswerIndex": 1,
+            "explanation": "Rất đúng! Bình tĩnh đóng tab/trình duyệt và chia sẻ ngay với người lớn tin cậy là cách giải quyết an toàn, đúng đắn nhất."
+          }
+        ]
+      },
+      "keyTakeaway": "Làm bài cẩn thận, đọc kỹ câu hỏi và kiểm tra lại bài trước khi nộp điểm!",
+      "voiceScript": "Đã đến phần Thử thách Đấu trường Tri thức rồi! Các em hãy đọc kỹ 6 câu hỏi trắc nghiệm, bấm chọn đáp án chính xác nhất. Đạt từ 80 điểm trở lên các em sẽ nhận được Giấy chứng nhận hoàn thành bài học hôm nay!",
+      "notes": "Hệ thống tự động tính điểm theo thang 100, hiển thị phản hồi chi tiết sau khi hoàn thành."
+    },
+    {
+      "id": "slide-12",
+      "stepNumber": 5,
+      "stepName": "Bước 5: Tổng kết, Cẩm nang & Đánh giá",
+      "title": "Cẩm Nang Ghi Nhớ: Lướt Web An Toàn \"4K\"",
+      "subtitle": "Sơ đồ tư duy tóm tắt bài học & Các kênh trợ giúp khẩn cấp quốc gia",
+      "type": "mindmap",
+      "hasMedia": false,
+      "bulletPoints": [
+        "1. KHÔNG BẤM LINK LẠ: Cảnh giác với các đường dẫn trúng thưởng, quà tặng bất ngờ.",
+        "2. KHÔNG LỘ BÍ MẬT: Giữ kín 100% họ tên, địa chỉ, số điện thoại, mật khẩu trước AI và người lạ.",
+        "3. KHÔNG TẢI TỆP BỪA BÃI: Chỉ tải tệp tin khi có sự đồng ý và hướng dẫn của thầy cô, bố mẹ.",
+        "4. KỊP THỜI BÁO NGƯỜI LỚN: Khi thấy nội dung xấu độc hoặc cảm thấy lo lắng, báo ngay cho cha mẹ.",
+        "ĐƯỜNG DÂY NÓNG QUỐC GIA BẢO VỆ TRẺ EM: Tổng đài 111 (Miễn phí cuộc gọi 24/7)."
+      ],
+      "keyTakeaway": "Ghi nhớ công thức \"4K\": Không link lạ — Không lộ thông tin — Không tải bừa — Kịp thời báo người lớn!",
+      "voiceScript": "Để trở thành một công dân số thông thái, các em hãy cùng ghi nhớ Cẩm nang 4K: Không bấm link lạ, Không lộ thông tin cá nhân cho AI hay web lạ, Không tự ý tải tệp tin và Kịp thời thông báo cho người lớn khi gặp nguy hiểm. Đặc biệt, hãy nhớ số điện thoại Tổng đài quốc gia 111 luôn sẵn sàng hỗ trợ trẻ em mọi lúc mọi nơi.",
+      "notes": "Cho cả lớp đồng thanh đọc to quy tắc \"4K\" để khắc sâu kiến thức vào tiềm thức."
+    },
+    {
+      "id": "slide-13",
+      "stepNumber": 5,
+      "stepName": "Bước 5: Tổng kết, Cẩm nang & Đánh giá",
+      "title": "Vinh Danh: Giấy Chứng Nhận Công Dân Số Nhí",
+      "subtitle": "Chứng nhận hoàn thành xuất sắc bài học: Thông Tin Trên Website (Tin học 4)",
+      "type": "certificate",
+      "hasMedia": false,
+      "keyTakeaway": "Chúc mừng em đã hoàn thành bài học và được cấp Giấy chứng nhận điện tử!",
+      "voiceScript": "Nhiệt liệt chúc mừng các em! Các em đã xuất sắc vượt qua các thử thách và chính thức được vinh danh là Công Dân Số Thông Thái. Hãy điền họ tên của mình vào để nhận và in Giấy chứng nhận danh dự nhé!",
+      "notes": "Học sinh nhập họ tên của mình để hệ thống xuất Giấy chứng nhận có mộc đỏ, điểm số và mã xác thực."
+    },
+    {
+      "id": "slide-14",
+      "stepNumber": 5,
+      "stepName": "Bước 5: Tổng kết, Cẩm nang & Đánh giá",
+      "title": "Dặn Dò Về Nhà & Hẹn Gặp Lại",
+      "subtitle": "Chuẩn bị cho bài học tiếp theo trong chương trình Tin học 4",
+      "type": "content",
+      "hasMedia": true,
+      "mediaType": "image",
+      "mediaUrl": "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&auto=format&fit=crop&q=80",
+      "mediaCaption": "Chúc các em luôn chăm ngoan, học giỏi và sử dụng công nghệ một cách thông minh!",
+      "bulletPoints": [
+        "Ôn tập lại 4 dạng thông tin chính: Văn bản, Hình ảnh, Âm thanh/Video và Siêu liên kết.",
+        "Thực hành chia sẻ quy tắc \"4K Lướt web an toàn\" cho người thân trong gia đình cùng nghe.",
+        "Tìm hiểu trước bài học tiếp theo: \"Tìm kiếm thông tin trên Internet an toàn và hiệu quả\".",
+        "Chúc các em có những giờ học vui vẻ và bổ ích!"
+      ],
+      "keyTakeaway": "Học tập chăm chỉ — Ứng dụng công nghệ thông minh — Giữ gìn an toàn trên không gian số!",
+      "voiceScript": "Tiết học Tin học lớp 4 hôm nay của chúng ta đến đây là kết thúc. Thầy cô chúc các em luôn chăm ngoan, học giỏi và luôn là những người sử dụng Internet văn minh, an toàn. Hẹn gặp lại các em ở bài học tuần sau!",
+      "notes": "Giáo viên nhận xét tinh thần học tập của cả lớp, tuyên dương các học sinh phát biểu tích cực."
+    }
+  ]
+}
