@@ -1,5 +1,7 @@
 import {
   metadataSchema,
+  objectivesSchema,
+  settingsSchema,
   type LessonProject,
   type BasicSlide,
   type SlideType,
@@ -26,12 +28,13 @@ export function createSlide(type: SlideType): BasicSlide {
 export function createProject(projectTitle = "Bài giảng mới"): LessonProject {
   const now = new Date().toISOString();
   return {
-    schemaVersion: "2.0",
+    schemaVersion: "2.1",
     projectId: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
     metadata: metadataSchema.parse({ projectTitle }),
-    settings: { theme: "studio", passingScore: 80 },
+    objectives: objectivesSchema.parse({}),
+    settings: settingsSchema.parse({}),
     slides: [createSlide("welcome"), createSlide("content")],
     assets: [],
   };

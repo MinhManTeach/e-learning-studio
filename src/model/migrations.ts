@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createProject, createSlide } from "./factories";
 import { parseProject, type LessonProject, type Slide } from "./schema";
+import { projectV20Schema } from "./schemaV20";
 
 const legacySchema = z
   .object({
@@ -21,7 +22,6 @@ export function migrateLegacy(value: unknown): LessonProject {
     "subject",
     "grade",
     "topic",
-    "duration",
     "teacherName",
     "schoolName",
     "curriculum",
@@ -32,10 +32,15 @@ export function migrateLegacy(value: unknown): LessonProject {
     .safeParse(old.metadata.objectives);
   if (objectives.success) {
     for (const key of ["knowledge", "competencies", "qualities"] as const)
-      project.metadata.objectives[key] = list(objectives.data[key]);
-    project.metadata.aiIntegration = str(objectives.data.aiIntegration);
-    project.metadata.specialNeeds = str(objectives.data.specialNeeds);
+      project.objectives[key] = list(objectives.data[key]);
+    project.objectives.aiIntegration.description = str(
+      objectives.data.aiIntegration,
+    );
+    project.objectives.specialNeeds = str(objectives.data.specialNeeds);
   }
+  project.metadata.durationMinutes = durationToMinutes(
+    str(old.metadata.duration),
+  );
   const ids = new Set<string>();
   project.slides = old.slides.map((raw) => {
     const id =
@@ -77,9 +82,57 @@ export function migrateLegacy(value: unknown): LessonProject {
   project.legacySource = old;
   return parseProject(project);
 }
-// Version dispatch stays outside UI and can gain ordered migrations in later phases.
+function durationToMinutes(duration: string): number {
+  // Preserve complete source data alongside migration for free-text durations.
+  const match = duration.match(
+    /^\s*(\d+)\s*(?:phút(?:\s|$)|minutes?\b|min\b|$)/i,
+  );
+  return match ? Number(match[1]) : 0;
+}
+export function migrateV20(value: unknown): LessonProject {
+  const old = projectV20Schema.parse(value);
+  const { objectives, aiIntegration, specialNeeds, duration, ...metadata } =
+    old.metadata;
+  return parseProject({
+    ...old,
+    schemaVersion: "2.1",
+    metadata: { ...metadata, durationMinutes: durationToMinutes(duration) },
+    objectives: {
+      ...objectives,
+      aiIntegration: { code: "", title: "", description: aiIntegration },
+      specialNeeds,
+    },
+    settings: { ...old.settings, theme: "SAFE_TEAL" },
+    migrationSource: z.record(z.string(), z.unknown()).parse(value),
+  });
+}
+// Stored records must have their identity. Hydration is reserved for imported templates.
+export function decodeStoredProject(value: unknown): LessonProject {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "schemaVersion" in value &&
+    value.schemaVersion === "2.0"
+  )
+    return migrateV20(value);
+  return parseProject(value);
+}
 export function decodeProject(value: unknown): LessonProject {
-  if (typeof value === "object" && value !== null && "schemaVersion" in value)
-    return parseProject(value);
+  const raw = z.record(z.string(), z.unknown()).parse(value);
+  if (raw.schemaVersion === "2.1") {
+    const metadata = z.record(z.string(), z.unknown()).parse(raw.metadata);
+    const now = new Date().toISOString();
+    return parseProject({
+      projectId: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      ...raw,
+      metadata: {
+        projectTitle: str(metadata.topic) || "Bài giảng mới",
+        ...metadata,
+      },
+    });
+  }
+  if ("schemaVersion" in raw) return decodeStoredProject(raw);
   return migrateLegacy(value);
 }

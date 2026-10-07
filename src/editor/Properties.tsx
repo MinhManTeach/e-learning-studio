@@ -1,16 +1,20 @@
 import { BookOpen, FileText, SlidersHorizontal } from "lucide-react";
-import type { Metadata, Slide } from "../model/schema";
+import type { Metadata, Objectives, Slide } from "../model/schema";
 import { slideRegistry } from "../renderers/SlideCanvas";
 import { Field, toLines } from "./Fields";
 export function Properties({
   metadata,
+  objectives,
   slide,
   editMetadata,
+  editObjectives,
   editSlide,
 }: {
   metadata: Metadata;
+  objectives: Objectives;
   slide: Slide | undefined;
   editMetadata: (metadata: Metadata) => void;
+  editObjectives: (objectives: Objectives) => void;
   editSlide: (slide: Slide) => void;
 }) {
   return (
@@ -154,7 +158,6 @@ export function Properties({
                 ["subject", "Môn"],
                 ["grade", "Lớp"],
                 ["topic", "Chủ đề"],
-                ["duration", "Thời lượng"],
                 ["teacherName", "Giáo viên"],
                 ["schoolName", "Trường"],
                 ["curriculum", "Chương trình"],
@@ -169,6 +172,24 @@ export function Properties({
                 }
               />
             ))}
+            <label className="field">
+              <span>Thời lượng (phút)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={metadata.durationMinutes}
+                onChange={(e) =>
+                  editMetadata({
+                    ...metadata,
+                    durationMinutes: Math.max(
+                      0,
+                      Math.floor(Number(e.target.value)),
+                    ),
+                  })
+                }
+              />
+            </label>
             <details open>
               <summary>Mục tiêu bài học</summary>
               {(
@@ -181,33 +202,45 @@ export function Properties({
                 <Field
                   key={key}
                   label={label}
-                  value={metadata.objectives[key].join("\n")}
+                  value={objectives[key].join("\n")}
                   multiline
                   hint="Mỗi dòng là một mục tiêu."
                   onChange={(value) =>
-                    editMetadata({
-                      ...metadata,
-                      objectives: {
-                        ...metadata.objectives,
-                        [key]: toLines(value),
-                      },
+                    editObjectives({
+                      ...objectives,
+                      [key]: toLines(value),
                     })
                   }
                 />
               ))}
-              <Field
-                label="Tích hợp AI"
-                value={metadata.aiIntegration}
-                onChange={(aiIntegration) =>
-                  editMetadata({ ...metadata, aiIntegration })
-                }
-                multiline
-              />
+              {(
+                [
+                  ["code", "Mã tích hợp AI"],
+                  ["title", "Tên nội dung tích hợp AI"],
+                  ["description", "Mô tả tích hợp AI"],
+                ] as const
+              ).map(([key, label]) => (
+                <Field
+                  key={key}
+                  label={label}
+                  value={objectives.aiIntegration[key]}
+                  onChange={(value) =>
+                    editObjectives({
+                      ...objectives,
+                      aiIntegration: {
+                        ...objectives.aiIntegration,
+                        [key]: value,
+                      },
+                    })
+                  }
+                  multiline={key === "description"}
+                />
+              ))}
               <Field
                 label="Hỗ trợ học sinh có nhu cầu đặc biệt"
-                value={metadata.specialNeeds}
+                value={objectives.specialNeeds}
                 onChange={(specialNeeds) =>
-                  editMetadata({ ...metadata, specialNeeds })
+                  editObjectives({ ...objectives, specialNeeds })
                 }
                 multiline
               />

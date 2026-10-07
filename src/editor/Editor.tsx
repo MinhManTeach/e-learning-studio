@@ -271,6 +271,10 @@ export function Editor({
           </main>
           <Properties
             metadata={state.project.metadata}
+            objectives={state.project.objectives}
+            editObjectives={(objectives) =>
+              dispatch({ type: "objectives", objectives })
+            }
             slide={slide}
             editMetadata={(metadata) =>
               dispatch({ type: "metadata", metadata })

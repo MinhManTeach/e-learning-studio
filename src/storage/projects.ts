@@ -1,4 +1,5 @@
 import { parseProject, type LessonProject } from "../model/schema";
+import { decodeStoredProject } from "../model/migrations";
 
 export interface ProjectStore {
   list(): Promise<{ projects: LessonProject[]; invalidCount: number }>;
@@ -10,7 +11,7 @@ function validated(values: unknown[]) {
   let invalidCount = 0;
   for (const value of values) {
     try {
-      projects.push(parseProject(value));
+      projects.push(decodeStoredProject(value));
     } catch {
       invalidCount++;
     }

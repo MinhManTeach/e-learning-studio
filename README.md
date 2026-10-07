@@ -29,11 +29,11 @@ npm run preview
 5. Dữ liệu tự động lưu sau 900 ms ngừng chỉnh sửa; trạng thái hiển thị ở trên. Dùng **Lưu bài** hoặc Ctrl+S để lưu ngay. Chờ **Đã lưu** trước khi đóng/tải lại trang. Nếu lỗi lưu, bài đang chỉnh sửa được giữ lại và có nút thử lại; đóng trang khi chưa lưu có cảnh báo trình duyệt.
 6. **Xem trước** hiển thị renderer dùng chung, chuyển trang bằng nút hoặc phím mũi tên; **Về chỉnh sửa** quay lại trang đã chọn trong editor. Đọc bài dùng giọng tiếng Việt trên thiết bị, khả năng hoạt động offline tùy hệ điều hành/trình duyệt.
 7. Sau khi tải lại, mở bài ở **Bài giảng của tôi**. Dữ liệu lưu trong IndexedDB của đúng trình duyệt và đúng địa chỉ/port, dự phòng localStorage nếu không mở được IndexedDB. Xóa dữ liệu trình duyệt sẽ xóa bài giảng. Phase 0 chưa có xuất bản/sao lưu tệp.
-8. **Mở tệp bài giảng** nhận schema 2.0 hoặc bản tham chiếu 1.x, tối đa 10 MB. Luôn tạo bản độc lập, không ghi đè bài hiện có. Các hoạt động ngoài welcome/content được giữ nguyên dữ liệu nhưng chưa chạy tương tác trong preview.
+8. **Mở tệp bài giảng** nhận schema 2.1, bài đã lưu 2.0 hoặc bản tham chiếu 1.x, tối đa 10 MB. Luôn tạo bản độc lập, không ghi đè bài hiện có. Mẫu 2.1 thiếu ID/tên/timestamps được bổ sung khi nhập; danh sách trang trống được giữ nguyên. Các hoạt động ngoài welcome/content được giữ nguyên dữ liệu nhưng chưa chạy tương tác trong preview.
 
 ## Cấu trúc
 
-- `src/model`: schema Zod 2.0, kiểu suy ra, factories, migration dispatch.
+- `src/model`: schema Zod 2.1, reader 2.0, kiểu suy ra, factories, migration dispatch.
 - `src/editor`: reducer bất biến, Editor shell, danh sách và bảng thuộc tính.
 - `src/renderers`: registry welcome/content/legacy, không phụ thuộc editor/LMS.
 - `src/player`: preview và hợp đồng `LmsAdapter`, `StandaloneAdapter`; chưa triển khai SCORM runtime mới.
@@ -48,3 +48,5 @@ Không sử dụng HTML không an toàn, CDN, font mạng hay dịch vụ backen
 Phase 0 chỉ xây nền tảng và editor shell. Hoạt động tương tác, quiz builder, media library, SCORM/HTML ZIP, AI, tài khoản và cloud đều để các giai đoạn sau. Không tự động tiếp tục Phase 1.
 
 Xem `REFERENCE_REVIEW.md` và `PHASE_0_CHECKPOINT.md` để biết kết quả kiểm tra và giới hạn.
+
+Schema hiện tại là **2.1**: `metadata.durationMinutes` là số nguyên không âm; `objectives` ở cấp gốc; `aiIntegration` có `code`, `title`, `description`. Thời lượng nhập bằng phút, ví dụ 35. Settings lưu tỷ lệ 16:9, theme SAFE_TEAL, điểm đạt và các cờ requireAllSlides/requireQuiz/allowRetry. Các cờ mới chỉ được lưu, chưa áp dụng điều kiện hoàn thành hoặc giới hạn làm lại trong preview Phase 0. Xem `SCHEMA_2_1.md` và mẫu nhập `examples/lesson-2.1.json`.

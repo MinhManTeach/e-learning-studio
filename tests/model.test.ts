@@ -126,15 +126,20 @@ describe("Project model and editor operations", () => {
     const metadata = {
       ...before.project.metadata,
       subject: "Tin học",
-      objectives: {
-        knowledge: ["Kiến thức"],
-        competencies: ["Năng lực"],
-        qualities: ["Phẩm chất"],
-      },
     };
     expect(
       editorReducer(before, { type: "metadata", metadata }).project.metadata,
     ).toEqual(metadata);
+    const objectives = {
+      ...before.project.objectives,
+      knowledge: ["Kiến thức"],
+      competencies: ["Năng lực"],
+      qualities: ["Phẩm chất"],
+    };
+    expect(
+      editorReducer(before, { type: "objectives", objectives }).project
+        .objectives,
+    ).toEqual(objectives);
   });
   it("selection does not mark content dirty", () => {
     const state = editorState(createProject());
@@ -171,7 +176,7 @@ describe("Project model and editor operations", () => {
   it("migrates all 14 reference slides and preserves unsupported activity payloads", () => {
     const p = migrateLegacy(reference);
     expect(p.slides).toHaveLength(14);
-    expect(p.metadata.objectives.knowledge).toEqual(
+    expect(p.objectives.knowledge).toEqual(
       reference.metadata.objectives.knowledge,
     );
     const quiz = p.slides.find(
@@ -181,7 +186,7 @@ describe("Project model and editor operations", () => {
       reference.slides.find((s) => s.type === "quiz")?.quizData,
     );
     expect(p.legacySource).toEqual(reference);
-    expect(p.metadata.aiIntegration).toBe(
+    expect(p.objectives.aiIntegration.description).toBe(
       reference.metadata.objectives.aiIntegration,
     );
   });

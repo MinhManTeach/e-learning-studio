@@ -30,7 +30,7 @@ describe.each(["indexed", "local"])("%s project persistence", (backend) => {
     const p = createProject("Tin học lớp 4 – Thông tin trên Website");
     p.metadata.subject = "Tin học";
     p.metadata.grade = "4";
-    p.metadata.duration = "35 phút";
+    p.metadata.durationMinutes = 35;
     p.slides.reverse();
     await store.save(p);
     expect((await store.list()).projects).toEqual([p]);

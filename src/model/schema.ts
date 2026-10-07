@@ -7,15 +7,27 @@ export const metadataSchema = z.object({
   subject: text,
   grade: text,
   topic: text,
-  duration: text,
+  durationMinutes: z.number().int().nonnegative().default(35),
   teacherName: text,
   schoolName: text,
   curriculum: text,
-  objectives: z
-    .object({ knowledge: lines, competencies: lines, qualities: lines })
-    .default({ knowledge: [], competencies: [], qualities: [] }),
-  aiIntegration: text,
+});
+export const objectivesSchema = z.object({
+  knowledge: lines,
+  competencies: lines,
+  qualities: lines,
+  aiIntegration: z
+    .object({ code: text, title: text, description: text })
+    .default({ code: "", title: "", description: "" }),
   specialNeeds: text,
+});
+export const settingsSchema = z.object({
+  aspectRatio: z.literal("16:9").default("16:9"),
+  theme: z.literal("SAFE_TEAL").default("SAFE_TEAL"),
+  passingScore: z.number().min(0).max(100).default(80),
+  requireAllSlides: z.boolean().default(true),
+  requireQuiz: z.boolean().default(true),
+  allowRetry: z.boolean().default(true),
 });
 const common = {
   id: z.string().min(1),
@@ -47,22 +59,19 @@ export const slideSchema = z.discriminatedUnion("type", [
 ]);
 export const projectSchema = z
   .object({
-    schemaVersion: z.literal("2.0"),
+    schemaVersion: z.literal("2.1"),
     projectId: z.string().min(1),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
     metadata: metadataSchema,
-    settings: z
-      .object({
-        theme: z.literal("studio").default("studio"),
-        passingScore: z.number().min(0).max(100).default(80),
-      })
-      .default({ theme: "studio", passingScore: 80 }),
+    objectives: objectivesSchema.prefault({}),
+    settings: settingsSchema.prefault({}),
     slides: z.array(slideSchema),
     assets: z
       .array(z.object({ id: z.string(), url: z.string(), name: text }))
       .default([]),
     legacySource: z.record(z.string(), z.unknown()).optional(),
+    migrationSource: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((p, ctx) => {
     if (new Set(p.slides.map((s) => s.id)).size !== p.slides.length)
@@ -80,6 +89,7 @@ export const projectSchema = z
   });
 export type LessonProject = z.infer<typeof projectSchema>;
 export type Metadata = z.infer<typeof metadataSchema>;
+export type Objectives = z.infer<typeof objectivesSchema>;
 export type Slide = z.infer<typeof slideSchema>;
 export type BasicSlide = Extract<Slide, { type: "welcome" | "content" }>;
 export type BasicData = z.infer<typeof basicDataSchema>;

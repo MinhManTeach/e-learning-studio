@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "2.1",
+  "metadata": {
+    "subject": "Tin học",
+    "grade": "4",
+    "topic": "Thông tin trên Website",
+    "durationMinutes": 35,
+    "curriculum": "GDPT 2018"
+  },
+  "objectives": {
+    "knowledge": [
+      "Nhận biết và phân biệt văn bản, hình ảnh, âm thanh và siêu liên kết trên website.",
+      "Giải thích sơ lược tác hại của việc truy cập website không phù hợp lứa tuổi."
+    ],
+    "competencies": [
+      "Tự chủ và tự học",
+      "Giao tiếp và hợp tác",
+      "Giải quyết vấn đề và sáng tạo"
+    ],
+    "qualities": ["Trung thực", "Tự tin"],
+    "aiIntegration": {
+      "code": "4.B2.1",
+      "title": "Bảo vệ thông tin cá nhân",
+      "description": "Không tùy tiện cung cấp thông tin cá nhân cho website hoặc AI chatbot."
+    },
+    "specialNeeds": "Nhận biết các loại thông tin chính trên website."
+  },
+  "settings": {
+    "aspectRatio": "16:9",
+    "theme": "SAFE_TEAL",
+    "passingScore": 80,
+    "requireAllSlides": true,
+    "requireQuiz": true,
+    "allowRetry": true
+  },
+  "slides": [],
+  "assets": []
+}

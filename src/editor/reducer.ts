@@ -2,6 +2,7 @@ import { createSlide } from "../model/factories";
 import type {
   LessonProject,
   Metadata,
+  Objectives,
   Slide,
   SlideType,
 } from "../model/schema";
@@ -13,6 +14,7 @@ export interface EditorState {
 export type EditorAction =
   | { type: "select"; id: string | null }
   | { type: "metadata"; metadata: Metadata }
+  | { type: "objectives"; objectives: Objectives }
   | { type: "add"; slideType: SlideType }
   | { type: "edit"; slide: Slide }
   | { type: "duplicate"; id: string }
@@ -29,6 +31,7 @@ export function editorReducer(
   let selectedId = state.selectedId;
   let slides = project.slides;
   let metadata = project.metadata;
+  let objectives = project.objectives;
   if (action.type === "select")
     return {
       ...state,
@@ -38,6 +41,9 @@ export function editorReducer(
           : selectedId,
     };
   switch (action.type) {
+    case "objectives":
+      objectives = action.objectives;
+      break;
     case "metadata":
       metadata = action.metadata;
       break;
@@ -90,6 +96,7 @@ export function editorReducer(
       ...project,
       slides,
       metadata,
+      objectives,
       updatedAt: new Date().toISOString(),
     },
     selectedId,
