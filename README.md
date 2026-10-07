@@ -17,7 +17,9 @@ Mở địa chỉ Vite in ra, mặc định http://127.0.0.1:5173. Giữ tiến 
 
 ## Cách dùng
 
-Luồng chính: **Dán nội dung kế hoạch** hoặc **Nhập tệp kế hoạch** → phân tích cục bộ → giáo viên sửa/đối chiếu nguồn → đánh dấu đã kiểm tra → xác nhận. TXT UTF-8 được hỗ trợ (dưới 2 MB, tối đa 200.000 ký tự); DOCX/PDF hiển thị “Sắp hỗ trợ”, có thể sao chép văn bản để dán. Không gọi dịch vụ AI, không tự tạo slide ở Phase 2A. Các bước tiến độ phản ánh xử lý thực tế, có thể hoàn tất rất nhanh.
+Luồng chính: **Dán nội dung kế hoạch** hoặc **Nhập tệp kế hoạch** → phân tích cục bộ → giáo viên sửa/đối chiếu nguồn → đánh dấu đã kiểm tra → xác nhận. TXT UTF-8 và DOCX được hỗ trợ (dưới 2 MB, tối đa 200.000 ký tự sau khi đọc); PDF hiển thị “Sắp hỗ trợ”. DOCX giữ đoạn, heading, đánh số và bảng; bản chữ chỉ dùng để đối chiếu, không thay cấu trúc bảng khi phân tích. Không gọi dịch vụ AI, không tự tạo slide ở Phase 2A. Các bước tiến độ phản ánh xử lý thực tế, có thể hoàn tất rất nhanh.
+
+Với DOCX, các cột GV/HS, mục tiêu/nội dung/sản phẩm/tổ chức thực hiện được giữ riêng theo ngữ cảnh. Nội dung chưa rõ hoặc ô gộp mơ hồ xuất hiện ở **Cần thầy/cô kiểm tra**: chọn “Đây là nội dung gì?” rồi chuyển nhóm. Có nút thêm/xóa ý và hoạt động. Chế độ phát triển có **Kiểm tra phân tích tài liệu** để xem cấu trúc nguồn, phân loại, trường đích và tín hiệu tính điểm. Điểm quy tắc không phải xác suất nội dung đúng.
 
 Bản phân tích và chỉnh sửa chỉ giữ trong phiên hiện tại; quay lại dashboard/editor không làm mất bản nháp, nhưng tải lại trang sẽ xóa bản nháp phân tích. Không lưu văn bản nguồn vào bài giảng. Trường thiếu giữ trống, số tiết không tự đổi thành phút; cảnh báo không ngăn xác nhận. Phân tích lại bản đã sửa cần xác nhận thay thế.
 
@@ -50,4 +52,15 @@ Không render HTML do giáo viên nhập. Không dùng backend, CDN/font mạng 
 
 Xem `SCHEMA_2_2.md` và `PHASE_1_CHECKPOINT.md`. `SCHEMA_2_1.md` và `PHASE_0_CHECKPOINT.md` được giữ làm hồ sơ lịch sử.
 
-Phase 2A: xem `PHASE_2A_ARCHITECTURE.md` và `PHASE_2A_CHECKPOINT.md`.
+Phase 2A: xem `PHASE_2A_ARCHITECTURE.md`, checkpoint gốc `PHASE_2A_CHECKPOINT.md` và corrective pass `PHASE_2A_FIX_CHECKPOINT.md`. Đối chiếu tệp thật: `DOCX_ACCEPTANCE_REPORT.md`.
+
+Chẩn đoán cục bộ (không gửi dữ liệu ra ngoài):
+
+```powershell
+node scripts/diagnose-lesson.mjs "C:\duong-dan\giao-an.docx"
+```
+
+Kết quả gồm hash tệp, raw text, blocks, analysis và classification trong `test-results/docx/` (không đưa vào Git).
+## Phase 2A.2 analyzer status
+
+Analysis now goes through an AI-first provider service with validated structured input/output and a local fallback. **Real AI is not connected yet.** The production UI honestly displays `AI chưa được kết nối` and uses local analysis. No API keys, secret persistence or AI network calls were added. Review begins with detected content counts, marks medium confidence and collapses unresolved details. See `PHASE_2A_2_CHECKPOINT.md` for architecture and verification; lesson generation remains outside this phase.

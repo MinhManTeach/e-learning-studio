@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Plus, Trash2, CheckCircle2, ChevronDown } from "lucide-react";
 import { stageLabels } from "../model/analysis";
 import { stages } from "../model/schema";
@@ -95,29 +95,108 @@ export function AnalysisReview({
   back,
   reanalyze,
   confirm,
+  diagnostics,
+  sourceStatus,
 }: {
   analysis: PedagogicalAnalysis;
   edit: (field: keyof PedagogicalAnalysis, value: unknown) => void;
   back: () => void;
   reanalyze: () => void;
   confirm: () => void;
+  diagnostics?: ReactNode;
+  sourceStatus?: string;
 }) {
-  const [reviewed, setReviewed] = useState(false);
+  const [reviewedAnalysis, setReviewedAnalysis] =
+    useState<PedagogicalAnalysis | null>(null);
+  const reviewed = reviewedAnalysis === a;
   const warnings = analysisWarnings(a);
   function change(field: keyof PedagogicalAnalysis, value: unknown) {
-    setReviewed(false);
+    setReviewedAnalysis(null);
     edit(field, value);
   }
   return (
     <>
       <div className="review-intro">
         <span className="eyebrow">BƯỚC 3 · GIÁO VIÊN KIỂM TRA</span>
-        <h1>E-Learning Studio đã hiểu kế hoạch của thầy/cô như sau</h1>
+        <h1>Đã phân tích kế hoạch bài dạy</h1>
+        <p>E-Learning Studio đã hiểu kế hoạch của thầy/cô như sau</p>
+        {sourceStatus && (
+          <p role="status" className="analysis-source">
+            {sourceStatus}
+          </p>
+        )}
         <p>
           Ứng dụng lấy thông tin từ văn bản đã nhập. Thầy/cô kiểm tra và chỉnh
           sửa trước khi xác nhận.
         </p>
       </div>
+      <section className="analysis-summary" aria-label="Tóm tắt phân tích">
+        <span>
+          ✓ Thông tin bài học:{" "}
+          {
+            [
+              a.subject,
+              a.lessonTitle,
+              a.curriculumGrade,
+              a.targetAudienceGrade,
+              a.topic,
+              a.durationMinutes,
+            ].filter((x) => x !== "" && x !== null).length
+          }{" "}
+          mục
+        </span>
+        <span>
+          ✓ {a.learningOutcomes.length + a.knowledgeObjectives.length} yêu cầu
+          cần đạt / kiến thức
+        </span>
+        <span>✓ {a.competencies.length} năng lực</span>
+        <span>✓ {a.qualities.length} phẩm chất</span>
+        <span>✓ {a.teachingActivities.length} hoạt động học tập</span>
+        <span>✓ {a.aiIntegration.length} nội dung tích hợp AI</span>
+      </section>
+      {a.classifications.some(
+        (c) => !c.isHeading && !c.corrected && c.confidence < 0.85,
+      ) && (
+        <details className="analysis-attention">
+          <summary>
+            ⚠{" "}
+            {
+              a.classifications.filter(
+                (c) => !c.isHeading && !c.corrected && c.confidence < 0.85,
+              ).length
+            }{" "}
+            nội dung nên kiểm tra
+          </summary>
+          {a.classifications
+            .filter(
+              (c) =>
+                !c.isHeading &&
+                !c.corrected &&
+                c.confidence >= 0.6 &&
+                c.confidence < 0.85,
+            )
+            .map((c) => (
+              <p key={c.id}>
+                <strong>Nên kiểm tra</strong> · {c.sourceText}
+              </p>
+            ))}
+          <p>
+            Các mục có độ tin cậy thấp được giữ ở phần nội dung chưa phân loại
+            bên dưới.
+          </p>
+        </details>
+      )}
+      {a.classifications.some(
+        (c) => c.isHeading && c.category === "LEARNING_OUTCOME",
+      ) &&
+        !a.learningOutcomes.length &&
+        a.knowledgeObjectives.length > 0 && (
+          <p className="hint">
+            Yêu cầu cần đạt trong tài liệu được chia thành các mục con: kiến
+            thức, năng lực, phẩm chất. Các mục được giữ riêng bên dưới để
+            thầy/cô kiểm tra.
+          </p>
+        )}
       {warnings.length > 0 && (
         <aside
           className="analysis-warnings"
@@ -137,99 +216,154 @@ export function AnalysisReview({
       )}
       <div className="review-grid">
         <div className="review-sections">
-          {reviewGroups.map((group) => (
-            <section className="analysis-card" key={group.title}>
-              <h2>{group.title}</h2>
-              <p className="section-help">{group.description}</p>
-              <div
-                className={
-                  group.fields[0].kind === "text"
-                    ? "analysis-meta-grid"
-                    : "analysis-field-grid"
-                }
-              >
-                {group.fields.map((f) => {
-                  const traces = a.sourceTraces.filter(
-                    (t) => t.field === f.key,
-                  );
-                  const edited = a.teacherEditedFields.includes(f.key);
-                  const value = a[f.key];
-                  return (
-                    <div className="review-field" key={f.key}>
-                      <label>
-                        <span>
-                          {f.label}
-                          {edited && (
-                            <small className="teacher-edit">Đã chỉnh sửa</small>
-                          )}
-                        </span>
-                        {f.kind === "list" ? (
-                          <textarea
-                            rows={Math.min(
-                              7,
-                              Math.max(3, (value as string[]).length + 1),
-                            )}
-                            value={(value as string[]).join("\n")}
-                            placeholder="Chưa phát hiện trong kế hoạch bài dạy."
-                            onChange={(e) =>
-                              change(
-                                f.key,
-                                e.target.value === ""
-                                  ? []
-                                  : e.target.value.split("\n"),
-                              )
-                            }
-                          />
-                        ) : (
-                          <input
-                            type={f.kind === "number" ? "number" : "text"}
-                            min={0}
-                            value={value === null ? "" : String(value)}
-                            placeholder="Chưa phát hiện"
-                            onChange={(e) =>
-                              change(
-                                f.key,
-                                f.kind === "number"
-                                  ? e.target.value === ""
-                                    ? null
-                                    : Math.max(0, Number(e.target.value))
-                                  : e.target.value,
-                              )
-                            }
-                          />
-                        )}
-                      </label>
-                      {traces.length > 0 && (
-                        <details className="source-trace">
-                          <summary>
-                            <ChevronDown size={12} />
-                            Lấy thông tin này từ đâu?
-                          </summary>
-                          {traces.map((t, i) => (
-                            <blockquote key={i}>
-                              <p>{t.sourceText}</p>
-                              <small>
-                                Dòng {t.lineStart} · Mức đối chiếu:{" "}
-                                {t.confidence >= 0.9
-                                  ? "Rõ ràng"
-                                  : "Cần kiểm tra"}
+          {reviewGroups.map((group) => {
+            const collapsed = group.fields[0].key === "sourceWarnings";
+            const Container = collapsed ? "details" : "section";
+            return (
+              <Container className="analysis-card" key={group.title}>
+                {collapsed ? (
+                  <summary>{group.title}</summary>
+                ) : (
+                  <h2>{group.title}</h2>
+                )}
+                <p className="section-help">{group.description}</p>
+                <div
+                  className={
+                    group.fields[0].kind === "text"
+                      ? "analysis-meta-grid"
+                      : "analysis-field-grid"
+                  }
+                >
+                  {group.fields.map((f) => {
+                    const traces = a.sourceTraces.filter(
+                      (t) =>
+                        t.field === f.key ||
+                        t.field.startsWith(`${f.key}.`) ||
+                        t.field.startsWith(`${f.key}[`),
+                    );
+                    const edited = a.teacherEditedFields.includes(f.key);
+                    const value = a[f.key];
+                    return (
+                      <div className="review-field" key={f.key}>
+                        <label>
+                          <span>
+                            {f.label}
+                            {traces.some(
+                              (t) => t.confidence >= 0.6 && t.confidence < 0.85,
+                            ) &&
+                              !edited && (
+                                <small className="teacher-edit">
+                                  Nên kiểm tra
+                                </small>
+                              )}
+                            {edited && (
+                              <small className="teacher-edit">
+                                Đã chỉnh sửa
                               </small>
-                            </blockquote>
-                          ))}
-                          {edited && (
-                            <p>
-                              Nguồn hiển thị là văn bản ban đầu. Giá trị hiện
-                              tại đã được thầy/cô sửa.
-                            </p>
+                            )}
+                          </span>
+                          {f.kind === "list" ? (
+                            <textarea
+                              aria-label={f.label}
+                              rows={Math.min(
+                                7,
+                                Math.max(3, (value as string[]).length + 1),
+                              )}
+                              value={(value as string[]).join("\n")}
+                              placeholder="Chưa phát hiện trong kế hoạch bài dạy."
+                              onChange={(e) =>
+                                change(
+                                  f.key,
+                                  e.target.value === ""
+                                    ? []
+                                    : e.target.value.split("\n"),
+                                )
+                              }
+                            />
+                          ) : (
+                            <input
+                              aria-label={f.label}
+                              type={f.kind === "number" ? "number" : "text"}
+                              min={0}
+                              value={value === null ? "" : String(value)}
+                              placeholder="Chưa phát hiện"
+                              onChange={(e) =>
+                                change(
+                                  f.key,
+                                  f.kind === "number"
+                                    ? e.target.value === ""
+                                      ? null
+                                      : Math.max(0, Number(e.target.value))
+                                    : e.target.value,
+                                )
+                              }
+                            />
                           )}
-                        </details>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                        </label>
+                        {f.kind === "list" && (
+                          <div className="list-item-actions">
+                            <button
+                              onClick={() =>
+                                change(f.key, [...(value as string[]), ""])
+                              }
+                            >
+                              <Plus size={13} /> Thêm ý · {f.label}
+                            </button>
+                            {(value as string[]).map((_, i) => (
+                              <button
+                                key={i}
+                                aria-label={`Xóa ý ${i + 1} · ${f.label}`}
+                                onClick={() =>
+                                  change(
+                                    f.key,
+                                    (value as string[]).filter(
+                                      (_, j) => i !== j,
+                                    ),
+                                  )
+                                }
+                              >
+                                <Trash2 size={12} /> Ý {i + 1}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {traces.length > 0 && (
+                          <details className="source-trace">
+                            <summary>
+                              <ChevronDown size={12} />
+                              Lấy thông tin này từ đâu?
+                            </summary>
+                            {traces.map((t, i) => (
+                              <blockquote key={i}>
+                                <p>{t.sourceText}</p>
+                                <small>
+                                  {t.blockId
+                                    ? `Khối ${t.blockId}${t.row !== undefined ? ` · hàng ${t.row + 1}, cột ${(t.column ?? 0) + 1}` : ""}`
+                                    : `Dòng ${t.lineStart}`}{" "}
+                                  · Mức đối chiếu:{" "}
+                                  {t.confidence >= 0.85
+                                    ? "Rõ ràng"
+                                    : t.confidence >= 0.6
+                                      ? "Nên kiểm tra"
+                                      : "Cần kiểm tra"}
+                                </small>
+                              </blockquote>
+                            ))}
+                            {edited && (
+                              <p>
+                                Nguồn hiển thị là văn bản ban đầu. Giá trị hiện
+                                tại đã được thầy/cô sửa.
+                              </p>
+                            )}
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Container>
+            );
+          })}
           <section className="analysis-card">
             <h2>Hoạt động dạy học</h2>
             <p className="section-help">
@@ -311,6 +445,33 @@ export function AnalysisReview({
                         }
                       />
                     </label>
+                    {(
+                      [
+                        ["teacherActivity", "Hoạt động của giáo viên"],
+                        ["studentActivity", "Hoạt động của học sinh"],
+                        ["goals", "Mục tiêu hoạt động"],
+                        ["products", "Sản phẩm hoạt động"],
+                        ["organization", "Tổ chức thực hiện"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label key={key}>
+                        <span>
+                          {label} {i + 1}
+                        </span>
+                        <textarea
+                          rows={3}
+                          value={activity[key].join("\n")}
+                          placeholder="Chưa phát hiện trong kế hoạch bài dạy."
+                          onChange={(e) =>
+                            update({
+                              [key]: e.target.value
+                                ? e.target.value.split("\n")
+                                : [],
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
                     <button
                       onClick={() =>
                         change(
@@ -364,12 +525,13 @@ export function AnalysisReview({
           </div>
         </aside>
       </div>
+      {diagnostics}
       <div className="review-confirm">
         <label className="review-check">
           <input
             type="checkbox"
             checked={reviewed}
-            onChange={(e) => setReviewed(e.target.checked)}
+            onChange={(e) => setReviewedAnalysis(e.target.checked ? a : null)}
           />
           <span>Tôi đã kiểm tra và chịu trách nhiệm về nội dung xác nhận.</span>
         </label>

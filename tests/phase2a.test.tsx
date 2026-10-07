@@ -69,10 +69,12 @@ describe("Phase 2A document import", () => {
       rawText: "Môn: Tiếng Việt\nLớp: 2",
     });
   });
-  it.each(["DOCX", "PDF"])("honestly rejects unimplemented %s", async (ext) =>
-    expect(importPlanFile(file("plan." + ext, "fake content"))).rejects.toThrow(
-      "sắp hỗ trợ",
-    ),
+  it.each(["DOCX", "PDF"])(
+    "rejects invalid DOCX or unimplemented PDF (%s)",
+    async (ext) =>
+      expect(
+        importPlanFile(file("plan." + ext, "fake content")),
+      ).rejects.toThrow(ext === "PDF" ? "sắp hỗ trợ" : "Không đọc được DOCX"),
   );
   it("rejects unknown file extension", async () =>
     expect(importPlanFile(file("plan.exe", "text"))).rejects.toThrow(
@@ -104,10 +106,10 @@ describe("Phase 2A document import", () => {
     expect(() => importPastedPlan("Môn:\u0000Toán")).toThrow(
       "không phải văn bản",
     ));
-  it("reports TXT only as implemented", () =>
+  it("reports TXT and DOCX as implemented", () =>
     expect(
       supportedPlanFormats.filter((x) => x.supported).map((x) => x.extension),
-    ).toEqual(["TXT"]));
+    ).toEqual(["TXT", "DOCX"]));
 });
 describe("Vietnamese deterministic analyzer", () => {
   it("extracts complete fixture metadata without copying grade or title into missing fields", async () => {
@@ -322,7 +324,9 @@ describe("Vietnamese deterministic analyzer", () => {
   it("reports actual pipeline stages through provider boundary", async () => {
     const boundary: LessonAnalysisProvider = provider;
     const progress: { index: number; label: string; completed: boolean }[] = [];
-    await boundary.analyze(importPastedPlan(fixture), (p) => progress.push(p));
+    await boundary.analyze(importPastedPlan(fixture), {
+      onProgress: (p) => progress.push(p),
+    });
     expect(progress).toHaveLength(14);
     expect(progress.filter((p) => p.completed).map((p) => p.label)).toEqual([
       ...analysisSteps,

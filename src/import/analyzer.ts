@@ -7,6 +7,8 @@ import {
   type AnalysisProgress,
   type TeachingActivity,
 } from "./model";
+import { activitySchema } from "./model";
+import { classifyStructuredDocument } from "./structure";
 
 export const analysisSteps = [
   "Xác định thông tin bài học",
@@ -213,13 +215,13 @@ function scan(document: ImportedLessonDocument): Event[] {
         .replace(/:\s*$/, "");
       const stage = matchAlias(withoutTime, stageAliases, false);
       if (stage) {
-        activeActivity = {
+        activeActivity = activitySchema.parse({
           id: `${document.id}-activity-${lineNumber}`,
           title: activityLine,
           stage: stage.field,
           content: [],
           estimatedMinutes: parseDuration(activityLine),
-        };
+        });
         events.push({
           ...base,
           field: "activities",
@@ -283,13 +285,13 @@ function scan(document: ImportedLessonDocument): Event[] {
         activeActivity = undefined;
       }
       if (section === "activities" && !activeActivity) {
-        activeActivity = {
+        activeActivity = activitySchema.parse({
           id: `${document.id}-activity-${lineNumber}`,
           title: line,
           stage: null,
           content: [],
           estimatedMinutes: null,
-        };
+        });
         events.push({
           ...base,
           field: "activities",
@@ -307,7 +309,9 @@ function scan(document: ImportedLessonDocument): Event[] {
     });
   return events;
 }
-function emptyAnalysis(document: ImportedLessonDocument): PedagogicalAnalysis {
+export function emptyAnalysis(
+  document: ImportedLessonDocument,
+): PedagogicalAnalysis {
   return {
     version: "1.0",
     id: `analysis-${document.id}`,
@@ -334,6 +338,7 @@ function emptyAnalysis(document: ImportedLessonDocument): PedagogicalAnalysis {
     unmappedContent: [],
     sourceTraces: [],
     teacherEditedFields: [],
+    classifications: [],
   };
 }
 function trace(a: PedagogicalAnalysis, e: Event, confidence = 0.9) {
@@ -423,36 +428,91 @@ function activities(a: PedagogicalAnalysis, events: Event[]) {
   }
 }
 export class DeterministicLessonAnalysisProvider implements LessonAnalysisProvider {
+  readonly id = "deterministic";
+  readonly name = "Phân tích cục bộ";
   readonly kind = "LOCAL" as const;
   async analyze(
     document: ImportedLessonDocument,
-    onProgress?: (p: AnalysisProgress) => void,
+    options?:
+      import("./model").LessonAnalysisOptions | ((p: AnalysisProgress) => void),
     signal?: AbortSignal,
   ): Promise<PedagogicalAnalysis> {
+    const onProgress =
+      typeof options === "function" ? options : options?.onProgress;
+    signal =
+      typeof options === "function" ? signal : (options?.signal ?? signal);
     importedDocumentSchema.parse(document);
+    if (document.sourceType === "DOCX" && !document.blocks.length)
+      throw new Error(
+        "DOCX chưa có cấu trúc tài liệu. Vui lòng nhập lại tệp để đọc đoạn và bảng.",
+      );
     const analysis = emptyAnalysis(document);
+    let structured: PedagogicalAnalysis | undefined;
+    const take = (fields: (keyof PedagogicalAnalysis)[]) => {
+      if (!structured) return;
+      for (const field of fields)
+        (analysis as unknown as Record<string, unknown>)[field] =
+          structured[field];
+    };
     let events: Event[] = [];
     const pipeline = [
       () => {
+        if (document.sourceType === "DOCX") {
+          structured = emptyAnalysis(document);
+          classifyStructuredDocument(document, structured);
+          take([
+            "subject",
+            "curriculumGrade",
+            "targetAudienceGrade",
+            "lessonTitle",
+            "topic",
+            "durationMinutes",
+            "curriculum",
+            "sourceTraces",
+            "classifications",
+            "sourceWarnings",
+          ]);
+          return;
+        }
         events = scan(document);
         metadata(analysis, events);
       },
-      () => collect(analysis, events, ["learningOutcomes"]),
       () =>
-        collect(analysis, events, [
-          "knowledgeObjectives",
-          "keyKnowledge",
-          "unmappedContent",
-        ]),
-      () => collect(analysis, events, ["competencies", "qualities"]),
-      () => activities(analysis, events),
-      () => collect(analysis, events, ["assessmentEvidence", "safetyTopics"]),
+        structured
+          ? take(["learningOutcomes"])
+          : collect(analysis, events, ["learningOutcomes"]),
       () =>
-        collect(analysis, events, [
-          "digitalCompetencyIntegration",
-          "aiIntegration",
-          "specialNeedsSupport",
-        ]),
+        structured
+          ? take(["knowledgeObjectives", "keyKnowledge", "unmappedContent"])
+          : collect(analysis, events, [
+              "knowledgeObjectives",
+              "keyKnowledge",
+              "unmappedContent",
+            ]),
+      () =>
+        structured
+          ? take(["competencies", "qualities"])
+          : collect(analysis, events, ["competencies", "qualities"]),
+      () =>
+        structured
+          ? take(["teachingActivities"])
+          : activities(analysis, events),
+      () =>
+        structured
+          ? take(["assessmentEvidence", "safetyTopics"])
+          : collect(analysis, events, ["assessmentEvidence", "safetyTopics"]),
+      () =>
+        structured
+          ? take([
+              "digitalCompetencyIntegration",
+              "aiIntegration",
+              "specialNeedsSupport",
+            ])
+          : collect(analysis, events, [
+              "digitalCompetencyIntegration",
+              "aiIntegration",
+              "specialNeedsSupport",
+            ]),
     ];
     for (let i = 0; i < pipeline.length; i++) {
       signal?.throwIfAborted();

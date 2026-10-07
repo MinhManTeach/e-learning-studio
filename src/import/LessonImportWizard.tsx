@@ -14,7 +14,11 @@ import {
   importPlanFile,
   supportedPlanFormats,
 } from "./documents";
-import { analysisSteps, DeterministicLessonAnalysisProvider } from "./analyzer";
+import { analysisSteps } from "./analyzer";
+import {
+  LessonAnalysisService,
+  type AnalysisServiceResult,
+} from "./analysisService";
 import type {
   AnalysisProgress,
   ImportedLessonDocument,
@@ -23,18 +27,26 @@ import type {
 } from "./model";
 import { analysisSchema } from "./model";
 import { AnalysisReview } from "./AnalysisReview";
-import { confirmAnalysis, editAnalysis, type AnalysisDraft } from "./review";
-const localProvider = new DeterministicLessonAnalysisProvider();
+import { DocumentDiagnostics } from "./DocumentDiagnostics";
+import {
+  confirmAnalysis,
+  correctClassification,
+  editAnalysis,
+  type AnalysisDraft,
+} from "./review";
+const defaultService = new LessonAnalysisService();
 export function LessonImportWizard({
   active,
   initialMode,
   onClose,
-  provider = localProvider,
+  provider,
+  service = defaultService,
 }: {
   active: boolean;
   initialMode: "paste" | "file";
   onClose: () => void;
   provider?: LessonAnalysisProvider;
+  service?: LessonAnalysisService;
 }) {
   const [mode, setMode] = useState(initialMode);
   const [rawText, setRawText] = useState("");
@@ -45,6 +57,8 @@ export function LessonImportWizard({
   >("input");
   const [progress, setProgress] = useState<AnalysisProgress | null>(null);
   const [error, setError] = useState("");
+  const [analysisSource, setAnalysisSource] =
+    useState<AnalysisServiceResult | null>(null);
   const [reading, setReading] = useState(false);
   const [replacePrompt, setReplacePrompt] = useState(false);
   const file = useRef<HTMLInputElement>(null);
@@ -96,19 +110,20 @@ export function LessonImportWizard({
     setStep("analyzing");
     setProgress(null);
     try {
-      const result = analysisSchema.parse(
-        await provider.analyze(
-          doc,
-          (p) => {
-            if (!controller.signal.aborted) setProgress(p);
-          },
-          controller.signal,
-        ),
-      );
+      const outcome = await (
+        provider ? new LessonAnalysisService(undefined, provider) : service
+      ).analyze(doc, {
+        onProgress: (p) => {
+          if (!controller.signal.aborted) setProgress(p);
+        },
+        signal: controller.signal,
+      });
+      const result = analysisSchema.parse(outcome.analysis);
       if (controller.signal.aborted) return;
       if (result.sourceDocumentId !== doc.id)
         throw new Error("Kết quả chưa khớp kế hoạch nguồn. Vui lòng thử lại.");
       setDraft({ document: doc, analysis: result, confirmedAt: null });
+      setAnalysisSource(outcome);
       setStep("review");
     } catch (e) {
       if (!controller.signal.aborted) {
@@ -160,7 +175,9 @@ export function LessonImportWizard({
         </a>
         <span className="local-badge">
           <ShieldCheck size={15} />
-          Phân tích tại thiết bị
+          {analysisSource?.source === "AI"
+            ? "Phân tích bằng AI"
+            : "Phân tích cục bộ"}
         </span>
       </header>
       <main className="import-main">
@@ -199,8 +216,7 @@ export function LessonImportWizard({
               </p>
               <div className="local-explanation">
                 <ShieldCheck size={16} />
-                Hiện tại phân tích bằng quy tắc tại thiết bị. Không gửi nội dung
-                đến dịch vụ AI.
+                AI chưa được kết nối. Đang dùng chế độ phân tích cơ bản.
               </div>
             </div>
             <section className="import-input-card">
@@ -230,12 +246,15 @@ export function LessonImportWizard({
                 <div className="plan-upload">
                   <FileUp size={31} />
                   <h2>Nhập kế hoạch bài dạy</h2>
-                  <p>Chọn TXT UTF-8 dưới 2 MB, tối đa 200.000 ký tự.</p>
+                  <p>
+                    Chọn DOCX hoặc TXT UTF-8 dưới 2 MB, tối đa 200.000 ký tự sau
+                    khi đọc.
+                  </p>
                   <button
                     onClick={() => file.current?.click()}
                     disabled={reading}
                   >
-                    {reading ? "Đang đọc tệp…" : "Chọn tệp TXT"}
+                    {reading ? "Đang đọc tệp…" : "Chọn tệp DOCX hoặc TXT"}
                   </button>
                   <div className="format-badges">
                     {supportedPlanFormats.map((f) => (
@@ -246,8 +265,8 @@ export function LessonImportWizard({
                     ))}
                   </div>
                   <p className="hint">
-                    Với Word hoặc PDF, thầy/cô có thể sao chép phần văn bản rồi
-                    chọn Dán nội dung.
+                    DOCX giữ cấu trúc đoạn và bảng. PDF sắp hỗ trợ; có thể sao
+                    chép văn bản rồi chọn Dán nội dung.
                   </p>
                 </div>
               )}
@@ -255,7 +274,7 @@ export function LessonImportWizard({
                 type="file"
                 hidden
                 ref={file}
-                accept=".txt,text/plain"
+                accept=".txt,.docx,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={(e) => {
                   const selected = e.target.files?.[0];
                   if (selected) void readFile(selected);
@@ -264,18 +283,35 @@ export function LessonImportWizard({
               />
               <label className="plan-text">
                 <span>
-                  {document?.sourceType === "TXT"
+                  {document?.fileName
                     ? `Văn bản từ ${document.fileName}`
                     : "Nội dung kế hoạch bài dạy"}
                 </span>
                 <textarea
                   value={rawText}
-                  disabled={reading}
+                  disabled={reading || document?.sourceType === "DOCX"}
                   rows={16}
                   placeholder="Dán toàn bộ kế hoạch bài dạy vào đây..."
                   onChange={(e) => setRawText(e.target.value)}
                 />
               </label>
+              {document?.sourceType === "DOCX" && (
+                <p className="hint">
+                  Đây là bản chữ để đối chiếu. Cấu trúc bảng/đoạn vẫn được giữ
+                  khi phân tích; sửa nội dung tại bước giáo viên kiểm tra. Muốn
+                  phân tích văn bản khác, chọn{" "}
+                  <button
+                    onClick={() => {
+                      setDocument(null);
+                      setRawText("");
+                      setMode("paste");
+                    }}
+                  >
+                    Dán kế hoạch khác
+                  </button>
+                  .
+                </p>
+              )}
               <div className="plan-input-footer">
                 <span>
                   {rawText.length.toLocaleString("vi-VN")} ký tự · Nội dung
@@ -372,6 +408,33 @@ export function LessonImportWizard({
               <pre>{draft.document.rawText}</pre>
             </details>
             <AnalysisReview
+              sourceStatus={
+                analysisSource?.source === "AI"
+                  ? "Phân tích bằng AI"
+                  : `${analysisSource?.aiStatus === "UNAVAILABLE" ? "AI tạm thời không khả dụng" : analysisSource?.aiStatus === "DEVELOPMENT" ? "Bản thử nghiệm phát triển" : "AI chưa được kết nối"} · Phân tích cục bộ · Đang dùng chế độ phân tích cơ bản.`
+              }
+              diagnostics={
+                <DocumentDiagnostics
+                  document={draft.document}
+                  analysis={draft.analysis}
+                  correct={(id, category) => {
+                    try {
+                      setDraft({
+                        ...draft,
+                        analysis: correctClassification(
+                          draft.analysis,
+                          id,
+                          category,
+                        ),
+                        confirmedAt: null,
+                      });
+                      setError("");
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                />
+              }
               analysis={draft.analysis}
               edit={edit}
               back={() => setStep("input")}
@@ -415,7 +478,7 @@ export function LessonImportWizard({
               <button onClick={() => setStep("review")}>
                 Kiểm tra lại nội dung
               </button>
-              <button disabled>Tạo bài e-learning · Sắp có</button>
+              <button disabled>Tạo bài e-learning · Sắp hỗ trợ</button>
               <button className="primary" onClick={close}>
                 Về bài giảng gần đây
               </button>

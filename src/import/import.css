@@ -633,3 +633,80 @@
 .import-workspace [hidden] {
   display: none !important;
 }
+.list-item-actions,
+.correction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.list-item-actions button {
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.uncertain-review {
+  margin: 24px 0;
+}
+.uncertain-item {
+  border-top: 1px solid #e0e8e4;
+  padding: 16px 0;
+}
+.uncertain-item blockquote {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+.correction-actions label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.document-debug {
+  margin: 20px 0;
+}
+.document-debug summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.document-debug pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.debug-table-scroll {
+  overflow-x: auto;
+}
+.document-debug table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.document-debug td {
+  border: 1px solid #cad9d1;
+  padding: 10px;
+  vertical-align: top;
+  min-width: 150px;
+}
+.debug-classification {
+  border-top: 1px solid #d9e4de;
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.import-workspace .analysis-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 20px;
+  margin-bottom: 16px;
+  background: #e9f6f2;
+  border-radius: 12px;
+  color: #155e50;
+}
+.import-workspace .analysis-attention {
+  padding: 16px;
+  margin-bottom: 20px;
+  background: #fff7e6;
+  border-radius: 12px;
+}
+.import-workspace .analysis-source {
+  font-size: 13px;
+  color: #50746c;
+}

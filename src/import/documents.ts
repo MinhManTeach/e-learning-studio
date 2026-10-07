@@ -1,11 +1,12 @@
 import { importedDocumentSchema, type ImportedLessonDocument } from "./model";
+import { textBlocks } from "./blocks";
 export const importLimits = {
   maxBytes: 2 * 1024 * 1024,
   maxCharacters: 200_000,
 };
 export const supportedPlanFormats = [
   { extension: "TXT", supported: true },
-  { extension: "DOCX", supported: false },
+  { extension: "DOCX", supported: true },
   { extension: "PDF", supported: false },
 ] as const;
 function validateText(rawText: string) {
@@ -22,10 +23,12 @@ function validateText(rawText: string) {
   return rawText.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
 }
 export function importPastedPlan(rawText: string): ImportedLessonDocument {
+  const normalized = validateText(rawText);
   return importedDocumentSchema.parse({
     id: crypto.randomUUID(),
     sourceType: "PASTE",
-    rawText: validateText(rawText),
+    rawText: normalized,
+    blocks: textBlocks(normalized),
     importedAt: new Date().toISOString(),
   });
 }
@@ -38,15 +41,28 @@ export async function importPlanFile(
   file: PlanFile,
 ): Promise<ImportedLessonDocument> {
   if (file.size > importLimits.maxBytes)
-    throw new Error("Tệp quá lớn. Vui lòng chọn TXT dưới 2 MB.");
+    throw new Error("Tệp quá lớn. Vui lòng chọn TXT hoặc DOCX dưới 2 MB.");
   const extension = file.name.split(".").at(-1)?.toUpperCase();
-  if (extension !== "TXT")
+  if (extension !== "TXT" && extension !== "DOCX")
     throw new Error(
-      extension === "DOCX" || extension === "PDF"
+      extension === "PDF"
         ? `${extension}: sắp hỗ trợ. Hiện tại, thầy/cô có thể sao chép nội dung hoặc dùng TXT UTF-8.`
-        : "Định dạng chưa được hỗ trợ. Hãy chọn TXT UTF-8.",
+        : "Định dạng chưa được hỗ trợ. Hãy chọn DOCX hoặc TXT UTF-8.",
     );
   let text: string;
+  if (extension === "DOCX") {
+    const { extractDocx } = await import("./docx");
+    const extracted = extractDocx(new Uint8Array(await file.arrayBuffer()));
+    return importedDocumentSchema.parse({
+      id: crypto.randomUUID(),
+      sourceType: "DOCX",
+      fileName: file.name,
+      rawText: validateText(extracted.rawText),
+      blocks: extracted.blocks,
+      extractionWarnings: extracted.warnings,
+      importedAt: new Date().toISOString(),
+    });
+  }
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(
       await file.arrayBuffer(),
@@ -61,6 +77,7 @@ export async function importPlanFile(
     sourceType: "TXT",
     fileName: file.name,
     rawText: validateText(text),
+    blocks: textBlocks(validateText(text)),
     importedAt: new Date().toISOString(),
   });
 }

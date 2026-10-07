@@ -4,12 +4,77 @@ import { stages } from "../model/schema";
 
 const text = z.string();
 const list = z.array(text);
+export const documentBlockSchema = z.object({
+  id: text.min(1),
+  type: z.enum(["HEADING", "PARAGRAPH", "LIST", "TABLE"]),
+  text: text.optional(),
+  level: z.number().int().positive().optional(),
+  numbering: text.optional(),
+  items: list.optional(),
+  table: z
+    .object({
+      rows: z.array(
+        z.object({
+          cells: z.array(
+            z.object({
+              text,
+              colspan: z.number().int().positive().optional(),
+              rowspan: z.number().int().positive().optional(),
+              column: z.number().int().nonnegative().optional(),
+              paragraphs: list.optional(),
+              complex: z.boolean().optional(),
+            }),
+          ),
+        }),
+      ),
+    })
+    .optional(),
+  sourceOrder: z.number().int().nonnegative(),
+});
+export type LessonDocumentBlock = z.infer<typeof documentBlockSchema>;
+export const semanticCategories = [
+  "LESSON_IDENTITY",
+  "LEARNING_OUTCOME",
+  "KNOWLEDGE",
+  "COMPETENCY",
+  "QUALITY",
+  "PREPARATION",
+  "TEACHING_ACTIVITY",
+  "WARMUP",
+  "DISCOVERY",
+  "PRACTICE",
+  "ASSESSMENT",
+  "APPLICATION",
+  "DIGITAL_COMPETENCY",
+  "AI_INTEGRATION",
+  "SPECIAL_NEEDS",
+  "TEACHER_ACTIVITY",
+  "STUDENT_ACTIVITY",
+  "OTHER",
+] as const;
+export const classificationSchema = z.object({
+  id: text,
+  blockId: text,
+  sourceText: text,
+  category: z.enum(semanticCategories),
+  field: text,
+  confidence: z.number().min(0).max(1),
+  signals: list,
+  isHeading: z.boolean(),
+  needsReview: z.boolean(),
+  corrected: z.boolean().default(false),
+  row: z.number().int().nonnegative().optional(),
+  column: z.number().int().nonnegative().optional(),
+});
+export type BlockClassification = z.infer<typeof classificationSchema>;
 export const importedDocumentSchema = z.object({
   id: text.min(1),
   sourceType: z.enum(["PASTE", "TXT", "DOCX", "PDF"]),
   fileName: text.optional(),
   rawText: text.min(1),
   importedAt: z.iso.datetime(),
+  blocks: z.array(documentBlockSchema).default([]),
+  extractionWarnings: list.default([]),
 });
 export type ImportedLessonDocument = z.infer<typeof importedDocumentSchema>;
 export const activitySchema = z.object({
@@ -18,6 +83,11 @@ export const activitySchema = z.object({
   stage: z.enum(stages).nullable(),
   content: list,
   estimatedMinutes: z.number().nonnegative().nullable(),
+  teacherActivity: list.default([]),
+  studentActivity: list.default([]),
+  goals: list.default([]),
+  products: list.default([]),
+  organization: list.default([]),
 });
 export const analysisSchema = z.object({
   version: z.literal("1.0"),
@@ -50,9 +120,13 @@ export const analysisSchema = z.object({
       lineStart: z.number().int().positive(),
       lineEnd: z.number().int().positive(),
       confidence: z.number().min(0).max(1),
+      blockId: text.optional(),
+      row: z.number().int().nonnegative().optional(),
+      column: z.number().int().nonnegative().optional(),
     }),
   ),
   teacherEditedFields: list,
+  classifications: z.array(classificationSchema).default([]),
 });
 export type PedagogicalAnalysis = z.infer<typeof analysisSchema>;
 export type TeachingActivity = z.infer<typeof activitySchema>;
@@ -61,11 +135,16 @@ export interface AnalysisProgress {
   label: string;
   completed: boolean;
 }
+export interface LessonAnalysisOptions {
+  onProgress?: (progress: AnalysisProgress) => void;
+  signal?: AbortSignal;
+}
 export interface LessonAnalysisProvider {
+  readonly id: string;
+  readonly name: string;
   analyze(
     document: ImportedLessonDocument,
-    onProgress?: (progress: AnalysisProgress) => void,
-    signal?: AbortSignal,
+    options?: LessonAnalysisOptions,
   ): Promise<PedagogicalAnalysis>;
 }
 // Boundary only. No vendor SDK, key, request, or artificial AI implementation.

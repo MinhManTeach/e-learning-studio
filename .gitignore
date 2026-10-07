@@ -2,3 +2,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 test-results/
+.env
+.env.*
+!.env.example
+# Local corrective-pass screenshot; not a project fixture.
+/phase-2a-fix-table.png
