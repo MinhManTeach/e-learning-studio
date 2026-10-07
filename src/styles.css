@@ -1263,3 +1263,5 @@ button.primary:hover {
 :root .lesson {
   overflow-x: hidden;
 }
+/* Personal local AI configuration entry; follows the existing dashboard layout. */
+.ai-settings-button { position: fixed; right: 24px; bottom: 24px; z-index: 20; padding: 10px 16px; border: 1px solid #d5dedb; border-radius: 10px; background: white; color: #194d42; cursor: pointer; box-shadow: 0 3px 16px #0001; }

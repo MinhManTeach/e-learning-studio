@@ -41,12 +41,14 @@ export function LessonImportWizard({
   onClose,
   provider,
   service = defaultService,
+  aiConfigured = false,
 }: {
   active: boolean;
   initialMode: "paste" | "file";
   onClose: () => void;
   provider?: LessonAnalysisProvider;
   service?: LessonAnalysisService;
+  aiConfigured?: boolean;
 }) {
   const [mode, setMode] = useState(initialMode);
   const [rawText, setRawText] = useState("");
@@ -61,6 +63,8 @@ export function LessonImportWizard({
     useState<AnalysisServiceResult | null>(null);
   const [reading, setReading] = useState(false);
   const [replacePrompt, setReplacePrompt] = useState(false);
+  const [requestedMode, setRequestedMode] = useState<"AI" | "BASIC">("AI");
+  const [runningAi, setRunningAi] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController | null>(null);
   const fileRequest = useRef(0);
@@ -92,7 +96,7 @@ export function LessonImportWizard({
       if (request === fileRequest.current) setReading(false);
     }
   }
-  async function analyze() {
+  async function analyze(selectedMode = requestedMode) {
     setReplacePrompt(false);
     setError("");
     let doc: ImportedLessonDocument;
@@ -109,9 +113,14 @@ export function LessonImportWizard({
     setDocument(doc);
     setStep("analyzing");
     setProgress(null);
+    setRunningAi(aiConfigured && selectedMode === "AI");
     try {
       const outcome = await (
-        provider ? new LessonAnalysisService(undefined, provider) : service
+        provider
+          ? new LessonAnalysisService(undefined, provider)
+          : selectedMode === "BASIC"
+            ? defaultService
+            : service
       ).analyze(doc, {
         onProgress: (p) => {
           if (!controller.signal.aborted) setProgress(p);
@@ -120,6 +129,16 @@ export function LessonImportWizard({
       });
       const result = analysisSchema.parse(outcome.analysis);
       if (controller.signal.aborted) return;
+      if (
+        draft?.analysis.teacherEditedFields.length &&
+        outcome.aiStatus === "UNAVAILABLE"
+      ) {
+        setError(
+          "Không thể kết nối AI. Đã giữ nguyên bản chỉnh sửa của thầy/cô. Hãy thử lại.",
+        );
+        setStep("review");
+        return;
+      }
       if (result.sourceDocumentId !== doc.id)
         throw new Error("Kết quả chưa khớp kế hoạch nguồn. Vui lòng thử lại.");
       setDraft({ document: doc, analysis: result, confirmedAt: null });
@@ -132,13 +151,14 @@ export function LessonImportWizard({
             ? e.message
             : "Chưa phân tích được kế hoạch. Hãy thử lại.",
         );
-        setStep("input");
+        setStep(draft ? "review" : "input");
       }
     }
   }
-  function requestAnalysis() {
+  function requestAnalysis(selectedMode: "AI" | "BASIC" = "AI") {
+    setRequestedMode(selectedMode);
     if (draft?.analysis.teacherEditedFields.length) setReplacePrompt(true);
-    else void analyze();
+    else void analyze(selectedMode);
   }
   function close() {
     abort.current?.abort();
@@ -177,7 +197,7 @@ export function LessonImportWizard({
           <ShieldCheck size={15} />
           {analysisSource?.source === "AI"
             ? "Phân tích bằng AI"
-            : "Phân tích cục bộ"}
+            : "Phân tích cơ bản · Phân tích cục bộ"}
         </span>
       </header>
       <main className="import-main">
@@ -216,7 +236,9 @@ export function LessonImportWizard({
               </p>
               <div className="local-explanation">
                 <ShieldCheck size={16} />
-                AI chưa được kết nối. Đang dùng chế độ phân tích cơ bản.
+                {aiConfigured
+                  ? "AI đã được cấu hình. Khi phân tích bằng AI, kế hoạch hiện tại được gửi tới nhà cung cấp AI."
+                  : "AI chưa được kết nối. Đang dùng chế độ phân tích cơ bản."}
               </div>
             </div>
             <section className="import-input-card">
@@ -320,11 +342,23 @@ export function LessonImportWizard({
                 <button
                   className="primary large"
                   disabled={reading || !rawText.trim()}
-                  onClick={requestAnalysis}
+                  onClick={() => requestAnalysis()}
                 >
                   <Sparkles size={17} />
-                  Phân tích kế hoạch bài dạy
+                  {aiConfigured
+                    ? "Phân tích bằng AI"
+                    : "Phân tích kế hoạch bài dạy"}
                 </button>
+                {aiConfigured ? (
+                  <button
+                    disabled={reading || !rawText.trim()}
+                    onClick={() => requestAnalysis("BASIC")}
+                  >
+                    Phân tích cơ bản
+                  </button>
+                ) : (
+                  <span>Phân tích cơ bản</span>
+                )}
               </div>
               {draft && draft.document.rawText === rawText && (
                 <button
@@ -352,42 +386,52 @@ export function LessonImportWizard({
             <span className="analysis-orbit">
               <Sparkles size={32} />
             </span>
-            <h1>Đang đọc kế hoạch bài dạy...</h1>
+            <h1>
+              {runningAi
+                ? "Đang phân tích ngữ nghĩa toàn bộ kế hoạch bằng AI..."
+                : "Đang đọc kế hoạch bài dạy..."}
+            </h1>
             <p>
-              Đối chiếu các phần trong văn bản của thầy/cô ngay tại thiết bị.
+              {runningAi
+                ? "Đang đối chiếu yêu cầu cần đạt, năng lực, phẩm chất, hoạt động và tích hợp AI. Vui lòng chờ kết quả đầy đủ."
+                : "Đối chiếu các phần trong văn bản của thầy/cô ngay tại thiết bị."}
             </p>
-            <progress
-              aria-label="Tiến độ phân tích"
-              max={analysisSteps.length}
-              value={
-                progress ? progress.index + (progress.completed ? 1 : 0) : 0
-              }
-            />
-            <ol>
-              {analysisSteps.map((label, i) => (
-                <li
-                  className={
-                    progress &&
-                    (i < progress.index ||
-                      (i === progress.index && progress.completed))
-                      ? "done"
-                      : ""
+            {!runningAi && (
+              <>
+                <progress
+                  aria-label="Tiến độ phân tích"
+                  max={analysisSteps.length}
+                  value={
+                    progress ? progress.index + (progress.completed ? 1 : 0) : 0
                   }
-                  key={label}
-                >
-                  <span>
-                    {progress &&
-                    (i < progress.index ||
-                      (i === progress.index && progress.completed)) ? (
-                      <Check size={17} />
-                    ) : (
-                      String(i + 1).padStart(2, "0")
-                    )}
-                  </span>
-                  {label}
-                </li>
-              ))}
-            </ol>
+                />
+                <ol>
+                  {analysisSteps.map((label, i) => (
+                    <li
+                      className={
+                        progress &&
+                        (i < progress.index ||
+                          (i === progress.index && progress.completed))
+                          ? "done"
+                          : ""
+                      }
+                      key={label}
+                    >
+                      <span>
+                        {progress &&
+                        (i < progress.index ||
+                          (i === progress.index && progress.completed)) ? (
+                          <Check size={17} />
+                        ) : (
+                          String(i + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      {label}
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
             <button
               onClick={() => {
                 abort.current?.abort();
@@ -395,6 +439,7 @@ export function LessonImportWizard({
               }}
             >
               Dừng và quay lại
+              {runningAi && " · Hủy phân tích"}
             </button>
           </section>
         )}
@@ -411,7 +456,9 @@ export function LessonImportWizard({
               sourceStatus={
                 analysisSource?.source === "AI"
                   ? "Phân tích bằng AI"
-                  : `${analysisSource?.aiStatus === "UNAVAILABLE" ? "AI tạm thời không khả dụng" : analysisSource?.aiStatus === "DEVELOPMENT" ? "Bản thử nghiệm phát triển" : "AI chưa được kết nối"} · Phân tích cục bộ · Đang dùng chế độ phân tích cơ bản.`
+                  : aiConfigured && requestedMode === "BASIC"
+                    ? "Phân tích cơ bản · Đã chọn phân tích trên thiết bị."
+                    : `${analysisSource?.aiStatus === "UNAVAILABLE" ? "Không thể kết nối AI. Kết quả hiện tại được tạo bằng chế độ phân tích cơ bản. AI tạm thời không khả dụng" : analysisSource?.aiStatus === "DEVELOPMENT" ? "Bản thử nghiệm phát triển" : "AI chưa được kết nối"} · Phân tích cục bộ · Đang dùng chế độ phân tích cơ bản.`
               }
               diagnostics={
                 <DocumentDiagnostics
@@ -438,7 +485,7 @@ export function LessonImportWizard({
               analysis={draft.analysis}
               edit={edit}
               back={() => setStep("input")}
-              reanalyze={requestAnalysis}
+              reanalyze={() => requestAnalysis()}
               confirm={() => {
                 setDraft(confirmAnalysis(draft, true));
                 setStep("confirmed");

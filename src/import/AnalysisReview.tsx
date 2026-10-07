@@ -155,14 +155,22 @@ export function AnalysisReview({
         <span>✓ {a.aiIntegration.length} nội dung tích hợp AI</span>
       </section>
       {a.classifications.some(
-        (c) => !c.isHeading && !c.corrected && c.confidence < 0.85,
+        (c) =>
+          !c.isHeading &&
+          !c.corrected &&
+          c.confidence >= 0.6 &&
+          c.confidence < 0.85,
       ) && (
         <details className="analysis-attention">
           <summary>
             ⚠{" "}
             {
               a.classifications.filter(
-                (c) => !c.isHeading && !c.corrected && c.confidence < 0.85,
+                (c) =>
+                  !c.isHeading &&
+                  !c.corrected &&
+                  c.confidence >= 0.6 &&
+                  c.confidence < 0.85,
               ).length
             }{" "}
             nội dung nên kiểm tra

@@ -4,7 +4,27 @@ import { Editor } from "./editor/Editor";
 import type { LessonProject } from "./model/schema";
 import { openProjectStore, type ProjectStore } from "./storage/projects";
 import { LessonImportWizard } from "./import/LessonImportWizard";
+import { AiSettings } from "./import/AiSettings";
+import {
+  localAiService,
+  readLocalAiStatus,
+  type LocalConnectionStatus,
+} from "./import/localAiConnection";
 export function App() {
+  const [aiStatus, setAiStatus] = useState<LocalConnectionStatus>({
+    providerId: "openai",
+    model: "",
+    configured: false,
+    status: "NOT_CONNECTED",
+  });
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [aiService] = useState(localAiService);
+  async function refreshAi() {
+    setAiStatus(await readLocalAiStatus());
+  }
+  useEffect(() => {
+    void refreshAi();
+  }, []);
   const [storage, setStorage] = useState<{
     store: ProjectStore;
     fallback: boolean;
@@ -31,6 +51,21 @@ export function App() {
     return <div className="startup">Đang mở không gian bài giảng…</div>;
   return (
     <>
+      {!project && !importMode && (
+        <button
+          className="ai-settings-button"
+          onClick={() => setAiSettingsOpen(true)}
+        >
+          Cài đặt · AI hỗ trợ
+        </button>
+      )}
+      {aiSettingsOpen && (
+        <AiSettings
+          status={aiStatus}
+          refresh={() => void refreshAi()}
+          close={() => setAiSettingsOpen(false)}
+        />
+      )}
       {storage.fallback && (
         <div className="fallback-banner" role="status">
           Đang dùng bộ nhớ dự phòng của trình duyệt. Bài giảng vẫn được lưu trên
@@ -41,6 +76,8 @@ export function App() {
         active={importMode !== null}
         initialMode={importMode ?? "paste"}
         onClose={() => setImportMode(null)}
+        service={aiStatus.configured ? aiService : undefined}
+        aiConfigured={aiStatus.configured}
       />
       {importMode ? null : project ? (
         <Editor
