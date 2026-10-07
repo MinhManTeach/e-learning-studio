@@ -1,41 +1,23 @@
 import {
-  metadataSchema,
-  objectivesSchema,
-  settingsSchema,
+  parseProject,
   type LessonProject,
-  type BasicSlide,
+  type Slide,
   type SlideType,
 } from "./schema";
-export function createSlide(type: SlideType): BasicSlide {
-  return {
-    id: crypto.randomUUID(),
-    type,
-    stepNumber: 1,
-    stepName: "",
-    title: type === "welcome" ? "Trang mở đầu" : "Nội dung bài học",
-    subtitle: "",
-    voiceScript: "",
-    notes: "",
-    data: {
-      body: "",
-      bulletPoints: [],
-      keyTakeaway: "",
-      imageUrl: "",
-      imageCaption: "",
-    },
-  };
+import { slideRegistry } from "../slides/registry";
+export function createSlide<T extends SlideType>(
+  type: T,
+): Extract<Slide, { type: T }> {
+  return slideRegistry[type].defaultFactory() as Extract<Slide, { type: T }>;
 }
 export function createProject(projectTitle = "Bài giảng mới"): LessonProject {
   const now = new Date().toISOString();
-  return {
-    schemaVersion: "2.1",
+  return parseProject({
+    schemaVersion: "2.2",
     projectId: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
-    metadata: metadataSchema.parse({ projectTitle }),
-    objectives: objectivesSchema.parse({}),
-    settings: settingsSchema.parse({}),
+    metadata: { projectTitle },
     slides: [createSlide("welcome"), createSlide("content")],
-    assets: [],
-  };
+  });
 }

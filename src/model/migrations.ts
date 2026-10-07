@@ -1,138 +1,109 @@
-import { z } from "zod";
-import { createProject, createSlide } from "./factories";
-import { parseProject, type LessonProject, type Slide } from "./schema";
-import { projectV20Schema } from "./schemaV20";
-
-const legacySchema = z
-  .object({
-    version: z.string().regex(/^1\./),
-    metadata: z.record(z.string(), z.unknown()),
-    slides: z.array(z.record(z.string(), z.unknown())),
-  })
-  .passthrough();
-const str = (v: unknown) => (typeof v === "string" ? v : "");
-const list = (v: unknown) =>
-  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
-export function migrateLegacy(value: unknown): LessonProject {
-  const old = legacySchema.parse(value);
-  const project = createProject(
-    str(old.metadata.topic) || "Bài giảng tham chiếu",
+import {
+  projectSchema as schema21,
+  type LessonProject as Project21,
+} from "./schemaV21";
+import {
+  decodeProject as decode21,
+  decodeStoredProject as stored21,
+  migrateLegacy as legacy21,
+  migrateV20 as v20to21,
+} from "./migrationsV21";
+import {
+  parseProject,
+  assetSchema,
+  slideSchema,
+  type LessonProject,
+} from "./schema";
+export function migrateV21(value: unknown): LessonProject {
+  const old: Project21 = schema21.parse(value);
+  const assets = old.assets.map((a) =>
+    assetSchema.parse({
+      ...a,
+      kind: "IMAGE",
+      sourceType: "URL",
+      altText: a.name,
+    }),
   );
-  for (const key of [
-    "subject",
-    "grade",
-    "topic",
-    "teacherName",
-    "schoolName",
-    "curriculum",
-  ] as const)
-    project.metadata[key] = str(old.metadata[key]);
-  const objectives = z
-    .record(z.string(), z.unknown())
-    .safeParse(old.metadata.objectives);
-  if (objectives.success) {
-    for (const key of ["knowledge", "competencies", "qualities"] as const)
-      project.objectives[key] = list(objectives.data[key]);
-    project.objectives.aiIntegration.description = str(
-      objectives.data.aiIntegration,
-    );
-    project.objectives.specialNeeds = str(objectives.data.specialNeeds);
-  }
-  project.metadata.durationMinutes = durationToMinutes(
-    str(old.metadata.duration),
-  );
-  const ids = new Set<string>();
-  project.slides = old.slides.map((raw) => {
-    const id =
-      str(raw.id) && !ids.has(str(raw.id)) ? str(raw.id) : crypto.randomUUID();
-    ids.add(id);
-    const common = {
-      id,
-      title: str(raw.title),
-      subtitle: str(raw.subtitle),
-      stepName: str(raw.stepName),
-      stepNumber:
-        typeof raw.stepNumber === "number" &&
-        Number.isInteger(raw.stepNumber) &&
-        raw.stepNumber >= 0
-          ? raw.stepNumber
-          : 1,
-      voiceScript: str(raw.voiceScript),
-      notes: str(raw.notes),
-    };
-    if (raw.type === "welcome" || raw.type === "content")
-      return {
-        ...createSlide(raw.type),
-        ...common,
-        data: {
-          body: "",
-          bulletPoints: list(raw.bulletPoints),
-          keyTakeaway: str(raw.keyTakeaway),
-          imageUrl:
-            raw.hasMedia && raw.mediaType === "image" ? str(raw.mediaUrl) : "",
-          imageCaption: str(raw.mediaCaption),
-        },
-      };
-    return {
-      ...common,
-      type: "legacy",
-      data: { originalType: str(raw.type) || "unknown", original: raw },
-    } satisfies Slide;
+  const used = new Set(assets.map((a) => a.id));
+  const slides = old.slides.map((s) => {
+    let assetId: string | null = null;
+    if (s.type !== "legacy" && s.data.imageUrl) {
+      assetId = `migrated-media-${s.id}`;
+      let n = 1;
+      while (used.has(assetId)) assetId = `migrated-media-${s.id}-${n++}`;
+      used.add(assetId);
+      assets.push(
+        assetSchema.parse({
+          id: assetId,
+          kind: "IMAGE",
+          sourceType: "URL",
+          url: s.data.imageUrl,
+          name: s.data.imageCaption,
+          altText: s.data.imageCaption,
+        }),
+      );
+    }
+    const data =
+      s.type === "legacy"
+        ? s.data
+        : {
+            body: s.data.body,
+            bulletPoints: s.data.bulletPoints,
+            keyTakeaway: s.data.keyTakeaway,
+          };
+    return slideSchema.parse({
+      ...s,
+      teacherNotes: s.notes,
+      layout: assetId
+        ? "TEXT_LEFT_MEDIA_RIGHT"
+        : s.type === "welcome"
+          ? "CENTERED"
+          : "TEXT_ONLY",
+      media: {
+        enabled: !!assetId,
+        assetId,
+        caption: s.type === "legacy" ? "" : s.data.imageCaption,
+      },
+      narration: { mode: "BROWSER_TTS", text: s.voiceScript, lang: "vi-VN" },
+      pedagogicalStage: s.type === "welcome" ? "OPENING" : "DISCOVERY",
+      data,
+    });
   });
-  project.legacySource = old;
-  return parseProject(project);
-}
-function durationToMinutes(duration: string): number {
-  // Preserve complete source data alongside migration for free-text durations.
-  const match = duration.match(
-    /^\s*(\d+)\s*(?:phút(?:\s|$)|minutes?\b|min\b|$)/i,
-  );
-  return match ? Number(match[1]) : 0;
-}
-export function migrateV20(value: unknown): LessonProject {
-  const old = projectV20Schema.parse(value);
-  const { objectives, aiIntegration, specialNeeds, duration, ...metadata } =
-    old.metadata;
   return parseProject({
     ...old,
-    schemaVersion: "2.1",
-    metadata: { ...metadata, durationMinutes: durationToMinutes(duration) },
-    objectives: {
-      ...objectives,
-      aiIntegration: { code: "", title: "", description: aiIntegration },
-      specialNeeds,
+    schemaVersion: "2.2",
+    metadata: {
+      ...old.metadata,
+      curriculumGrade: old.metadata.grade,
+      targetAudienceGrade: old.metadata.grade,
     },
-    settings: { ...old.settings, theme: "SAFE_TEAL" },
-    migrationSource: z.record(z.string(), z.unknown()).parse(value),
+    assets,
+    slides,
   });
 }
-// Stored records must have their identity. Hydration is reserved for imported templates.
+export function migrateLegacy(value: unknown) {
+  return migrateV21(legacy21(value));
+}
+export function migrateV20(value: unknown) {
+  return migrateV21(v20to21(value));
+}
 export function decodeStoredProject(value: unknown): LessonProject {
   if (
     typeof value === "object" &&
     value !== null &&
     "schemaVersion" in value &&
-    value.schemaVersion === "2.0"
+    value.schemaVersion === "2.2"
   )
-    return migrateV20(value);
-  return parseProject(value);
+    return parseProject(value);
+  return migrateV21(stored21(value));
 }
 export function decodeProject(value: unknown): LessonProject {
-  const raw = z.record(z.string(), z.unknown()).parse(value);
-  if (raw.schemaVersion === "2.1") {
-    const metadata = z.record(z.string(), z.unknown()).parse(raw.metadata);
-    const now = new Date().toISOString();
-    return parseProject({
-      projectId: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      ...raw,
-      metadata: {
-        projectTitle: str(metadata.topic) || "Bài giảng mới",
-        ...metadata,
-      },
-    });
-  }
-  if ("schemaVersion" in raw) return decodeStoredProject(raw);
-  return migrateLegacy(value);
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "schemaVersion" in value &&
+    value.schemaVersion === "2.2"
+  )
+    return parseProject(value);
+  return migrateV21(decode21(value));
 }

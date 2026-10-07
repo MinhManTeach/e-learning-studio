@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { slideSchema } from "./schema";
+import { slideSchema } from "./schemaV21";
 
 // Frozen reader for existing projects. New writes always use the current schema.
 const text = z.string().default("");

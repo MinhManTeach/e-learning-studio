@@ -10,7 +10,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { createProject } from "./model/factories";
-import { decodeProject } from "./model/migrations";
+import { importProjectJSON } from "./model/json";
+import { createSampleProject } from "./fixtures/sampleLesson";
 import type { LessonProject } from "./model/schema";
 import type { ProjectStore } from "./storage/projects";
 import { Field } from "./editor/Fields";
@@ -66,10 +67,17 @@ export function Dashboard({
     setError("");
     try {
       if (selected.size > 10 * 1024 * 1024) throw new Error("too large");
-      const project = decodeProject(JSON.parse(await selected.text()));
-      // Import always creates an independent copy; never overwrite an existing project.
-      project.projectId = crypto.randomUUID();
-      project.createdAt = project.updatedAt = new Date().toISOString();
+      const project = importProjectJSON(await selected.text());
+      const existing = (await store.list()).projects.find(
+        (p) => p.projectId === project.projectId,
+      );
+      if (
+        existing &&
+        !confirm(
+          "Bài giảng này đã có trên thiết bị. Thay thế bằng nội dung trong tệp?",
+        )
+      )
+        return;
       await store.save(project);
       open(project);
     } catch {
@@ -148,6 +156,20 @@ export function Dashboard({
             <button onClick={() => file.current?.click()}>
               <FileUp size={17} /> Mở tệp bài giảng
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const sample = createSampleProject();
+                  sample.projectId = crypto.randomUUID();
+                  await store.save(sample);
+                  open(sample);
+                } catch {
+                  setError("Chưa mở được bài mẫu. Hãy thử lại.");
+                }
+              }}
+            >
+              Mở bài mẫu Phase 1
+            </button>
             <input
               ref={file}
               type="file"
@@ -192,8 +214,8 @@ export function Dashboard({
                   <div className="project-card-body">
                     <h3>{project.metadata.projectTitle}</h3>
                     <p>
-                      {project.metadata.grade
-                        ? `Lớp ${project.metadata.grade.replace(/^Lớp\s*/i, "")} · `
+                      {project.metadata.targetAudienceGrade
+                        ? `Lớp ${project.metadata.targetAudienceGrade.replace(/^Lớp\s*/i, "")} · `
                         : ""}
                       {project.slides.length} trang
                     </p>

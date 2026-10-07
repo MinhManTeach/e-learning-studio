@@ -1,0 +1,958 @@
+{
+  "schemaVersion": "2.2",
+  "projectId": "sample-tinhoc-phase1",
+  "createdAt": "2026-10-07T00:00:00.000Z",
+  "updatedAt": "2026-10-07T00:00:00.000Z",
+  "metadata": {
+    "projectTitle": "Tin học 4 — Thông tin trên Website",
+    "subject": "Tin học",
+    "grade": "4",
+    "topic": "Thông tin trên Website",
+    "durationMinutes": 35,
+    "teacherName": "",
+    "schoolName": "",
+    "curriculum": "GDPT 2018",
+    "curriculumGrade": "4",
+    "targetAudienceGrade": "5"
+  },
+  "objectives": {
+    "knowledge": [
+      "Nhận biết thông tin trên website.",
+      "Biết lựa chọn website phù hợp."
+    ],
+    "competencies": [],
+    "qualities": [],
+    "aiIntegration": {
+      "code": "4.B2.1",
+      "title": "Bảo vệ thông tin cá nhân",
+      "description": "Không tự cung cấp thông tin riêng tư hoặc không cần thiết; khi chưa chắc, hỏi người lớn tin cậy."
+    },
+    "specialNeeds": "",
+    "curriculumOutcomes": [],
+    "digitalCompetencyIntegration": []
+  },
+  "settings": {
+    "aspectRatio": "16:9",
+    "theme": "SAFE_TEAL",
+    "passingScore": 80,
+    "requireAllSlides": true,
+    "requireQuiz": true,
+    "allowRetry": true
+  },
+  "pedagogy": {
+    "model": "STUDIO",
+    "stages": [
+      "OPENING",
+      "DISCOVERY",
+      "PRACTICE",
+      "ASSESSMENT",
+      "APPLICATION"
+    ]
+  },
+  "slides": [
+    {
+      "id": "sample-slide-1",
+      "title": "Chào mừng đến bài học",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "OPENING",
+      "estimatedMinutes": 2,
+      "layout": "CENTERED",
+      "voiceScript": "Chào mừng đến bài học",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "welcome",
+      "data": {
+        "body": "Chào mừng em đến với hành trình khám phá thế giới số!",
+        "paragraphs": [],
+        "bulletPoints": [
+          "Quan sát thông tin trên website.",
+          "Thực hành lựa chọn an toàn."
+        ],
+        "keywords": [],
+        "keyTakeaway": "Khi chưa chắc, dừng lại và hỏi người lớn tin cậy."
+      }
+    },
+    {
+      "id": "sample-slide-2",
+      "title": "Sau bài học, em làm được gì?",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "DISCOVERY",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Sau bài học, em làm được gì?",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "objectives",
+      "data": {
+        "learningOutcomes": [
+          "Nhận biết văn bản, hình ảnh, âm thanh và siêu liên kết.",
+          "Chọn website phù hợp với lứa tuổi.",
+          "Biết xử lý yêu cầu thông tin riêng tư bất thường."
+        ],
+        "keyMessages": [
+          "Cùng quan sát, suy nghĩ và thực hành!"
+        ],
+        "icons": [
+          "①",
+          "②",
+          "③"
+        ]
+      }
+    },
+    {
+      "id": "sample-slide-3",
+      "title": "Em nhìn thấy gì trên trang web?",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "OPENING",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Em nhìn thấy gì trên trang web?",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "warmup",
+      "data": {
+        "scored": false,
+        "question": "Những gì có thể xuất hiện trên website?",
+        "instruction": "Chọn từng mục để khám phá.",
+        "items": [
+          {
+            "id": "warm-text",
+            "label": "Chữ viết",
+            "icon": "✎",
+            "isValid": true,
+            "feedback": "Văn bản giúp em đọc và tìm hiểu kiến thức."
+          },
+          {
+            "id": "warm-sound",
+            "label": "Âm thanh",
+            "icon": "♫",
+            "isValid": true,
+            "feedback": "Website có thể phát nhạc hoặc lời nói."
+          },
+          {
+            "id": "warm-smell",
+            "label": "Mùi hương",
+            "icon": "❀",
+            "isValid": false,
+            "feedback": "Màn hình không truyền được mùi hương."
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-slide-4",
+      "title": "Thông tin dạng văn bản",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "DISCOVERY",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Thông tin dạng văn bản",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "content",
+      "data": {
+        "body": "Văn bản gồm chữ cái, con số và dấu câu. Tiêu đề giúp em biết nội dung chính.",
+        "paragraphs": [],
+        "bulletPoints": [],
+        "keywords": [],
+        "keyTakeaway": "Quan sát cẩn thận và lựa chọn phù hợp."
+      }
+    },
+    {
+      "id": "sample-slide-5",
+      "title": "Thông tin dạng hình ảnh",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "DISCOVERY",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Thông tin dạng hình ảnh",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "content",
+      "data": {
+        "body": "Hình ảnh minh họa giúp em quan sát và ghi nhớ. Hãy chọn hình phù hợp với bài học.",
+        "paragraphs": [],
+        "bulletPoints": [],
+        "keywords": [],
+        "keyTakeaway": "Quan sát cẩn thận và lựa chọn phù hợp."
+      }
+    },
+    {
+      "id": "sample-slide-6",
+      "title": "Thông tin dạng âm thanh",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "DISCOVERY",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Thông tin dạng âm thanh",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "content",
+      "data": {
+        "body": "Âm thanh có thể là lời nói, bản nhạc hoặc tiếng động. Điều chỉnh âm lượng để không làm phiền người khác.",
+        "paragraphs": [],
+        "bulletPoints": [],
+        "keywords": [],
+        "keyTakeaway": "Quan sát cẩn thận và lựa chọn phù hợp."
+      }
+    },
+    {
+      "id": "sample-slide-7",
+      "title": "Siêu văn bản và siêu liên kết",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "DISCOVERY",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Siêu văn bản và siêu liên kết",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "content",
+      "data": {
+        "body": "Siêu văn bản có thể chứa văn bản, hình ảnh, âm thanh và siêu liên kết. Liên kết đưa em tới một vị trí hoặc trang khác.",
+        "paragraphs": [],
+        "bulletPoints": [],
+        "keywords": [
+          "Siêu văn bản",
+          "Siêu liên kết"
+        ],
+        "keyTakeaway": "Quan sát cẩn thận và lựa chọn phù hợp."
+      }
+    },
+    {
+      "id": "sample-slide-8",
+      "title": "Website phù hợp với em và bảo vệ thông tin cá nhân",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "DISCOVERY",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Website phù hợp với em và bảo vệ thông tin cá nhân",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "content",
+      "data": {
+        "body": "Ưu tiên website phù hợp lứa tuổi và có hướng dẫn của thầy cô. Không tự cung cấp thông tin riêng tư, không cần thiết cho website hoặc chatbot; nếu chưa chắc, hỏi người lớn tin cậy.",
+        "paragraphs": [],
+        "bulletPoints": [],
+        "keywords": [],
+        "keyTakeaway": "Quan sát cẩn thận và lựa chọn phù hợp."
+      }
+    },
+    {
+      "id": "sample-slide-9",
+      "title": "Tình huống: Em vừa “trúng quà”?",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "PRACTICE",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Tình huống: Em vừa “trúng quà”?",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "scenario",
+      "data": {
+        "character": "Bạn Huy",
+        "context": "Khi đang học trên mạng",
+        "situation": "Một website bất ngờ báo em trúng quà, yêu cầu số điện thoại bố mẹ và mã xác minh.",
+        "question": "Em nên xử lý thế nào?",
+        "choices": [
+          {
+            "id": "sample-slide-9-A",
+            "label": "A",
+            "text": "Cung cấp ngay thông tin được hỏi.",
+            "isRecommended": false,
+            "feedback": "Thông tin này không cần thiết cho việc học. Em nên dừng lại.",
+            "consequence": "Thông tin có thể bị sử dụng ngoài ý muốn."
+          },
+          {
+            "id": "sample-slide-9-B",
+            "label": "B",
+            "text": "Đóng thông báo, không cung cấp gì và báo người lớn tin cậy.",
+            "isRecommended": true,
+            "feedback": "Em đã lựa chọn thận trọng và biết tìm sự hỗ trợ.",
+            "consequence": "Giúp bảo vệ thông tin của gia đình và tiếp tục học an toàn."
+          },
+          {
+            "id": "sample-slide-9-C",
+            "label": "C",
+            "text": "Chia sẻ đường dẫn cho các bạn cùng thử.",
+            "isRecommended": false,
+            "feedback": "Không nên chuyển tiếp yêu cầu đáng ngờ cho người khác.",
+            "consequence": "Các bạn có thể gặp yêu cầu không phù hợp tương tự."
+          },
+          {
+            "id": "sample-slide-9-D",
+            "label": "D",
+            "text": "Nhập thông tin giả để thử.",
+            "isRecommended": false,
+            "feedback": "Không cần thử một yêu cầu đáng ngờ. Hãy hỏi người lớn.",
+            "consequence": "Thử tiếp có thể khiến em gặp thêm nội dung hoặc yêu cầu không phù hợp."
+          }
+        ],
+        "allowRetry": true
+      }
+    },
+    {
+      "id": "sample-slide-10",
+      "title": "Tình huống: Chatbot hỏi chuyện riêng tư",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "PRACTICE",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Tình huống: Chatbot hỏi chuyện riêng tư",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "scenario",
+      "data": {
+        "character": "Bạn Mai",
+        "context": "Khi đang học trên mạng",
+        "situation": "Một chatbot vừa giúp em học, rồi hỏi địa chỉ nhà và số điện thoại bố mẹ để gửi quà.",
+        "question": "Em nên xử lý thế nào?",
+        "choices": [
+          {
+            "id": "sample-slide-10-A",
+            "label": "A",
+            "text": "Cung cấp ngay thông tin được hỏi.",
+            "isRecommended": false,
+            "feedback": "Thông tin này không cần thiết cho việc học. Em nên dừng lại.",
+            "consequence": "Thông tin có thể bị sử dụng ngoài ý muốn."
+          },
+          {
+            "id": "sample-slide-10-B",
+            "label": "B",
+            "text": "Không cung cấp; chỉ hỏi chuyện học tập và báo người lớn nếu yêu cầu bất thường.",
+            "isRecommended": true,
+            "feedback": "Em đã lựa chọn thận trọng và biết tìm sự hỗ trợ.",
+            "consequence": "Giúp bảo vệ thông tin của gia đình và tiếp tục học an toàn."
+          },
+          {
+            "id": "sample-slide-10-C",
+            "label": "C",
+            "text": "Chia sẻ đường dẫn cho các bạn cùng thử.",
+            "isRecommended": false,
+            "feedback": "Không nên chuyển tiếp yêu cầu đáng ngờ cho người khác.",
+            "consequence": "Các bạn có thể gặp yêu cầu không phù hợp tương tự."
+          },
+          {
+            "id": "sample-slide-10-D",
+            "label": "D",
+            "text": "Nhập thông tin giả để thử.",
+            "isRecommended": false,
+            "feedback": "Không cần thử một yêu cầu đáng ngờ. Hãy hỏi người lớn.",
+            "consequence": "Thử tiếp có thể khiến em gặp thêm nội dung hoặc yêu cầu không phù hợp."
+          }
+        ],
+        "allowRetry": true
+      }
+    },
+    {
+      "id": "sample-slide-11",
+      "title": "Thử tài của em – Vòng 1",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "ASSESSMENT",
+      "estimatedMinutes": 4,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Thử tài của em – Vòng 1",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "quiz",
+      "data": {
+        "title": "",
+        "instructions": "Chọn một đáp án cho mỗi câu rồi nộp bài.",
+        "passingScore": 80,
+        "attemptsAllowed": null,
+        "shuffleQuestions": false,
+        "shuffleAnswers": false,
+        "showFeedbackAfterSubmit": true,
+        "allowReview": true,
+        "questions": [
+          {
+            "id": "sample-question-1",
+            "level": "RECOGNITION",
+            "prompt": "Loại thông tin nào gồm chữ cái và con số?",
+            "options": [
+              {
+                "id": "q1-o0",
+                "text": "Văn bản"
+              },
+              {
+                "id": "q1-o1",
+                "text": "Hình ảnh"
+              },
+              {
+                "id": "q1-o2",
+                "text": "Âm thanh"
+              },
+              {
+                "id": "q1-o3",
+                "text": "Mùi hương"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Văn bản. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-2",
+            "level": "RECOGNITION",
+            "prompt": "Ảnh minh họa thuộc dạng thông tin nào?",
+            "options": [
+              {
+                "id": "q2-o0",
+                "text": "Hình ảnh"
+              },
+              {
+                "id": "q2-o1",
+                "text": "Âm thanh"
+              },
+              {
+                "id": "q2-o2",
+                "text": "Mật khẩu"
+              },
+              {
+                "id": "q2-o3",
+                "text": "Mùi vị"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Hình ảnh. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-3",
+            "level": "RECOGNITION",
+            "prompt": "Tiếng nói trên website thuộc dạng thông tin nào?",
+            "options": [
+              {
+                "id": "q3-o0",
+                "text": "Âm thanh"
+              },
+              {
+                "id": "q3-o1",
+                "text": "Màu sắc"
+              },
+              {
+                "id": "q3-o2",
+                "text": "Địa chỉ nhà"
+              },
+              {
+                "id": "q3-o3",
+                "text": "Văn bản in"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Âm thanh. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-4",
+            "level": "RECOGNITION",
+            "prompt": "Siêu liên kết giúp em làm gì?",
+            "options": [
+              {
+                "id": "q4-o0",
+                "text": "Đi tới vị trí hoặc trang khác"
+              },
+              {
+                "id": "q4-o1",
+                "text": "Ngửi mùi"
+              },
+              {
+                "id": "q4-o2",
+                "text": "Tự nhập mật khẩu"
+              },
+              {
+                "id": "q4-o3",
+                "text": "Làm sáng bàn phím"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Đi tới vị trí hoặc trang khác. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-5",
+            "level": "UNDERSTANDING",
+            "prompt": "Vì sao bài học kết hợp chữ và ảnh?",
+            "options": [
+              {
+                "id": "q5-o0",
+                "text": "Giúp nội dung rõ và trực quan"
+              },
+              {
+                "id": "q5-o1",
+                "text": "Bắt buộc mọi trang phải có ảnh"
+              },
+              {
+                "id": "q5-o2",
+                "text": "Che nội dung"
+              },
+              {
+                "id": "q5-o3",
+                "text": "Chỉ để kéo dài bài"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Giúp nội dung rõ và trực quan. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-slide-12",
+      "title": "Thử tài của em – Vòng 2",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "ASSESSMENT",
+      "estimatedMinutes": 4,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Thử tài của em – Vòng 2",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "quiz",
+      "data": {
+        "title": "",
+        "instructions": "Chọn một đáp án cho mỗi câu rồi nộp bài.",
+        "passingScore": 80,
+        "attemptsAllowed": null,
+        "shuffleQuestions": false,
+        "shuffleAnswers": false,
+        "showFeedbackAfterSubmit": true,
+        "allowReview": true,
+        "questions": [
+          {
+            "id": "sample-question-6",
+            "level": "UNDERSTANDING",
+            "prompt": "Website phù hợp với em là website nào?",
+            "options": [
+              {
+                "id": "q6-o0",
+                "text": "Phù hợp lứa tuổi, được thầy cô hướng dẫn"
+              },
+              {
+                "id": "q6-o1",
+                "text": "Bất kỳ website có quà"
+              },
+              {
+                "id": "q6-o2",
+                "text": "Website hỏi mã xác minh"
+              },
+              {
+                "id": "q6-o3",
+                "text": "Website có nội dung đáng sợ"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Phù hợp lứa tuổi, được thầy cô hướng dẫn. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-7",
+            "level": "UNDERSTANDING",
+            "prompt": "Vì sao không tự chia sẻ thông tin riêng tư?",
+            "options": [
+              {
+                "id": "q7-o0",
+                "text": "Thông tin có thể bị dùng ngoài ý muốn"
+              },
+              {
+                "id": "q7-o1",
+                "text": "Vì không bao giờ được chia sẻ với ai"
+              },
+              {
+                "id": "q7-o2",
+                "text": "Vì mọi website đều xấu"
+              },
+              {
+                "id": "q7-o3",
+                "text": "Vì máy tính không nhận chữ"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Thông tin có thể bị dùng ngoài ý muốn. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-8",
+            "level": "APPLICATION",
+            "prompt": "Chatbot hỏi địa chỉ nhà để gửi quà. Em làm gì?",
+            "options": [
+              {
+                "id": "q8-o0",
+                "text": "Không tự cung cấp và hỏi người lớn"
+              },
+              {
+                "id": "q8-o1",
+                "text": "Gửi ngay"
+              },
+              {
+                "id": "q8-o2",
+                "text": "Gửi số bố mẹ"
+              },
+              {
+                "id": "q8-o3",
+                "text": "Rủ bạn gửi cùng"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Không tự cung cấp và hỏi người lớn. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-9",
+            "level": "APPLICATION",
+            "prompt": "Thông báo trúng quà hỏi mã xác minh. Em làm gì?",
+            "options": [
+              {
+                "id": "q9-o0",
+                "text": "Đóng thông báo và báo người lớn"
+              },
+              {
+                "id": "q9-o1",
+                "text": "Nhập mã ngay"
+              },
+              {
+                "id": "q9-o2",
+                "text": "Nhập thông tin giả"
+              },
+              {
+                "id": "q9-o3",
+                "text": "Chia sẻ đường dẫn"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Đóng thông báo và báo người lớn. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          },
+          {
+            "id": "sample-question-10",
+            "level": "APPLICATION",
+            "prompt": "Thấy nội dung gây lo lắng. Em làm gì?",
+            "options": [
+              {
+                "id": "q10-o0",
+                "text": "Đóng nội dung và kể người lớn tin cậy"
+              },
+              {
+                "id": "q10-o1",
+                "text": "Tiếp tục xem một mình"
+              },
+              {
+                "id": "q10-o2",
+                "text": "Gửi cho cả lớp"
+              },
+              {
+                "id": "q10-o3",
+                "text": "Giấu mọi người"
+              }
+            ],
+            "correctAnswerIndex": 0,
+            "explanation": "Đóng nội dung và kể người lớn tin cậy. Đây là lựa chọn phù hợp với nội dung bài học.",
+            "points": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-slide-13",
+      "title": "Cẩm nang lướt web an toàn",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "APPLICATION",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Cẩm nang lướt web an toàn",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "summary",
+      "data": {
+        "keyMessages": [
+          "DỪNG",
+          "KIỂM TRA",
+          "GIỮ KÍN",
+          "BÁO NGƯỜI LỚN"
+        ],
+        "mindMapNodes": [],
+        "safetyTips": [
+          "Khi chưa chắc, hỏi người lớn tin cậy."
+        ],
+        "helpChannels": [
+          {
+            "id": "help-adult",
+            "label": "Người hỗ trợ",
+            "value": "Bố mẹ hoặc thầy cô",
+            "description": "Chia sẻ khi em gặp yêu cầu bất thường.",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample-slide-14",
+      "title": "Hoàn thành bài học",
+      "subtitle": "",
+      "stepNumber": 1,
+      "stepName": "",
+      "pedagogicalStage": "APPLICATION",
+      "estimatedMinutes": 2,
+      "layout": "TEXT_ONLY",
+      "voiceScript": "Hoàn thành bài học",
+      "teacherNotes": "",
+      "narration": {
+        "mode": "BROWSER_TTS",
+        "text": "",
+        "lang": "vi-VN"
+      },
+      "media": {
+        "enabled": false,
+        "suggestion": "",
+        "caption": ""
+      },
+      "accessibility": {
+        "fontScale": 1,
+        "highContrast": false,
+        "reducedMotion": false,
+        "transcript": "",
+        "captions": ""
+      },
+      "type": "completion",
+      "data": {
+        "message": "Cảm ơn em đã tham gia bài học!",
+        "reviewLabel": "Ôn lại bài",
+        "retryLabel": "Làm lại bài kiểm tra"
+      }
+    }
+  ],
+  "assets": []
+}

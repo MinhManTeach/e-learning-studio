@@ -15,6 +15,8 @@ export type EditorAction =
   | { type: "select"; id: string | null }
   | { type: "metadata"; metadata: Metadata }
   | { type: "objectives"; objectives: Objectives }
+  | { type: "settings"; settings: LessonProject["settings"] }
+  | { type: "media"; id: string; url: string; alt: string }
   | { type: "add"; slideType: SlideType }
   | { type: "edit"; slide: Slide }
   | { type: "duplicate"; id: string }
@@ -32,6 +34,8 @@ export function editorReducer(
   let slides = project.slides;
   let metadata = project.metadata;
   let objectives = project.objectives;
+  let settings = project.settings;
+  let assets = project.assets;
   if (action.type === "select")
     return {
       ...state,
@@ -41,6 +45,47 @@ export function editorReducer(
           : selectedId,
     };
   switch (action.type) {
+    case "settings":
+      settings = action.settings;
+      break;
+    case "media": {
+      const slide = slides.find((s) => s.id === action.id);
+      if (!slide) return state;
+      const existing = assets.find((a) => a.id === slide.media.assetId);
+      const shared =
+        existing &&
+        slides.some(
+          (s) => s.id !== slide.id && s.media.assetId === existing.id,
+        );
+      const asset = {
+        id: existing && !shared ? existing.id : crypto.randomUUID(),
+        kind: "IMAGE" as const,
+        sourceType: "URL" as const,
+        name: existing?.name ?? "",
+        fileName: "",
+        mimeType: "",
+        url: action.url,
+        altText: action.alt,
+        status: "EXTERNAL" as const,
+      };
+      assets = assets.some((a) => a.id === asset.id)
+        ? assets.map((a) => (a.id === asset.id ? asset : a))
+        : [...assets, asset];
+      slides = slides.map((s) =>
+        s.id === slide.id
+          ? {
+              ...s,
+              media: {
+                ...s.media,
+                assetId: asset.id,
+                enabled:
+                  existing?.url === action.url ? s.media.enabled : !!action.url,
+              },
+            }
+          : s,
+      );
+      break;
+    }
     case "objectives":
       objectives = action.objectives;
       break;
@@ -97,6 +142,8 @@ export function editorReducer(
       slides,
       metadata,
       objectives,
+      settings,
+      assets,
       updatedAt: new Date().toISOString(),
     },
     selectedId,

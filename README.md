@@ -1,52 +1,44 @@
-# E-Learning Studio — Phase 0
+# E-Learning Studio — Phase 1
 
-Ứng dụng biên soạn bài giảng cho giáo viên, chạy tại máy với React, TypeScript và Vite.
+Ứng dụng biên soạn bài giảng cho giáo viên bằng React, TypeScript và Vite. Schema hiện tại: **2.2**.
 
-## Chạy ứng dụng
+## Chạy tại máy
 
 Yêu cầu Node.js 22.12+ hoặc 24 LTS và npm.
 
 ```powershell
-cd "C:\Users\user\Documents\ChatGPT\App Elearning cho GV"
 npm install
 npm run dev
-```
-
-Mở địa chỉ Vite in ra, mặc định http://127.0.0.1:5173. Giữ cửa sổ chạy lệnh khi sử dụng ứng dụng.
-
-```powershell
 npm test
 npm run build
-npm run preview
 ```
+
+Mở địa chỉ Vite in ra, mặc định http://127.0.0.1:5173. Giữ tiến trình Vite khi sử dụng.
 
 ## Cách dùng
 
-1. Chọn **Tạo bài giảng mới**, nhập tên. Bài mới có trang mở đầu và trang nội dung.
-2. Chọn **Thông tin bài giảng** để nhập môn, lớp, chủ đề, thời lượng, giáo viên, trường, chương trình và các mục tiêu.
-3. Chọn trang bên trái; nhập nội dung và các ý chính ở bên phải. Mỗi dòng của các ý chính/mục tiêu tạo một mục riêng.
-4. **Thêm trang**, **Nhân bản**, **Lên**, **Xuống**, **Xóa** thao tác trên trang; xóa cần xác nhận. Có thể xóa hết trang rồi thêm lại.
-5. Dữ liệu tự động lưu sau 900 ms ngừng chỉnh sửa; trạng thái hiển thị ở trên. Dùng **Lưu bài** hoặc Ctrl+S để lưu ngay. Chờ **Đã lưu** trước khi đóng/tải lại trang. Nếu lỗi lưu, bài đang chỉnh sửa được giữ lại và có nút thử lại; đóng trang khi chưa lưu có cảnh báo trình duyệt.
-6. **Xem trước** hiển thị renderer dùng chung, chuyển trang bằng nút hoặc phím mũi tên; **Về chỉnh sửa** quay lại trang đã chọn trong editor. Đọc bài dùng giọng tiếng Việt trên thiết bị, khả năng hoạt động offline tùy hệ điều hành/trình duyệt.
-7. Sau khi tải lại, mở bài ở **Bài giảng của tôi**. Dữ liệu lưu trong IndexedDB của đúng trình duyệt và đúng địa chỉ/port, dự phòng localStorage nếu không mở được IndexedDB. Xóa dữ liệu trình duyệt sẽ xóa bài giảng. Phase 0 chưa có xuất bản/sao lưu tệp.
-8. **Mở tệp bài giảng** nhận schema 2.1, bài đã lưu 2.0 hoặc bản tham chiếu 1.x, tối đa 10 MB. Luôn tạo bản độc lập, không ghi đè bài hiện có. Mẫu 2.1 thiếu ID/tên/timestamps được bổ sung khi nhập; danh sách trang trống được giữ nguyên. Các hoạt động ngoài welcome/content được giữ nguyên dữ liệu nhưng chưa chạy tương tác trong preview.
+1. Chọn **Tạo bài giảng mới**, hoặc **Mở bài mẫu Phase 1** để khám phá bài 14 trang với tình huống và 10 câu hỏi. Mẫu cố ý có lớp chương trình 4 và lớp học sinh 5 để kiểm tra cảnh báo.
+2. **Thông tin bài giảng** cho phép sửa metadata, mục tiêu, giao diện và điều kiện hoàn thành. Hai trường lớp độc lập; cảnh báo chỉ gợi ý, không sửa dữ liệu.
+3. **Thêm trang** có tám loại: mở đầu, mục tiêu, nội dung, khởi động, tình huống, trắc nghiệm, tổng kết, hoàn thành. Chọn trang bên trái để sửa thuộc tính ở bên phải.
+4. Mở **Bố cục & giai đoạn**, **Hình ảnh minh họa**, **Lời thuyết minh & ghi chú**, **Khả năng tiếp cận** khi cần. Chọn **Không dùng ảnh** để nội dung giãn hết chiều rộng. Ảnh HTTP(S) cần kết nối tới nguồn; ảnh không tải được có thông báo thay thế.
+5. **Nhân bản**, **Lên**, **Xuống**, **Xóa** thao tác trên trang; xóa cần xác nhận. Cảnh báo mật độ không xóa hoặc viết lại nội dung.
+6. Tự động lưu sau 900 ms ngừng nhập. Dùng **Lưu bài** hoặc Ctrl+S để lưu ngay, chờ **Đã lưu** trước khi đóng trang. Bài lưu trong IndexedDB của đúng trình duyệt và địa chỉ/port; localStorage là dự phòng. Xóa dữ liệu trình duyệt sẽ mất bài lưu.
+7. **Xem trước** có điều hướng, tiến độ, giọng đọc, hoạt động, chấm quiz và hoàn thành. Phím ← → chuyển trang khi không tập trung vào điều khiển. **Bắt đầu lại xem trước** tạo phiên học mới; đáp án và tiến độ không lưu vào bài giảng. Giọng tiếng Việt tùy thiết bị.
+8. **Xuất JSON** hiển thị dữ liệu bài đang sửa để sao chép, cùng nút tải tệp. **Mở tệp bài giảng** nhận JSON 2.2 và các bản cũ được hỗ trợ, tối đa 10 MB. Nếu ID đã tồn tại, ứng dụng hỏi trước khi thay thế, giữ nguyên ID/timestamps trong tệp. Hủy sẽ giữ bài hiện có.
 
-## Cấu trúc
+## Kiến trúc
 
-- `src/model`: schema Zod 2.1, reader 2.0, kiểu suy ra, factories, migration dispatch.
-- `src/editor`: reducer bất biến, Editor shell, danh sách và bảng thuộc tính.
-- `src/renderers`: registry welcome/content/legacy, không phụ thuộc editor/LMS.
-- `src/player`: preview và hợp đồng `LmsAdapter`, `StandaloneAdapter`; chưa triển khai SCORM runtime mới.
-- `src/storage`: IndexedDB và localStorage theo cùng giao diện, kiểm tra dữ liệu lúc đọc/ghi.
-- `tests`: Vitest và fake-indexeddb; dữ liệu, reducer, migration, lưu trữ.
-- `reference`: bản sao nguyên trạng bốn tệp người dùng cung cấp; không nạp vào editor runtime.
+- `src/model`: Zod 2.2, các reader/migration cũ được đóng băng, cảnh báo và JSON.
+- `src/slides`: registry duy nhất, factories và danh sách loại tương lai.
+- `src/editor`: reducer bất biến và các bảng thuộc tính theo loại trang.
+- `src/renderers`: renderer/layout dùng chung giữa editor và preview.
+- `src/player`: phiên học độc lập, điểm có trọng số, tiến độ, điều kiện hoàn thành; giữ ranh giới `LmsAdapter`.
+- `src/fixtures`, `examples/lesson-2.2.json`: bài mẫu phát triển.
+- `src/storage`: IndexedDB/localStorage với validation khi đọc/ghi.
+- `reference`: nguyên trạng tài liệu người dùng, không đưa vào runtime.
 
-Không sử dụng HTML không an toàn, CDN, font mạng hay dịch vụ backend. Hình ảnh chỉ nhận URL HTTP(S), có placeholder khi lỗi; ảnh mạng vẫn cần Internet. CSS và JS được Vite đóng gói tại máy, sẵn sàng cho player/export engine tương lai. Chưa có service worker hoặc trình xuất ZIP.
+**The current edited canonical LessonProject is the single source of truth for export.** Export không chạy lại AI hoặc dựng lại bài từ tài liệu nguồn.
 
-## Phạm vi
+Không render HTML do giáo viên nhập. Không dùng backend, CDN/font mạng hoặc AI API. Media Library, thu âm, AI, SCORM/HTML5 ZIP và chứng nhận để các phase sau.
 
-Phase 0 chỉ xây nền tảng và editor shell. Hoạt động tương tác, quiz builder, media library, SCORM/HTML ZIP, AI, tài khoản và cloud đều để các giai đoạn sau. Không tự động tiếp tục Phase 1.
-
-Xem `REFERENCE_REVIEW.md` và `PHASE_0_CHECKPOINT.md` để biết kết quả kiểm tra và giới hạn.
-
-Schema hiện tại là **2.1**: `metadata.durationMinutes` là số nguyên không âm; `objectives` ở cấp gốc; `aiIntegration` có `code`, `title`, `description`. Thời lượng nhập bằng phút, ví dụ 35. Settings lưu tỷ lệ 16:9, theme SAFE_TEAL, điểm đạt và các cờ requireAllSlides/requireQuiz/allowRetry. Các cờ mới chỉ được lưu, chưa áp dụng điều kiện hoàn thành hoặc giới hạn làm lại trong preview Phase 0. Xem `SCHEMA_2_1.md` và mẫu nhập `examples/lesson-2.1.json`.
+Xem `SCHEMA_2_2.md` và `PHASE_1_CHECKPOINT.md`. `SCHEMA_2_1.md` và `PHASE_0_CHECKPOINT.md` được giữ làm hồ sơ lịch sử.

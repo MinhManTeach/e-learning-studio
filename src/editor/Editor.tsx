@@ -20,6 +20,8 @@ import { SlideList } from "./SlideList";
 import { Properties } from "./Properties";
 import { SlideCanvas } from "../renderers/SlideCanvas";
 import { StudentPreview } from "../player/StudentPreview";
+import { downloadProjectJSON, exportProjectJSON } from "../model/json";
+import { consistencyWarnings } from "../model/analysis";
 
 export function Editor({
   project,
@@ -37,6 +39,7 @@ export function Editor({
   const [error, setError] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [jsonExport, setJsonExport] = useState<string | null>(null);
   const savingRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -124,6 +127,21 @@ export function Editor({
           <span>Không gian soạn bài của bạn</span>
         </div>
         <div className="top-actions">
+          {!preview && (
+            <button
+              onClick={() => {
+                try {
+                  setJsonExport(exportProjectJSON(stateRef.current.project));
+                } catch {
+                  setError(
+                    "Không thể xuất tệp. Hãy kiểm tra dữ liệu bài giảng.",
+                  );
+                }
+              }}
+            >
+              Xuất JSON
+            </button>
+          )}
           <span
             className={"save-status " + (dirty ? "unsaved" : "")}
             role="status"
@@ -159,7 +177,7 @@ export function Editor({
           </button>
         </div>
       </header>
-      {showSettings && (
+      {showSettings && !preview && (
         <div className="settings-popover">
           <strong>Lưu trữ trên thiết bị</strong>
           <p>
@@ -217,7 +235,12 @@ export function Editor({
               </span>
               <span className="canvas-ratio">16 : 9</span>
             </div>
-            <SlideCanvas slide={slide} />
+            {consistencyWarnings(state.project).map((w) => (
+              <p className="callout" key={w.code}>
+                {w.message}
+              </p>
+            ))}
+            <SlideCanvas slide={slide} project={state.project} />
             {slide && (
               <div className="slide-tools">
                 <div>
@@ -270,8 +293,13 @@ export function Editor({
             </button>
           </main>
           <Properties
-            metadata={state.project.metadata}
-            objectives={state.project.objectives}
+            project={state.project}
+            editSettings={(settings) =>
+              dispatch({ type: "settings", settings })
+            }
+            mediaChange={(url, alt) => {
+              if (slide) dispatch({ type: "media", id: slide.id, url, alt });
+            }}
             editObjectives={(objectives) =>
               dispatch({ type: "objectives", objectives })
             }
@@ -289,9 +317,45 @@ export function Editor({
         </span>
         <span>
           {preview ? "Xem trước bài học" : "Tự động lưu • Ctrl + S để lưu ngay"}
-          <span className="footer-divider">|</span>Phiên bản khởi đầu · 0.1
+          <span className="footer-divider">|</span>Phase 1 · Schema 2.2
         </span>
       </footer>
+      {jsonExport !== null && (
+        <div className="modal-overlay">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-title"
+            className="modal"
+          >
+            <h2 id="export-title">Xuất bài giảng JSON</h2>
+            <p>
+              Tệp chứa nội dung đang chỉnh sửa. Bạn cũng có thể chọn toàn bộ văn
+              bản bên dưới để sao chép và lưu thành tệp .json.
+            </p>
+            <label className="field">
+              <span>Nội dung JSON xuất</span>
+              <textarea
+                readOnly
+                value={jsonExport}
+                rows={10}
+                onFocus={(e) => e.target.select()}
+              />
+            </label>
+            <div className="modal-actions">
+              <button autoFocus onClick={() => setJsonExport(null)}>
+                Đóng
+              </button>
+              <button
+                className="primary"
+                onClick={() => downloadProjectJSON(stateRef.current.project)}
+              >
+                Tải tệp JSON
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       {deleteTarget && (
         <div className="modal-overlay">
           <section

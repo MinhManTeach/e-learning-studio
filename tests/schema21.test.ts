@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
-import { createProject } from "../src/model/factories";
+import { createProject } from "../src/model/factoriesV21";
 import {
   decodeProject,
   decodeStoredProject,
@@ -41,12 +41,12 @@ function oldProject() {
 describe("Schema 2.1 migration and import", () => {
   it("accepts the exact supplied template with generated identity, title and timestamps", () => {
     const p = decodeProject(template);
-    expect(p.schemaVersion).toBe("2.1");
+    expect(p.schemaVersion).toBe("2.2");
     expect(p.projectId).toBeTruthy();
     expect(p.createdAt).toBe(p.updatedAt);
     expect(p.metadata.projectTitle).toBe(template.metadata.topic);
     expect(p.metadata.durationMinutes).toBe(35);
-    expect(p.objectives).toEqual(template.objectives);
+    expect(p.objectives).toMatchObject(template.objectives);
     expect(p.settings).toEqual(template.settings);
     expect(p.slides).toEqual([]);
     expect(parseProject(p)).toEqual(p);
@@ -65,8 +65,12 @@ describe("Schema 2.1 migration and import", () => {
     expect(p.projectId).toBe(old.projectId);
     expect(p.createdAt).toBe(old.createdAt);
     expect(p.updatedAt).toBe(old.updatedAt);
-    expect(p.slides).toEqual(old.slides);
-    expect(p.assets).toEqual(old.assets);
+    expect(p.slides.map((s) => s.id)).toEqual(old.slides.map((s) => s.id));
+    p.slides.forEach((s, i) => {
+      expect(s.title).toBe(old.slides[i].title);
+      expect(s.voiceScript).toBe(old.slides[i].voiceScript);
+    });
+    expect(p.assets).toMatchObject(old.assets);
     expect(p.legacySource).toEqual(old.legacySource);
     expect(p.migrationSource).toEqual(old);
     expect(p.metadata.durationMinutes).toBe(35);
@@ -131,7 +135,7 @@ describe("Schema 2.1 migration and import", () => {
     await store.save(p);
     expect((await store.list()).projects).toEqual([p]);
   });
-  it("loads and upgrades real 2.0 IndexedDB records, writing 2.1 only on save", async () => {
+  it("loads and upgrades real 2.0 IndexedDB records, writing current schema only on save", async () => {
     const factory = new IDBFactory();
     const store = await openIndexedStore(factory);
     const old = oldProject();

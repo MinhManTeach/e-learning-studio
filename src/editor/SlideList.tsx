@@ -1,6 +1,7 @@
 import { Plus, BookOpen, FileText } from "lucide-react";
 import type { Slide, SlideType } from "../model/schema";
 import { slideRegistry } from "../renderers/SlideCanvas";
+import { availableSlideTypes } from "../slides/registry";
 export function SlideList({
   slides,
   selectedId,
@@ -29,8 +30,11 @@ export function SlideList({
           <summary>
             <Plus size={18} /> Thêm trang
           </summary>
-          <button onClick={() => add("welcome")}>Trang mở đầu</button>
-          <button onClick={() => add("content")}>Trang nội dung</button>
+          {availableSlideTypes.map((type) => (
+            <button key={type} onClick={() => add(type)}>
+              {slideRegistry[type].label}
+            </button>
+          ))}
         </details>
       </div>
       <div className="slide-items">
