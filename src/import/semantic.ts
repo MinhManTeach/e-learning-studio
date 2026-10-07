@@ -134,6 +134,11 @@ export function normalizeSemanticAnalysis(
   const result = aiPedagogicalAnalysisResultSchema.parse(value);
   const input = buildSemanticAnalysisInput(document);
   const blocks = new Map(input.blocks.map((b) => [b.id, b]));
+  const localEvidence = emptyAnalysis(document);
+  classifyStructuredDocument(
+    { ...document, blocks: input.blocks },
+    localEvidence,
+  );
   const structuralOnly = new Set(
     input.structuralHints
       .filter((h) => {
@@ -174,8 +179,36 @@ export function normalizeSemanticAnalysis(
       item.sourceBlockIds.every((id) => structuralOnly.has(id))
     )
       return false;
+    // Scores remain advisory. Contradictory section evidence requires teacher review
+    // even when the model claims certainty; related objective/activity categories agree.
+    const related = (a: string, b: string) =>
+      a === b ||
+      [a, b].every((c) => ["KNOWLEDGE", "LEARNING_OUTCOME"].includes(c)) ||
+      [a, b].every((c) =>
+        [
+          "TEACHING_ACTIVITY",
+          "TEACHER_ACTIVITY",
+          "STUDENT_ACTIVITY",
+          "WARMUP",
+          "DISCOVERY",
+          "PRACTICE",
+          "APPLICATION",
+        ].includes(c),
+      );
+    const conflict = localEvidence.classifications.some(
+      (c) =>
+        item.sourceBlockIds.includes(c.blockId) &&
+        !c.isHeading &&
+        c.confidence >= 0.85 &&
+        c.category !== "OTHER" &&
+        c.category !== "LESSON_IDENTITY" &&
+        !related(c.category, category),
+    );
+    const confidence = conflict
+      ? Math.min(item.confidence, 0.84)
+      : item.confidence;
     const uncertain =
-      forceUncertain || confidenceDisposition(item.confidence) === "UNCERTAIN";
+      forceUncertain || confidenceDisposition(confidence) === "UNCERTAIN";
     const target = uncertain
       ? `unmappedContent[${a.unmappedContent.length}]`
       : field;
@@ -193,7 +226,7 @@ export function normalizeSemanticAnalysis(
           "",
         lineStart: block.sourceOrder + 1,
         lineEnd: block.sourceOrder + 1,
-        confidence: item.confidence,
+        confidence,
         blockId: id,
       });
     }
@@ -203,7 +236,7 @@ export function normalizeSemanticAnalysis(
       sourceText: item.text,
       category: uncertain ? "OTHER" : category,
       field: target,
-      confidence: item.confidence,
+      confidence,
       signals: item.reasoningCode ? [item.reasoningCode] : [],
       isHeading: false,
       needsReview: uncertain,

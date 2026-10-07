@@ -12,7 +12,7 @@ import {
   type SemanticAnalysisInput,
 } from "./semantic";
 
-/** Non-secret preferences only; credentials belong to a future connection adapter. */
+/** Non-secret preferences only; credentials are held by the local server adapter. */
 export interface PersonalAiSettings {
   providerId: string | null;
   model: string | null;
@@ -33,7 +33,7 @@ export interface SemanticAnalysisConnection {
     options?: LessonAnalysisOptions,
   ): Promise<unknown>;
 }
-/** A future vendor adapter returns unknown: this boundary validates before normalization. */
+/** Vendor adapters return unknown: this boundary validates before normalization. */
 export class SemanticLessonAnalysisProvider implements LessonAnalysisProvider {
   readonly kind = "AI" as const;
   get id() {
