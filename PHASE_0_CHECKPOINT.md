@@ -6,7 +6,9 @@ Ngày kiểm tra: 07/10/2026.
 
 **COMMIT:** Commit chứa checkpoint này. Xem mã chính xác bằng `git rev-parse HEAD` và trong báo cáo bàn giao ở chat.
 
-**MESSAGE:** `feat: build Vietnamese e-learning studio phase 0 foundation`
+**MESSAGE:** `chore: preserve reference files and finalize phase 0 evidence`
+
+Commit triển khai: `bb2401a` — `feat: build Vietnamese e-learning studio phase 0 foundation`.
 
 **BUILD:** PASS — `npm run build` (strict TypeScript + Vite).
 
@@ -29,6 +31,7 @@ Ngày kiểm tra: 07/10/2026.
 
 ```text
 .gitignore
+.gitattributes
 index.html
 package.json
 package-lock.json
