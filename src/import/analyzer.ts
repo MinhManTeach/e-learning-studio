@@ -9,6 +9,7 @@ import {
 } from "./model";
 import { activitySchema } from "./model";
 import { classifyStructuredDocument } from "./structure";
+import { detectLessonMetadata, finalizeLessonDuration } from "./lessonMetadata";
 
 export const analysisSteps = [
   "Xác định thông tin bài học",
@@ -48,6 +49,9 @@ type MetaField =
   | "lessonTitle"
   | "topic"
   | "durationMinutes"
+  | "lessonNumber"
+  | "periodCount"
+  | "minutesPerPeriod"
   | "curriculum";
 type Section = ListField | "activities";
 const metadataAliases: [string, MetaField][] = [
@@ -94,6 +98,7 @@ const sectionAliases: [string, Section][] = [
   ["nang luc so", "digitalCompetencyIntegration"],
   ["tich hop giao duc ai", "aiIntegration"],
   ["tich hop ai", "aiIntegration"],
+  ["nang luc ai", "aiIntegration"],
   ["tri tue nhan tao", "aiIntegration"],
   ["ho tro hoc sinh dac thu", "specialNeedsSupport"],
   ["ho tro hoc sinh khuyet tat", "specialNeedsSupport"],
@@ -209,6 +214,21 @@ function scan(document: ImportedLessonDocument): Event[] {
         bullet: /^\s*(?:[-•*–]|\d+[.)]\s)/.test(source),
         heading: false,
       };
+      const facts = detectLessonMetadata(
+        original,
+        section === "unmappedContent" && !activeActivity,
+      );
+      for (const fact of facts)
+        events.push({ ...base, field: fact.field, value: String(fact.value) });
+      if (
+        facts.length &&
+        !(facts.length === 1 && facts[0].field === "lessonNumber")
+      ) {
+        pendingMeta = undefined;
+        activeActivity = undefined;
+        section = "unmappedContent";
+        return;
+      }
       let activityLine = line.replace(/^hoạt động\s*\d*\s*[:.\-–]?\s*/i, "");
       const withoutTime = activityLine
         .replace(/\s*\([^)]*\)\s*$/, "")
@@ -347,6 +367,7 @@ function trace(a: PedagogicalAnalysis, e: Event, confidence = 0.9) {
     sourceText: e.source,
     lineStart: e.line,
     lineEnd: e.lineEnd ?? e.line,
+    blockId: `line-${e.line}`,
     confidence,
   });
 }
@@ -375,12 +396,20 @@ function collect(a: PedagogicalAnalysis, events: Event[], fields: ListField[]) {
   }
 }
 function metadata(a: PedagogicalAnalysis, events: Event[]) {
-  const fields = new Set(metadataAliases.map((x) => x[1]));
+  const fields = new Set<MetaField>([
+    ...metadataAliases.map((x) => x[1]),
+    "lessonNumber",
+    "periodCount",
+    "minutesPerPeriod",
+  ]);
   for (const e of events) {
     if (!fields.has(e.field as MetaField)) continue;
     const field = e.field as MetaField;
-    const value =
-      field === "durationMinutes"
+    const value = ["lessonNumber", "periodCount", "minutesPerPeriod"].includes(
+      field,
+    )
+      ? Number(e.value)
+      : field === "durationMinutes"
         ? parseDuration(
             normalizeHeading(e.source).includes("so tiet") &&
               !/phut|gio|min\b/.test(normalizeHeading(e.value))
@@ -398,7 +427,12 @@ function metadata(a: PedagogicalAnalysis, events: Event[]) {
       trace(a, e, 0.4);
       continue;
     }
-    if (a[field] !== null && a[field] !== "" && a[field] !== value) {
+    if (
+      a[field] !== undefined &&
+      a[field] !== null &&
+      a[field] !== "" &&
+      a[field] !== value
+    ) {
       a.sourceWarnings.push(
         `Có nhiều thông tin khác nhau cho “${e.source}”. Đã giữ giá trị phát hiện đầu tiên; thầy/cô hãy kiểm tra.`,
       );
@@ -406,8 +440,7 @@ function metadata(a: PedagogicalAnalysis, events: Event[]) {
       trace(a, e, 0.5);
       continue;
     }
-    if (field === "durationMinutes") a.durationMinutes = value as number;
-    else a[field] = value as string;
+    (a as unknown as Record<string, unknown>)[field] = value;
     trace(a, e, 0.98);
   }
 }
@@ -467,6 +500,10 @@ export class DeterministicLessonAnalysisProvider implements LessonAnalysisProvid
             "lessonTitle",
             "topic",
             "durationMinutes",
+            "lessonNumber",
+            "periodCount",
+            "minutesPerPeriod",
+            "totalDurationMinutes",
             "curriculum",
             "sourceTraces",
             "classifications",
@@ -523,6 +560,7 @@ export class DeterministicLessonAnalysisProvider implements LessonAnalysisProvid
       pipeline[i]();
       onProgress?.({ index: i, label: analysisSteps[i], completed: true });
     }
+    if (!structured) finalizeLessonDuration(analysis);
     return analysisSchema.parse(analysis);
   }
 }

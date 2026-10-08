@@ -7,6 +7,7 @@ import {
   type TeachingActivity,
 } from "./model";
 import { normalizeHeading, parseDuration, parseGrade } from "./analyzer";
+import { detectLessonMetadata, finalizeLessonDuration } from "./lessonMetadata";
 
 type Category = BlockClassification["category"];
 type Section = {
@@ -31,8 +32,9 @@ const rules: [RegExp, Category, string][] = [
     "KNOWLEDGE",
     "keyKnowledge",
   ],
+  [/^(?:ve )?nang luc ai$/, "AI_INTEGRATION", "aiIntegration"],
   [
-    /^(?:ve )?nang luc(?: (?!so(?: |$))[a-z]+(?: [a-z]+){0,3})?$/,
+    /^(?:ve )?nang luc(?: (?!so(?: |$)|ai(?: |$))[a-z]+(?: [a-z]+){0,3})?$/,
     "COMPETENCY",
     "competencies",
   ],
@@ -132,7 +134,7 @@ const metaRules: [RegExp, keyof PedagogicalAnalysis][] = [
   ],
   [/^chủ đề(?:\s+[^:：]+)?\s*[:：]\s*(.+)$/iu, "topic"],
   [
-    /^\(?(?:thời lượng|thời gian|số tiết)\s*[:：]\s*(.+?)\)?$/iu,
+    /^\(?(?:thời lượng|thời gian|số tiết)\s*(?:[:：]\s*|\s)(.+?)\)?$/iu,
     "durationMinutes",
   ],
   [/^chương trình\s*[:：]\s*(.+)$/iu, "curriculum"],
@@ -171,6 +173,29 @@ export function classifyStructuredDocument(
       needsReview,
       corrected: false,
     };
+    if (
+      !isHeading &&
+      [
+        "LEARNING_OUTCOME",
+        "KNOWLEDGE",
+        "COMPETENCY",
+        "QUALITY",
+        "DIGITAL_COMPETENCY",
+        "AI_INTEGRATION",
+      ].includes(category)
+    ) {
+      c.isRequiredOutcome =
+        category === "LEARNING_OUTCOME" ||
+        stack.some((s) => s.category === "LEARNING_OUTCOME");
+      if (category === "COMPETENCY") {
+        const label = normalizeHeading(stack.at(-1)?.heading ?? "");
+        c.competencyKind = /nang luc chung$/.test(label)
+          ? "GENERAL"
+          : /nang luc (?:dac thu|.+)$/.test(label)
+            ? "SUBJECT_SPECIFIC"
+            : "UNSPECIFIED";
+      }
+    }
     a.classifications.push(c);
     let sourceLine = line;
     if (row !== undefined && block.table) {
@@ -191,9 +216,13 @@ export function classifyStructuredDocument(
       if (offset > 0)
         sourceLine += current!.text.slice(0, offset).split("\n").length - 1;
     }
-    if (!isHeading)
+    const activityTiming =
+      isHeading &&
+      ["WARMUP", "DISCOVERY", "PRACTICE", "APPLICATION"].includes(category) &&
+      parseDuration(sourceText) !== null;
+    if (!isHeading || activityTiming)
       a.sourceTraces.push({
-        field: field.split("[")[0],
+        field: activityTiming ? "activityDurationMinutes" : field.split("[")[0],
         sourceText,
         lineStart: sourceLine,
         lineEnd: sourceLine + sourceText.split("\n").length - 1,
@@ -274,9 +303,11 @@ export function classifyStructuredDocument(
     const level =
       block.level ??
       (numbered
-        ? /^[IVXLCDM]+$/i.test(numbered[1])
-          ? 1
-          : 2
+        ? /^[a-z]\)/.test(text.trim())
+          ? 3
+          : /^[IVXLCDM]+$/i.test(numbered[1])
+            ? 1
+            : 2
         : h.field === "teachingActivities"
           ? 2
           : 3);
@@ -339,6 +370,48 @@ export function classifyStructuredDocument(
     row?: number,
     column?: number,
   ) {
+    const facts = detectLessonMetadata(text, stack.length === 0 && !active);
+    for (const fact of facts) {
+      const previous = a[fact.field];
+      if (
+        previous !== undefined &&
+        previous !== null &&
+        previous !== "" &&
+        previous !== fact.value
+      ) {
+        a.sourceWarnings.push(
+          "Thông tin xung đột: " + text + ". Giữ giá trị đầu tiên.",
+        );
+        assign(
+          block,
+          text,
+          "OTHER",
+          "unmappedContent",
+          ["Xung đột metadata"],
+          0.4,
+          row,
+          column,
+        );
+        continue;
+      }
+      (a as unknown as Record<string, unknown>)[fact.field] = fact.value;
+      emit(
+        block,
+        text,
+        "LESSON_IDENTITY",
+        fact.field,
+        ["Khai báo rõ trong nguồn"],
+        0.9,
+        false,
+        row,
+        column,
+      );
+    }
+    if (
+      facts.length &&
+      !(facts.length === 1 && facts[0].field === "lessonNumber")
+    )
+      return true;
     for (const [re, key] of metaRules) {
       const match = cleaned(text).match(re);
       if (!match) continue;
@@ -915,6 +988,7 @@ export function classifyStructuredDocument(
   }
   if (
     a.durationMinutes === null &&
+    !a.periodCount &&
     a.teachingActivities.length &&
     a.teachingActivities.every((t) => t.estimatedMinutes !== null)
   ) {
@@ -922,12 +996,11 @@ export function classifyStructuredDocument(
       (sum, t) => sum + t.estimatedMinutes!,
       0,
     );
-    a.sourceTraces.push({
-      field: "durationMinutes",
-      sourceText: a.teachingActivities.map((t) => t.title).join(" + "),
-      lineStart: 1,
-      lineEnd: Math.max(1, line - 1),
-      confidence: 0.85,
-    });
+    a.sourceTraces.push(
+      ...a.sourceTraces
+        .filter((t) => t.field === "activityDurationMinutes")
+        .map((t) => ({ ...t, field: "durationMinutes" })),
+    );
   }
+  finalizeLessonDuration(a);
 }

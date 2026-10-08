@@ -1,4 +1,5 @@
 import { gradeEvidence, confirmedGrades } from "./grades";
+import { outcomeSummaryCount } from "./outcomes";
 import { analysisSchema, type PedagogicalAnalysis } from "./model";
 import { activitySchema, type BlockClassification } from "./model";
 export const correctionCategories: {
@@ -113,10 +114,7 @@ export function analysisWarnings(a: PedagogicalAnalysis): AnalysisWarning[] {
       code: "DURATION",
       message: "Chưa phát hiện thời lượng bài học theo phút.",
     });
-  if (
-    !a.learningOutcomes.some((x) => x.trim()) &&
-    !a.knowledgeObjectives.some((x) => x.trim())
-  )
+  if (outcomeSummaryCount(a) === 0)
     warnings.push({
       code: "OUTCOMES",
       message: "Chưa phát hiện yêu cầu cần đạt.",
@@ -167,6 +165,15 @@ export function editAnalysis<K extends keyof PedagogicalAnalysis>(
   return analysisSchema.parse({
     ...a,
     [field]: value,
+    ...(field === "durationMinutes" ? { totalDurationMinutes: value } : {}),
+    ...(field === "totalDurationMinutes" ? { durationMinutes: value } : {}),
+    ...(field === "teachingActivities"
+      ? {
+          teachingActivities: (
+            value as PedagogicalAnalysis["teachingActivities"]
+          ).map((t) => ({ ...t, activityDurationMinutes: t.estimatedMinutes })),
+        }
+      : {}),
     classifications,
     ...(field === "curriculumGrade" || field === "targetAudienceGrade"
       ? {

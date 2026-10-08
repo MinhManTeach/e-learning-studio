@@ -64,6 +64,10 @@ export const classificationSchema = z.object({
   isHeading: z.boolean(),
   needsReview: z.boolean(),
   corrected: z.boolean().default(false),
+  competencyKind: z
+    .enum(["SUBJECT_SPECIFIC", "GENERAL", "UNSPECIFIED"])
+    .optional(),
+  isRequiredOutcome: z.boolean().optional(),
   row: z.number().int().nonnegative().optional(),
   column: z.number().int().nonnegative().optional(),
 });
@@ -86,6 +90,8 @@ export const activitySchema = z.object({
   stage: z.enum(stages).nullable(),
   content: list,
   estimatedMinutes: z.number().nonnegative().nullable(),
+  // Explicit activity allocation; estimatedMinutes remains the compatibility field.
+  activityDurationMinutes: z.number().nonnegative().nullable().optional(),
   teacherActivity: list.default([]),
   studentActivity: list.default([]),
   goals: list.default([]),
@@ -124,6 +130,10 @@ export const analysisSchema = z.object({
     })
     .optional(),
   lessonTitle: text,
+  lessonNumber: z.number().int().positive().nullable().optional(),
+  periodCount: z.number().int().positive().nullable().optional(),
+  minutesPerPeriod: z.number().positive().nullable().optional(),
+  totalDurationMinutes: z.number().nonnegative().nullable().optional(),
   topic: text,
   durationMinutes: z.number().nonnegative().nullable(),
   curriculum: text,

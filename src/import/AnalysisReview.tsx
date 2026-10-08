@@ -5,6 +5,7 @@ import { stages } from "../model/schema";
 import type { PedagogicalAnalysis } from "./model";
 import { gradeEvidence } from "./grades";
 import { analysisWarnings } from "./review";
+import { outcomeSummaryCount } from "./outcomes";
 
 export const reviewGroups: {
   title: string;
@@ -146,10 +147,7 @@ export function AnalysisReview({
           }{" "}
           mục
         </span>
-        <span>
-          ✓ {a.learningOutcomes.length + a.knowledgeObjectives.length} yêu cầu
-          cần đạt / kiến thức
-        </span>
+        <span>✓ {outcomeSummaryCount(a)} yêu cầu cần đạt / kiến thức</span>
         <span>✓ {a.competencies.length} năng lực</span>
         <span>✓ {a.qualities.length} phẩm chất</span>
         <span>✓ {a.teachingActivities.length} hoạt động học tập</span>
@@ -199,7 +197,7 @@ export function AnalysisReview({
         (c) => c.isHeading && c.category === "LEARNING_OUTCOME",
       ) &&
         !a.learningOutcomes.length &&
-        a.knowledgeObjectives.length > 0 && (
+        outcomeSummaryCount(a) > 0 && (
           <p className="hint">
             Yêu cầu cần đạt trong tài liệu được chia thành các mục con: kiến
             thức, năng lực, phẩm chất. Các mục được giữ riêng bên dưới để
