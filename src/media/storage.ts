@@ -1,21 +1,18 @@
 import type { StoredMedia } from "./model";
-export const maxImageBytes = 8 * 1024 * 1024;
-export async function validateImageBlob(blob: Blob) {
-  if (!blob.size || blob.size > maxImageBytes)
-    throw new Error("Ảnh phải lớn hơn 0 và không quá 8 MB.");
-  const bytes = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
+export function detectImageMime(bytes: Uint8Array) {
   const png = [137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => bytes[i] === b);
   const jpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
   const webp =
     String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
     String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
-  const detected = png
-    ? "image/png"
-    : jpeg
-      ? "image/jpeg"
-      : webp
-        ? "image/webp"
-        : "";
+  return png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : "";
+}
+export const maxImageBytes = 8 * 1024 * 1024;
+export async function validateImageBlob(blob: Blob) {
+  if (!blob.size || blob.size > maxImageBytes)
+    throw new Error("Ảnh phải lớn hơn 0 và không quá 8 MB.");
+  const bytes = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
+  const detected = detectImageMime(bytes);
   if (!detected || blob.type !== detected)
     throw new Error(
       "Chỉ nhận PNG, JPEG hoặc WebP có nội dung hợp lệ; không nhận SVG.",

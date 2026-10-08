@@ -1,3 +1,4 @@
+import { prepareDocxMedia } from "../media/docx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LessonProject } from "../model/schema";
 import type { ProjectStore } from "../storage/projects";
@@ -94,6 +95,13 @@ export function LessonImportWizard({
         now: new Date().toISOString(),
         outcomes: outcomeCatalog(draft.analysis),
         onProgress: setGenerationProgress,
+        prepareProject: (project) =>
+          prepareDocxMedia(
+            project,
+            draft.document,
+            draft.analysis,
+            current.current.proposedSlides,
+          ),
       });
       setGenerationResult(result);
     } catch (e) {

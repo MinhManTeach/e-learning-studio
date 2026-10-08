@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { docxSourceSchema, sourceContextSchema } from "../import/mediaModel";
 import {
   metadataSchema as metadata21,
   objectivesSchema as objectives21,
@@ -34,6 +35,7 @@ export const settingsSchema = settings21.extend({
   theme: z.enum(themes).default("SAFE_TEAL"),
 });
 export const assetSchema = z.object({
+  docxSource: docxSourceSchema.optional(),
   id: z.string().min(1),
   kind: z.enum(["IMAGE", "AUDIO", "VIDEO"]),
   sourceType: z.enum(["UPLOAD", "URL", "LIBRARY", "GENERATED"]),
@@ -46,6 +48,7 @@ export const assetSchema = z.object({
   status: z.enum(["EXTERNAL", "LOCAL", "BUNDLED"]).default("EXTERNAL"),
 });
 export const commonSlideFields = {
+  sourceContext: z.array(sourceContextSchema).optional(),
   id: z.string().min(1),
   title: z.string().default("Trang chưa đặt tên"),
   subtitle: text,

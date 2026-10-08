@@ -5,6 +5,9 @@ export interface LessonGenerationContext {
   projectId: string;
   now: string;
   outcomes: { id: string; text: string }[];
+  prepareProject?: (
+    project: LessonProject,
+  ) => Promise<{ project: LessonProject; rollback: () => Promise<void> }>;
   onProgress?: (stage: number) => void;
 }
 export interface LessonGenerationProvider {

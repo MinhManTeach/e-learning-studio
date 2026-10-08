@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { imagePlacementSchema, mediaAssetSchema } from "./mediaModel";
 import type { LessonProject } from "../model/schema";
 import { stages } from "../model/schema";
 
@@ -75,6 +76,8 @@ export const importedDocumentSchema = z.object({
   importedAt: z.iso.datetime(),
   blocks: z.array(documentBlockSchema).default([]),
   extractionWarnings: list.default([]),
+  imagePlacements: z.array(imagePlacementSchema).optional(),
+  mediaAssets: z.array(mediaAssetSchema).optional(),
 });
 export type ImportedLessonDocument = z.infer<typeof importedDocumentSchema>;
 export const activitySchema = z.object({

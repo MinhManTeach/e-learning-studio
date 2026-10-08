@@ -10,6 +10,8 @@ import {
   type MediaStatus,
 } from "./model";
 import "./media.css";
+import { rankSourceImages } from "./docx";
+import { SourceImageCandidate } from "./SourceImageCandidate";
 const provider = new WikimediaCommonsProvider();
 const selection = new MediaSelectionService();
 const labels: Record<MediaStatus, string> = {
@@ -42,6 +44,8 @@ export function MediaPanel({
     initialSlideId ?? project.slides[0]?.id ?? "",
   );
   const slide = project.slides.find((s) => s.id === slideId);
+  const sourceCandidates = slide ? rankSourceImages(project, slide) : [];
+  const [sourceUnsuitable, setSourceUnsuitable] = useState(false);
   const [query, setQuery] = useState("");
   const [alt, setAlt] = useState("");
   const [candidates, setCandidates] = useState<MediaCandidate[]>([]);
@@ -68,6 +72,7 @@ export function MediaPanel({
     setNotice("");
     setPreview(null);
     setConfirmed(false);
+    setSourceUnsuitable(false);
     setQuery(
       slide
         ? (new MediaIntentAnalyzer().analyze(project, slide).queries.at(-1) ??
@@ -123,6 +128,7 @@ export function MediaPanel({
     setStatuses((old) => ({ ...old, [slideId]: value }));
   }
   async function search() {
+    if (sourceCandidates.length && !sourceUnsuitable) return;
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
@@ -192,6 +198,36 @@ export function MediaPanel({
         );
         status("ERROR");
       }
+    } finally {
+      if (!controller.signal.aborted) setOperation(null);
+    }
+  }
+  async function chooseSource(asset: AssetReference, caption: string) {
+    if (!confirmed || !slide || operation) return;
+    abort.current?.abort();
+    const controller = new AbortController();
+    abort.current = controller;
+    setOperation("store");
+    setError("");
+    const targetId = slideId;
+    try {
+      if (!(await selectionService.store.get(asset.id, project.projectId)))
+        throw new Error(
+          "Thiếu ảnh nguồn trên thiết bị. Hãy nhập lại KHBD hoặc tải ảnh từ máy.",
+        );
+      if (controller.signal.aborted) return;
+      attach(
+        targetId,
+        { ...asset, altText: alt.trim() || asset.altText },
+        caption,
+      );
+      status("STORED");
+      setNotice(
+        "Đã gắn ảnh KHBD đã duyệt. Theo dõi trạng thái Lưu bài trước khi đóng.",
+      );
+    } catch (e) {
+      if (!controller.signal.aborted)
+        setError(e instanceof Error ? e.message : "Không đọc được ảnh nguồn.");
     } finally {
       if (!controller.signal.aborted) setOperation(null);
     }
@@ -272,6 +308,46 @@ export function MediaPanel({
               Chọn ảnh phù hợp nội dung và lứa tuổi. Kết quả tìm kiếm chưa được
               xác nhận an toàn; ảnh hiện có chỉ thay khi thầy/cô chọn ảnh mới.
             </p>
+            {sourceCandidates.length > 0 && (
+              <section aria-label="Ảnh từ KHBD">
+                <h3>Ảnh từ KHBD — duyệt trước khi tìm ảnh mạng</h3>
+                <p>
+                  Ảnh do giáo viên cung cấp. Ứng dụng chưa xác minh quyền tái sử
+                  dụng.
+                </p>
+                <div className="media-candidates">
+                  {sourceCandidates.map((candidate) => (
+                    <SourceImageCandidate
+                      key={candidate.asset.id + candidate.placement.id}
+                      asset={candidate.asset}
+                      placement={candidate.placement}
+                      projectId={project.projectId}
+                      preferred={candidate.reason === "EXACT_SOURCE"}
+                      disabled={!confirmed || !!operation}
+                      choose={() =>
+                        void chooseSource(
+                          candidate.asset,
+                          [
+                            candidate.placement.caption,
+                            candidate.asset.docxSource?.attribution,
+                          ]
+                            .filter(Boolean)
+                            .join(" · "),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={sourceUnsuitable}
+                    onChange={(e) => setSourceUnsuitable(e.target.checked)}
+                  />
+                  Ảnh nguồn chưa phù hợp; tìm ảnh thay thế trên Wikimedia
+                </label>
+              </section>
+            )}
             <div className="media-query-options">
               {intent?.queries.map((q) => (
                 <button
@@ -300,7 +376,11 @@ export function MediaPanel({
               </label>
               <button
                 className="primary"
-                disabled={!!operation || !query.trim()}
+                disabled={
+                  !!operation ||
+                  !query.trim() ||
+                  (sourceCandidates.length > 0 && !sourceUnsuitable)
+                }
               >
                 Tìm ảnh Wikimedia Commons
               </button>

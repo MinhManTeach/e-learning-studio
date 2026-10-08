@@ -42,6 +42,7 @@ export class LessonGenerationService {
     input: BlueprintDraft["current"],
     context: LessonGenerationContext,
   ): Promise<GenerationResult> {
+    let rollback: (() => Promise<void>) | undefined;
     try {
       const blueprint = lessonBlueprintSchema.parse(input);
       if (
@@ -50,8 +51,9 @@ export class LessonGenerationService {
         )
       )
         throw new Error("Mã bài giảng đã tồn tại. Hãy tạo lại với mã mới.");
-      const project = parseProject(
-        await this.provider.generate(blueprint, context),
+      const { prepareProject, ...providerContext } = context;
+      let project = parseProject(
+        await this.provider.generate(blueprint, providerContext),
       );
       const warnings = validateGeneratedLesson(project, blueprint, context);
       const quality = analyzeLessonQuality(project, {
@@ -74,9 +76,15 @@ export class LessonGenerationService {
         throw new Error(
           "Bài giảng chưa đạt kiểm tra nội dung. Thầy/cô kiểm tra kịch bản rồi thử lại.",
         );
+      if (prepareProject) {
+        const prepared = await prepareProject(project);
+        rollback = prepared.rollback;
+        project = parseProject(prepared.project);
+      }
       await this.store.save(project);
       return { project, warnings };
     } catch (error) {
+      if (rollback) await rollback();
       if (
         error instanceof Error &&
         /Mã bài giảng|chưa đạt kiểm tra/.test(error.message)

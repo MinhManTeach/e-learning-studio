@@ -1,6 +1,8 @@
 import { unzipSync, strFromU8 } from "fflate";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { LessonDocumentBlock } from "./model";
+import type { DocxImagePlacement, DocxMediaAsset } from "./mediaModel";
+import { detectImageMime, maxImageBytes } from "../media/storage";
 
 type XmlNode = { [key: string]: XmlNode[] | string | Record<string, string> };
 const parser = new XMLParser({
@@ -24,6 +26,32 @@ function descendants(list: XmlNode[], name: string): XmlNode[] {
       .filter(([k, v]) => k !== ":@" && Array.isArray(v))
       .flatMap(([, v]) => descendants(v as XmlNode[], name)),
   ]);
+}
+// Word may carry a DrawingML image and a VML fallback for the same placement.
+// Traverse the selected representation in document order; deleted content is not visible.
+function imageReferences(list: XmlNode[]): string[] {
+  return list.flatMap((node) => {
+    if ("del" in node) return [];
+    if ("AlternateContent" in node) {
+      const alternatives = children(node, "AlternateContent");
+      const choice = first(alternatives, "Choice");
+      const fallback = first(alternatives, "Fallback");
+      return choice && descendants(children(choice, "Choice"), "blip").length
+        ? imageReferences(children(choice, "Choice"))
+        : imageReferences(children(fallback ?? {}, "Fallback"));
+    }
+    if ("blip" in node) {
+      const id = attr(node, "embed") ?? attr(node, "link");
+      return id ? [id] : [];
+    }
+    if ("imagedata" in node) {
+      const id = attr(node, "id");
+      return id ? [id] : [];
+    }
+    return Object.entries(node)
+      .filter(([k, v]) => k !== ":@" && Array.isArray(v))
+      .flatMap(([, v]) => imageReferences(v as XmlNode[]));
+  });
 }
 function xmlText(list: XmlNode[]): string {
   return list
@@ -77,18 +105,23 @@ export function extractDocx(bytes: Uint8Array): {
   blocks: LessonDocumentBlock[];
   rawText: string;
   warnings: string[];
+  imagePlacements: DocxImagePlacement[];
+  mediaAssets: DocxMediaAsset[];
 } {
   const wanted = new Set([
     "word/document.xml",
     "word/styles.xml",
     "word/numbering.xml",
+    "word/_rels/document.xml.rels",
+    "[Content_Types].xml",
   ]);
   let total = 0;
   let zip: Record<string, Uint8Array>;
   try {
     zip = unzipSync(bytes, {
       filter: (entry) => {
-        if (!wanted.has(entry.name)) return false;
+        if (!wanted.has(entry.name) && !/^word\/media\/[^/]+$/.test(entry.name))
+          return false;
         total += entry.originalSize;
         if (total > 20 * 1024 * 1024) throw new Error("expanded limit");
         return true;
@@ -110,6 +143,107 @@ export function extractDocx(bytes: Uint8Array): {
     : [];
   const warnings: string[] = [];
   const blocks: LessonDocumentBlock[] = [];
+  const imagePlacements: DocxImagePlacement[] = [];
+  const mediaAssets: DocxMediaAsset[] = [];
+  const relationships = zip["word/_rels/document.xml.rels"]
+    ? descendants(
+        readXml(strFromU8(zip["word/_rels/document.xml.rels"])),
+        "Relationship",
+      )
+    : [];
+  const types = zip["[Content_Types].xml"]
+    ? readXml(strFromU8(zip["[Content_Types].xml"]))
+    : [];
+  function collectImages(
+    paragraphs: XmlNode[],
+    blockId: string,
+    sourceOrder: number,
+    row?: number,
+    column?: number,
+    onlyIndex?: number,
+  ) {
+    paragraphs.forEach((p, paragraphIndex) => {
+      if (onlyIndex !== undefined && paragraphIndex !== onlyIndex) return;
+      const body = children(p, "p");
+      const references = imageReferences(body);
+      for (const relationshipId of references) {
+        if (imagePlacements.length >= 128)
+          throw new Error("DOCX có quá nhiều vị trí ảnh (tối đa 128).");
+        const relation = relationships.find(
+          (n) => attr(n, "Id") === relationshipId,
+        );
+        const target = attr(relation, "Target") ?? "";
+        const path = "word/" + target.replace(/^\.\//, "");
+        const safe =
+          attr(relation, "TargetMode") !== "External" &&
+          /\/image$/.test(attr(relation, "Type") ?? "") &&
+          /^word\/media\/[^/\\]+$/.test(path) &&
+          !target.includes("..");
+        const binary = safe ? zip[path] : undefined;
+        const contentType =
+          attr(
+            descendants(types, "Override").find(
+              (n) => attr(n, "PartName") === "/" + path,
+            ),
+            "ContentType",
+          ) ??
+          attr(
+            descendants(types, "Default").find(
+              (n) =>
+                attr(n, "Extension")?.toLowerCase() ===
+                path.split(".").at(-1)?.toLowerCase(),
+            ),
+            "ContentType",
+          ) ??
+          "";
+        let status: DocxImagePlacement["status"] = !safe
+          ? "UNSUPPORTED"
+          : !binary
+            ? "MISSING"
+            : "VALID";
+        if (binary) {
+          if (!["image/png", "image/jpeg", "image/webp"].includes(contentType))
+            status = "UNSUPPORTED";
+          else if (
+            !binary.length ||
+            binary.length > maxImageBytes ||
+            detectImageMime(binary) !== contentType
+          )
+            throw new Error("Ảnh DOCX có MIME hoặc định dạng không hợp lệ.");
+          if (status === "VALID" && !mediaAssets.some((a) => a.id === path))
+            mediaAssets.push({ id: path, path, contentType, bytes: binary });
+        }
+        const nearby = paragraphs
+          .slice(Math.max(0, paragraphIndex - 2), paragraphIndex + 3)
+          .map((n) => xmlText(children(n, "p")).trim())
+          .filter(Boolean);
+        const props = descendants(body, "docPr")[0];
+        imagePlacements.push({
+          id: "image-placement-" + (imagePlacements.length + 1),
+          relationshipId,
+          mediaId: status === "VALID" ? path : undefined,
+          status,
+          blockId,
+          sourceOrder,
+          row,
+          column,
+          paragraphIndex,
+          imageOrder: imagePlacements.length,
+          nearbyText: nearby.join("\n"),
+          altText: attr(props, "descr") ?? attr(props, "title") ?? "",
+          caption: nearby.find((t) => /^(Hình|Figure)\s*\d/i.test(t)) ?? "",
+        });
+        if (status !== "VALID")
+          warnings.push(
+            "Ảnh " +
+              relationshipId +
+              ": " +
+              status +
+              "; cần giáo viên kiểm tra.",
+          );
+      }
+    });
+  }
   const styleMap = new Map(
     descendants(styles, "style").map((s) => [attr(s, "styleId"), s]),
   );
@@ -242,6 +376,13 @@ export function extractDocx(bytes: Uint8Array): {
         const props = children(first(tcBody, "tcPr") ?? {}, "tcPr");
         const colspan = Number(attr(first(props, "gridSpan"), "val") ?? 1);
         const merge = first(props, "vMerge");
+        collectImages(
+          nodes(tcBody, "p"),
+          `block-${blocks.length + 1}`,
+          blocks.length,
+          rows.length,
+          column,
+        );
         const paragraphs = nodes(tcBody, "p")
           .map((p) => paragraph(p).text)
           .filter(Boolean);
@@ -293,10 +434,22 @@ export function extractDocx(bytes: Uint8Array): {
     add({ type: "TABLE", table: { rows } });
   }
   function walk(body: XmlNode[]) {
+    const siblings = nodes(body, "p");
     for (const node of body) {
       if ("p" in node) {
         const p = paragraph(node);
-        if (!p.text) continue;
+        const hasImage =
+          descendants(children(node, "p"), "blip").length ||
+          descendants(children(node, "p"), "imagedata").length;
+        if (!p.text && !hasImage) continue;
+        collectImages(
+          siblings,
+          `block-${blocks.length + 1}`,
+          blocks.length,
+          undefined,
+          undefined,
+          siblings.indexOf(node),
+        );
         add({
           type: p.level ? "HEADING" : p.isList ? "LIST" : "PARAGRAPH",
           text: p.text,
@@ -332,5 +485,11 @@ export function extractDocx(bytes: Uint8Array): {
         : (b.text ?? b.items?.join("\n") ?? ""),
     )
     .join("\n");
-  return { blocks, rawText, warnings: [...new Set(warnings)] };
+  return {
+    blocks,
+    rawText,
+    warnings: [...new Set(warnings)],
+    imagePlacements,
+    mediaAssets,
+  };
 }

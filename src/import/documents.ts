@@ -59,6 +59,8 @@ export async function importPlanFile(
       fileName: file.name,
       rawText: validateText(extracted.rawText),
       blocks: extracted.blocks,
+      imagePlacements: extracted.imagePlacements,
+      mediaAssets: extracted.mediaAssets,
       extractionWarnings: extracted.warnings,
       importedAt: new Date().toISOString(),
     });
