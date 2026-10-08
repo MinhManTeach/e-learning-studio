@@ -60,10 +60,17 @@ export function SlideIntentEditor({
         Đề cương nội dung · mỗi dòng một ý
         <textarea
           rows={4}
+          disabled={!!s.sourceAssessmentIds?.length}
           value={s.contentOutline.join("\n")}
           onChange={(e) => edit({ contentOutline: e.target.value.split("\n") })}
         />
       </label>
+      {!!s.sourceAssessmentIds?.length && (
+        <p>
+          Câu hỏi và đáp án được giữ theo bản đã duyệt. Sửa tại bước giáo viên
+          kiểm tra câu hỏi trước khi tạo lại kịch bản.
+        </p>
+      )}
       <div className="blueprint-fields">
         <label>
           Loại trang

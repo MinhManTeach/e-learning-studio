@@ -1,6 +1,7 @@
 import type { PedagogicalAnalysis } from "../import/model";
 import { stageLabels } from "../model/analysis";
 import { density } from "./design";
+import { sourceQuestion } from "../generation/sourceQuestions";
 import {
   lessonBlueprintSchema,
   outcomeCatalog,
@@ -22,6 +23,16 @@ export function refreshPlans(b: LessonBlueprint): LessonBlueprint {
   return {
     ...b,
     proposedSlides: slides,
+    ...(b.activityPlan
+      ? {
+          activityPlan: b.activityPlan.map((t) => ({
+            ...t,
+            slideIds: slides
+              .filter((s) => s.sourceActivityIds?.includes(t.activity.id))
+              .map((s) => s.id),
+          })),
+        }
+      : {}),
     stages: Object.entries(stageLabels).flatMap(([stage, purpose]) => {
       const slideIds = slides.filter((s) => s.stage === stage).map((s) => s.id);
       return slideIds.length
@@ -43,9 +54,14 @@ export function refreshPlans(b: LessonBlueprint): LessonBlueprint {
     assessmentPlan: {
       ...b.assessmentPlan,
       assessmentNeeded: assessment.length > 0,
-      targetQuestionCount: assessment.length
-        ? b.assessmentPlan.targetQuestionCount || 3
-        : 0,
+      targetQuestionCount: b.sourceAssessments
+        ? assessment.reduce(
+            (n, s) => n + (s.sourceAssessmentIds?.length ?? 0),
+            0,
+          )
+        : assessment.length
+          ? b.assessmentPlan.targetQuestionCount || 3
+          : 0,
       coverage: b.assessmentPlan.coverage.map((c) => ({
         ...c,
         slideIds: assessment
@@ -94,6 +110,43 @@ export function validateLessonBlueprint(
   )
     add("MEDIA_PLAN", "ERROR", "Kế hoạch hình minh họa không khớp các trang.");
   for (const s of slides) {
+    if (b.sourceAssessments && s.type === "QUIZ") {
+      const items = (s.sourceAssessmentIds ?? []).map((id) =>
+        b.sourceAssessments!.find((q) => q.id === id),
+      );
+      if (
+        !items.length ||
+        items.some((q) => !q || !sourceQuestion(q, "validation"))
+      )
+        add(
+          "SOURCE_ASSESSMENT",
+          "ERROR",
+          "Trang đánh giá cần câu hỏi nguồn tương thích đã duyệt.",
+          s.id,
+        );
+      if (
+        items.some(
+          (q) =>
+            q &&
+            b.periodReview &&
+            !b.periodReview.assignedAssessmentIds.includes(q.id) &&
+            !(
+              q.periodId &&
+              b.periodReview.selectedPeriodIds.includes(q.periodId)
+            ) &&
+            !(
+              q.activityId &&
+              b.activityPlan?.some((t) => t.activity.id === q.activityId)
+            ),
+        )
+      )
+        add(
+          "ASSESSMENT_SCOPE",
+          "ERROR",
+          "Câu hỏi chưa thuộc phần nguồn được chọn hoặc được giáo viên gán riêng.",
+          s.id,
+        );
+    }
     if (
       !s.title.trim() ||
       !s.pedagogicalPurpose.trim() ||
@@ -203,8 +256,31 @@ export function validateLessonBlueprint(
       );
   }
   const total = slides.reduce((n, s) => n + s.estimatedMinutes, 0);
-  const budget =
-    analysis.durationMinutes && analysis.durationMinutes > 0
+  if (b.sourceAssessments) {
+    const refs = slides
+      .filter((s) => s.type === "QUIZ")
+      .flatMap((s) => s.sourceAssessmentIds ?? []);
+    if (new Set(refs).size !== refs.length)
+      add(
+        "DUPLICATE_ASSESSMENT",
+        "ERROR",
+        "Câu hỏi nguồn bị lặp giữa các trang; bỏ bản sao trước khi duyệt.",
+      );
+  }
+  for (const id of b.periodReview?.selectedPeriodIds ?? []) {
+    const minutes = slides
+      .filter((s) => s.plannedPeriodId === id)
+      .reduce((n, s) => n + s.estimatedMinutes, 0);
+    if (Math.abs(minutes - b.periodReview!.minutesPerPeriod) > 1)
+      add(
+        "PERIOD_TIME",
+        "WARNING",
+        `Phân bổ trang trong tiết ${id}: ${minutes.toFixed(1)} phút; xác nhận ${b.periodReview!.minutesPerPeriod} phút.`,
+      );
+  }
+  const budget = b.periodReview
+    ? b.periodReview.totalDurationMinutes
+    : analysis.durationMinutes && analysis.durationMinutes > 0
       ? analysis.durationMinutes
       : b.estimatedDurationMinutes;
   if (Math.abs(total - budget) > Math.max(1, budget * 0.05))

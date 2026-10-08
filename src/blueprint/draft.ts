@@ -37,7 +37,17 @@ export function editSlide(
 ) {
   return update(
     d,
-    d.current.proposedSlides.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    d.current.proposedSlides.map((s) =>
+      s.id === id
+        ? {
+            ...s,
+            ...patch,
+            ...(patch.mediaIntent && patch.mediaIntent.type !== "IMAGE"
+              ? { sourceImagePlacementId: undefined }
+              : {}),
+          }
+        : s,
+    ),
   );
 }
 function newId(d: BlueprintDraft) {
@@ -111,15 +121,28 @@ export function regenerateDraft(
 ) {
   if (d.edited && !confirmed)
     throw new Error("Kịch bản có chỉnh sửa của thầy/cô.");
+  if (d.current.periodReview && d.edited)
+    return { ...d, proposal: structuredClone(b), approvedAt: null };
   return createBlueprintDraft(b);
 }
 export function approveBlueprint(d: BlueprintDraft, a: PedagogicalAnalysis) {
+  if (d.current.periodSelectionRequired && !d.current.periodReview)
+    throw new Error("Cần xác nhận lựa chọn tiết.");
   const warnings = validateLessonBlueprint(d.current, a);
   if (warnings.some((w) => w.severity === "ERROR"))
     throw new Error("Cần sửa lỗi kịch bản trước khi duyệt.");
   return {
     ...d,
-    current: { ...d.current, warnings },
+    current: {
+      ...d.current,
+      warnings: [
+        ...warnings,
+        ...d.current.warnings.filter(
+          (w) =>
+            !warnings.some((v) => v.code === w.code && v.message === w.message),
+        ),
+      ],
+    },
     approvedAt: new Date().toISOString(),
   };
 }

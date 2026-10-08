@@ -1,4 +1,6 @@
 import { AssessmentReview } from "./AssessmentReview";
+import { PeriodSelection } from "../blueprint/PeriodSelection";
+import { periodReviewWarnings } from "../blueprint/periods";
 import { useState, type ReactNode } from "react";
 import { Plus, Trash2, CheckCircle2, ChevronDown } from "lucide-react";
 import { stageLabels } from "../model/analysis";
@@ -224,6 +226,10 @@ export function AnalysisReview({
       )}
       <div className="review-grid">
         <div className="review-sections">
+          <PeriodSelection
+            analysis={a}
+            change={(value) => change("periodReview", value)}
+          />
           <AssessmentReview
             items={a.assessments ?? []}
             onChange={(items) => change("assessments", items)}
@@ -571,7 +577,14 @@ export function AnalysisReview({
         <div className="wizard-actions">
           <button onClick={back}>Quay lại</button>
           <button onClick={reanalyze}>Phân tích lại</button>
-          <button className="primary" disabled={!reviewed} onClick={confirm}>
+          <button
+            className="primary"
+            disabled={
+              !reviewed ||
+              periodReviewWarnings(a).some((w) => w.severity === "ERROR")
+            }
+            onClick={confirm}
+          >
             Xác nhận & tiếp tục <CheckCircle2 size={16} />
           </button>
         </div>

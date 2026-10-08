@@ -9,7 +9,10 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import type { PedagogicalAnalysis } from "../import/model";
+import type {
+  PedagogicalAnalysis,
+  ImportedLessonDocument,
+} from "../import/model";
 import { stageLabels } from "../model/analysis";
 import { slideTypeLabels } from "./model";
 import {
@@ -26,10 +29,12 @@ import {
 import { DeterministicLessonBlueprintProvider } from "./generator";
 import { validateLessonBlueprint } from "./validation";
 import { SlideIntentEditor } from "./SlideIntentEditor";
+import { SourceImageReview } from "./SourceImageReview";
 import "./blueprint.css";
 
 export function BlueprintReview({
   analysis,
+  document,
   initialDraft,
   onChange,
   back,
@@ -37,6 +42,7 @@ export function BlueprintReview({
   generate,
 }: {
   analysis: PedagogicalAnalysis;
+  document?: ImportedLessonDocument;
   initialDraft: BlueprintDraft;
   onChange?: (d: BlueprintDraft) => void;
   back: () => void;
@@ -52,8 +58,8 @@ export function BlueprintReview({
   const dialog = useRef<HTMLDialogElement>(null);
   const b = draft.current;
   const warnings = validateLessonBlueprint(b, analysis);
-  const sourceWarnings = draft.proposal.warnings.filter((w) =>
-    ["MISSING_CONTENT", "UNMAPPED_ACTIVITY"].includes(w.code),
+  const sourceWarnings = b.warnings.filter(
+    (w) => !warnings.some((v) => v.code === w.code && v.message === w.message),
   );
   const allWarnings = [...warnings, ...sourceWarnings];
   const slides = b.proposedSlides;
@@ -76,7 +82,7 @@ export function BlueprintReview({
               draft,
               await new DeterministicLessonBlueprintProvider({
                 passingScore: b.assessmentPlan.targetPassingScore,
-              }).generate(analysis),
+              }).generate(analysis, document),
               true,
             ),
       );
@@ -105,7 +111,78 @@ export function BlueprintReview({
           giảng.
         </p>
       </div>
+      {b.periodReview && (
+        <section className="period-selection" aria-label="Phạm vi kịch bản">
+          <h2>Phạm vi đã xác nhận</h2>
+          <p>
+            Tiết{" "}
+            {b.periodReview.selectedPeriodIds
+              .map(
+                (id) =>
+                  analysis.teachingPeriods?.find((p) => p.id === id)?.number,
+              )
+              .join(", ")}{" "}
+            · {b.periodReview.periodCount} × {b.periodReview.minutesPerPeriod} ={" "}
+            {b.periodReview.totalDurationMinutes} phút
+          </p>
+          <p>
+            Thời gian trang là đề xuất. Phân bổ hoạt động nguồn được giữ riêng
+            để đối chiếu.
+          </p>
+          <p>
+            {Number(total.toFixed(1))} phút đã phân bổ trên trang ·{" "}
+            {Number((b.estimatedDurationMinutes - total).toFixed(1))} phút chênh
+            lệch cần giáo viên kiểm tra. Không tự lấp thời gian thiếu.
+          </p>
+          <p>
+            {b.sourceAssessments?.filter(
+              (q) => q.reviewStatus === "NEEDS_TEACHER_REVIEW",
+            ).length ?? 0}{" "}
+            câu hỏi chưa duyệt · {b.assessmentPlan.targetQuestionCount} câu hỏi
+            được sử dụng · {analysis.unmappedContent.length} mục nguồn chưa ánh
+            xạ
+          </p>
+          <p>
+            {slides.filter((s) => s.sourceImagePlacementId).length} trang dùng
+            ảnh DOCX ·{" "}
+            {
+              slides.filter(
+                (s) =>
+                  s.mediaIntent?.type !== "NONE" && !s.sourceImagePlacementId,
+              ).length
+            }{" "}
+            ý định học liệu chưa chọn ảnh
+          </p>
+          <p>
+            Tạo lại giữ các chỉnh sửa hiện tại. Khôi phục đề xuất chỉ thay thế
+            sau khi thầy/cô xác nhận.
+          </p>
+          <details>
+            <summary>Hoạt động → trang & thời lượng nguồn</summary>
+            {b.activityPlan?.map((t) => (
+              <div key={t.activity.id}>
+                <h3>{t.activity.title}</h3>
+                <p>
+                  {t.slideIds
+                    .map(
+                      (id) => b.proposedSlides.find((s) => s.id === id)?.order,
+                    )
+                    .join(", ") || "Chưa có trang"}{" "}
+                  · {t.sourceDurationMinutes ?? "Chưa rõ"} phút nguồn
+                </p>
+                <pre>{JSON.stringify(t.activity, null, 2)}</pre>
+              </div>
+            ))}
+          </details>
+        </section>
+      )}
       <div className="blueprint-stats" aria-label="Tóm tắt kịch bản">
+        <span>
+          <strong>
+            {slides.filter((s) => s.sourceImagePlacementId).length}
+          </strong>{" "}
+          ảnh nguồn được chọn
+        </span>
         <span>
           <strong>{slides.length}</strong> trang
         </span>
@@ -192,6 +269,14 @@ export function BlueprintReview({
             ))}
           </ul>
         </details>
+      )}
+      {document && (
+        <SourceImageReview
+          document={document}
+          analysis={analysis}
+          draft={draft}
+          change={change}
+        />
       )}
       <ol className="blueprint-sequence">
         {slides.map((s, index) => (
@@ -322,7 +407,8 @@ export function BlueprintReview({
         <button
           className="primary"
           disabled={
-            warnings.some((w) => w.severity === "ERROR") || !!draft.approvedAt
+            allWarnings.some((w) => w.severity === "ERROR") ||
+            !!draft.approvedAt
           }
           onClick={() => change(approveBlueprint(draft, analysis))}
         >
@@ -332,7 +418,7 @@ export function BlueprintReview({
           disabled={
             !draft.approvedAt ||
             !generate ||
-            warnings.some((w) => w.severity === "ERROR")
+            allWarnings.some((w) => w.severity === "ERROR")
           }
           onClick={() => generate?.(draft)}
         >
@@ -356,9 +442,9 @@ export function BlueprintReview({
               : "Khôi phục đề xuất?"}
           </h2>
           <p>
-            Kịch bản hiện tại có chỉnh sửa của thầy/cô.{" "}
-            {prompt === "regenerate" ? "Tạo lại" : "Khôi phục"} sẽ thay thế các
-            chỉnh sửa này.
+            {b.periodReview && prompt === "regenerate"
+              ? "Tạo lại sẽ giữ các chỉnh sửa hiện tại và cập nhật bản đề xuất để đối chiếu."
+              : "Kịch bản hiện tại có chỉnh sửa của thầy/cô. Thao tác này sẽ thay thế các chỉnh sửa này."}
           </p>
           <div className="modal-actions">
             <button autoFocus disabled={busy} onClick={() => setPrompt(null)}>

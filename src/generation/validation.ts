@@ -141,7 +141,7 @@ export function validateGeneratedLesson(
         s.data.questions.some(
           (q) =>
             !q.prompt.trim() ||
-            !q.explanation.trim() ||
+            (!blueprint.sourceAssessments && !q.explanation.trim()) ||
             q.points <= 0 ||
             q.options.some((o) => !o.text.trim()),
         ))

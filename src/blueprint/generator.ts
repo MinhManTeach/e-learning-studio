@@ -1,5 +1,13 @@
 import { generationSafeAnalysis } from "../import/assessments";
-import { analysisSchema, type PedagogicalAnalysis } from "../import/model";
+import { buildActivityBlueprint } from "./activityPlan";
+import { periodReviewWarnings } from "./periods";
+import { integrateSourceAssessments } from "./sourceAssessments";
+import {
+  analysisSchema,
+  type PedagogicalAnalysis,
+  type ImportedLessonDocument,
+} from "../import/model";
+import { planSourceImages } from "./sourceImages";
 import { allocateTime, contentChunks, mapActivityStage } from "./design";
 import {
   outcomeCatalog,
@@ -21,17 +29,28 @@ export class LessonBlueprintGenerator {
   async generate(draft: {
     analysis: PedagogicalAnalysis;
     confirmedAt: string | null;
+    document?: ImportedLessonDocument;
   }) {
     if (!draft.confirmedAt)
       throw new Error(
         "Cần xác nhận bản phân tích trước khi xây dựng kịch bản.",
       );
-    return this.provider.generate(analysisSchema.parse(draft.analysis));
+    if (
+      periodReviewWarnings(draft.analysis).some((w) => w.severity === "ERROR")
+    )
+      throw new Error("Cần chọn tiết nguồn và xác nhận thời lượng.");
+    return this.provider.generate(
+      analysisSchema.parse(draft.analysis),
+      draft.document,
+    );
   }
 }
 export class DeterministicLessonBlueprintProvider implements LessonBlueprintProvider {
   constructor(private readonly settings: BlueprintSettings = {}) {}
-  async generate(input: PedagogicalAnalysis): Promise<LessonBlueprint> {
+  async generate(
+    input: PedagogicalAnalysis,
+    document?: ImportedLessonDocument,
+  ): Promise<LessonBlueprint> {
     const a = generationSafeAnalysis(analysisSchema.parse(input));
     const outcomes = outcomeCatalog(a);
     const grade = Number(a.targetAudienceGrade || a.curriculumGrade) || 4;
@@ -384,7 +403,20 @@ export class DeterministicLessonBlueprintProvider implements LessonBlueprintProv
         severity: "WARNING",
         message: `${unmapped.length} hoạt động chưa rõ giai đoạn; thầy/cô đối chiếu bản phân tích.`,
       });
-    return b;
+    const pending = periodReviewWarnings(input).some(
+      (w) => w.severity === "ERROR",
+    );
+    const structured =
+      !!input.teachingPeriods?.length ||
+      (document?.sourceType === "DOCX" &&
+        input.teachingActivities.some((t) => t.source));
+    const planned = integrateSourceAssessments(
+      input,
+      structured && !pending ? buildActivityBlueprint(input, b) : b,
+    );
+    if (input.teachingPeriods?.length) planned.periodSelectionRequired = true;
+    if (pending) planned.warnings.push(...periodReviewWarnings(input));
+    return document ? planSourceImages(document, input, planned) : planned;
   }
 }
 function overlap(a: string, b: string) {

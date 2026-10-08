@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { stages } from "../model/schema";
-import type { PedagogicalAnalysis } from "../import/model";
+import type {
+  PedagogicalAnalysis,
+  ImportedLessonDocument,
+} from "../import/model";
+import { activitySchema } from "../import/model";
+import { periodReviewSchema } from "./periods";
+import { assessmentSchema } from "../import/assessmentModel";
 
 export const slideTypes = [
   "WELCOME",
@@ -46,6 +52,22 @@ export const warningSchema = z.object({
 });
 export type BlueprintWarning = z.infer<typeof warningSchema>;
 export const blueprintSlideSchema = z.object({
+  sourceActivityIds: ids.optional(),
+  sourcePeriodId: text.optional(),
+  plannedPeriodId: text.optional(),
+  sourceAssessmentIds: ids.optional(),
+  sourceImagePlacementId: text.optional(),
+  sourceImageTeacherSelected: z.boolean().optional(),
+  sourceContext: z
+    .array(
+      z.object({
+        blockId: text,
+        row: z.number().optional(),
+        column: z.number().optional(),
+        activityId: text.optional(),
+      }),
+    )
+    .optional(),
   id: text.min(1),
   order: z.number().int().positive(),
   type: z.enum(slideTypes),
@@ -107,6 +129,20 @@ export const accessibilityPlanSchema = z.object({
 });
 export type AccessibilityPlan = z.infer<typeof accessibilityPlanSchema>;
 export const lessonBlueprintSchema = z.object({
+  periodSelectionRequired: z.boolean().optional(),
+  periodReview: periodReviewSchema.optional(),
+  sourceAssessments: z.array(assessmentSchema).optional(),
+  activityPlan: z
+    .array(
+      z.object({
+        activity: activitySchema,
+        slideIds: ids,
+        sourceDurationMinutes: z.number().nullable(),
+        complete: z.boolean(),
+        conflict: z.boolean(),
+      }),
+    )
+    .optional(),
   version: z.literal("1.0"),
   id: text.min(1),
   sourceAnalysisId: text.min(1),
@@ -115,7 +151,7 @@ export const lessonBlueprintSchema = z.object({
   curriculumGrade: z.number().int().positive().optional(),
   targetAudienceGrade: z.number().int().positive().optional(),
   estimatedDurationMinutes: z.number().positive(),
-  durationSource: z.enum(["SOURCE", "PROPOSED"]),
+  durationSource: z.enum(["SOURCE", "PROPOSED", "TEACHER"]),
   designRationale: text,
   stages: z.array(stageSchema),
   proposedSlides: z.array(blueprintSlideSchema),
@@ -128,7 +164,10 @@ export const lessonBlueprintSchema = z.object({
 });
 export type LessonBlueprint = z.infer<typeof lessonBlueprintSchema>;
 export interface LessonBlueprintProvider {
-  generate(analysis: PedagogicalAnalysis): Promise<LessonBlueprint>;
+  generate(
+    analysis: PedagogicalAnalysis,
+    document?: ImportedLessonDocument,
+  ): Promise<LessonBlueprint>;
 }
 export interface BlueprintSettings {
   passingScore?: number;

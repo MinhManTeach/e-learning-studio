@@ -594,6 +594,7 @@ export function LessonImportWizard({
         )}
         {step === "confirmed" && draft && blueprintDraft && !showGeneration && (
           <BlueprintReview
+            document={draft.document}
             key={blueprintDraft.current.id}
             analysis={draft.analysis}
             initialDraft={blueprintDraft}

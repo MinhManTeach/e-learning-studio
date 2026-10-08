@@ -10,7 +10,7 @@ import {
   LocalMediaAssetStore,
   validateImageBlob,
 } from "./storage";
-import { localAssetPath } from "./service";
+import { localAssetPath, attachMedia } from "./service";
 const normalized = (s: string) =>
   s
     .normalize("NFC")
@@ -194,8 +194,38 @@ export async function prepareDocxMedia(
           column: heading.column,
           activityId: activity.id,
         });
-      return { ...slide, sourceContext: references };
+      return {
+        ...slide,
+        sourceContext: [...(outline.sourceContext ?? []), ...references],
+      };
     });
+    // Exact teacher-reviewed blueprint selections take priority over external search.
+    const used = new Set<string>();
+    for (const [i, outline] of outlines.entries()) {
+      if (
+        !outline.sourceImagePlacementId ||
+        outline.mediaIntent?.type !== "IMAGE" ||
+        !next.slides[i]
+      )
+        continue;
+      const asset = next.assets.find((a) =>
+        a.docxSource?.placements.some(
+          (p) => p.id === outline.sourceImagePlacementId,
+        ),
+      );
+      if (!asset || (used.has(asset.id) && !outline.sourceImageTeacherSelected))
+        continue;
+      const attached = attachMedia(
+        next,
+        next.slides[i].id,
+        asset,
+        asset.docxSource?.placements.find(
+          (p) => p.id === outline.sourceImagePlacementId,
+        )?.caption ?? "",
+      );
+      next.slides = attached.slides;
+      used.add(asset.id);
+    }
     return { project: parseProject(next), rollback };
   } catch (e) {
     await rollback();

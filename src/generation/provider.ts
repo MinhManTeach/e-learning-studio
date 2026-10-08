@@ -11,10 +11,13 @@ import type {
 } from "./model";
 import { learnerGoal, learnerText, narration, shortPoints } from "./language";
 import { questionFor, questionLevels } from "./questions";
+import { sourceQuestion } from "./sourceQuestions";
 
 export class DeterministicLessonGenerationProvider implements LessonGenerationProvider {
   async generate(input: LessonBlueprint, context: LessonGenerationContext) {
     const b = lessonBlueprintSchema.parse(input);
+    if (b.periodSelectionRequired && !b.periodReview)
+      throw new Error("Cần xác nhận lựa chọn tiết trước khi tạo bài.");
     const tick = async (n: number) => {
       context.onProgress?.(n);
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -73,7 +76,12 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
               ].join("\n")
             : "",
         },
-        teacherNotes: `Mục đích: ${s.pedagogicalPurpose}\nYêu cầu nguồn: ${s.sourceOutcomeIds.join(", ")}`,
+        teacherNotes:
+          `Mục đích: ${s.pedagogicalPurpose}\nYêu cầu nguồn: ${s.sourceOutcomeIds.join(", ")}` +
+          (b.periodReview
+            ? `\nTiết nguồn được chọn: ${b.periodReview.selectedPeriodIds.join(", ")}\nThời lượng xác nhận: ${b.periodReview.periodCount} × ${b.periodReview.minutesPerPeriod} = ${b.periodReview.totalDurationMinutes} phút\nTiết trang (đề xuất): ${s.plannedPeriodId ?? "chưa gắn"}`
+            : ""),
+        sourceContext: s.sourceContext,
         data: initialData(s),
       });
     });
@@ -126,7 +134,7 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
     slides.forEach((slide, i) => {
       const source = b.proposedSlides[i];
       const points = shortPoints(source.contentOutline);
-      if (slide.type === "warmup")
+      if (slide.type === "warmup") {
         slide.data = {
           scored: false,
           question: points[0] || "Em liên hệ chủ đề này với trải nghiệm nào?",
@@ -147,6 +155,25 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
                 : "Em hãy nêu điều muốn tìm hiểu; cùng đối chiếu trong bài học.",
           })),
         };
+        if (source.sourceActivityIds?.length) {
+          slide.data.instruction =
+            points.slice(1).join(" ") ||
+            "Thực hiện nhiệm vụ rồi tự nhận xét mức độ tham gia của em.";
+          slide.data.items = [
+            "Em đã thực hiện nhiệm vụ",
+            "Em cần giáo viên hỗ trợ",
+          ].map((label, n) => ({
+            id: `${slide.id}:participation:${n}`,
+            label,
+            icon: "",
+            isValid: true,
+            feedback:
+              n === 0
+                ? "Em hãy chia sẻ cách làm của mình."
+                : "Em hãy trao đổi phần cần hỗ trợ với giáo viên.",
+          }));
+        }
+      }
       if (slide.type === "scenario") {
         const principle = points.join(" ");
         const responsibility = /chịu trách nhiệm/iu.test(principle);
@@ -211,7 +238,23 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
         supportedSlides.find((s) => s.type === "QUIZ") ?? supportedSlides[0];
       return source ? [{ source, outcomeId: c.outcomeId }] : [];
     });
-    for (let n = 0; n < count; n++) {
+    if (b.sourceAssessments) {
+      slides.forEach((slide, i) => {
+        if (slide.type !== "quiz") return;
+        slide.data.questions = (
+          b.proposedSlides[i].sourceAssessmentIds ?? []
+        ).map((id) => {
+          const item = b.sourceAssessments!.find((q) => q.id === id);
+          const question = item && sourceQuestion(item, prefix);
+          if (!question)
+            throw new Error(
+              "Câu hỏi nguồn chưa được duyệt hoặc không tương thích.",
+            );
+          return question;
+        });
+      });
+    }
+    for (let n = 0; !b.sourceAssessments && n < count; n++) {
       const coverage = eligible.length
         ? eligible[n % eligible.length]
         : undefined;
