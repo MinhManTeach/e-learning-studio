@@ -1,3 +1,4 @@
+import { extractAssessments } from "./assessments";
 import {
   analysisSchema,
   importedDocumentSchema,
@@ -562,6 +563,7 @@ export class DeterministicLessonAnalysisProvider implements LessonAnalysisProvid
       onProgress?.({ index: i, label: analysisSteps[i], completed: true });
     }
     if (!structured) finalizeLessonDuration(analysis);
+    analysis.assessments = extractAssessments(document, analysis);
     return analysisSchema.parse(analysis);
   }
 }

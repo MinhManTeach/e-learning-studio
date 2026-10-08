@@ -1,3 +1,4 @@
+import { generationSafeAnalysis } from "../import/assessments";
 import { analysisSchema, type PedagogicalAnalysis } from "../import/model";
 import { allocateTime, contentChunks, mapActivityStage } from "./design";
 import {
@@ -31,7 +32,7 @@ export class LessonBlueprintGenerator {
 export class DeterministicLessonBlueprintProvider implements LessonBlueprintProvider {
   constructor(private readonly settings: BlueprintSettings = {}) {}
   async generate(input: PedagogicalAnalysis): Promise<LessonBlueprint> {
-    const a = analysisSchema.parse(input);
+    const a = generationSafeAnalysis(analysisSchema.parse(input));
     const outcomes = outcomeCatalog(a);
     const grade = Number(a.targetAudienceGrade || a.curriculumGrade) || 4;
     const knownDuration = a.durationMinutes !== null && a.durationMinutes > 0;

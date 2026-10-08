@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assessmentSchema } from "./assessmentModel";
 import { imagePlacementSchema, mediaAssetSchema } from "./mediaModel";
 import type { LessonProject } from "../model/schema";
 import { stages } from "../model/schema";
@@ -131,6 +132,7 @@ const gradeEvidenceSchema = z.object({
   confirmed: z.boolean(),
 });
 export const analysisSchema = z.object({
+  assessments: z.array(assessmentSchema).optional(),
   version: z.literal("1.0"),
   id: text.min(1),
   sourceDocumentId: text.min(1),

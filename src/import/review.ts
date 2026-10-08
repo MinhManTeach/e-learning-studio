@@ -119,7 +119,7 @@ export function analysisWarnings(a: PedagogicalAnalysis): AnalysisWarning[] {
       code: "OUTCOMES",
       message: "Chưa phát hiện yêu cầu cần đạt.",
     });
-  if (!a.assessmentEvidence.some((x) => x.trim()))
+  if (!a.assessmentEvidence.some((x) => x.trim()) && !a.assessments?.length)
     warnings.push({
       code: "ASSESSMENT",
       message: "Chưa phát hiện nội dung đánh giá.",

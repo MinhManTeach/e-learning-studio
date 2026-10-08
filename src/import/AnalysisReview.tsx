@@ -1,3 +1,4 @@
+import { AssessmentReview } from "./AssessmentReview";
 import { useState, type ReactNode } from "react";
 import { Plus, Trash2, CheckCircle2, ChevronDown } from "lucide-react";
 import { stageLabels } from "../model/analysis";
@@ -223,6 +224,10 @@ export function AnalysisReview({
       )}
       <div className="review-grid">
         <div className="review-sections">
+          <AssessmentReview
+            items={a.assessments ?? []}
+            onChange={(items) => change("assessments", items)}
+          />
           {reviewGroups.map((group) => {
             const collapsed = group.fields[0].key === "sourceWarnings";
             const Container = collapsed ? "details" : "section";
