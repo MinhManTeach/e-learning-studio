@@ -1,5 +1,6 @@
 import { createSlide } from "../model/factories";
 import { attachMedia } from "../media/service";
+import { applyProposal, type ImprovementProposal } from "../quality/analyzer";
 import type { AssetReference } from "../model/schema";
 import type {
   LessonProject,
@@ -12,8 +13,11 @@ export interface EditorState {
   project: LessonProject;
   selectedId: string | null;
   revision: number;
+  qualityUndo?: { before: LessonProject; after: string };
 }
 export type EditorAction =
+  | { type: "quality"; proposal: ImprovementProposal }
+  | { type: "quality-undo" }
   | { type: "select"; id: string | null }
   | { type: "metadata"; metadata: Metadata }
   | { type: "objectives"; objectives: Objectives }
@@ -33,6 +37,31 @@ export function editorReducer(
   action: EditorAction,
 ): EditorState {
   const project = state.project;
+  if (action.type === "quality") {
+    const changed = {
+      ...applyProposal(project, action.proposal),
+      updatedAt: new Date().toISOString(),
+    };
+    return {
+      ...state,
+      project: changed,
+      revision: state.revision + 1,
+      qualityUndo: { before: project, after: JSON.stringify(changed) },
+    };
+  }
+  if (action.type === "quality-undo") {
+    if (
+      !state.qualityUndo ||
+      state.qualityUndo.after !== JSON.stringify(project)
+    )
+      return state;
+    return {
+      ...state,
+      project: state.qualityUndo.before,
+      revision: state.revision + 1,
+      qualityUndo: undefined,
+    };
+  }
   let selectedId = state.selectedId;
   let slides = project.slides;
   let metadata = project.metadata;
@@ -165,5 +194,6 @@ export function editorReducer(
     },
     selectedId,
     revision: state.revision + 1,
+    qualityUndo: undefined,
   };
 }

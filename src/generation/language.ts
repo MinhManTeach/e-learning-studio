@@ -18,7 +18,16 @@ export function learnerGoal(text: string) {
   return clean ? clean[0].toLocaleUpperCase("vi") + clean.slice(1) : "";
 }
 export function shortPoints(lines: string[]) {
-  return [...new Set(lines.map(learnerText).filter(Boolean))];
+  const seen = new Set<string>();
+  return lines.map(learnerText).filter((line) => {
+    const key = line
+      .toLocaleLowerCase("vi")
+      .replace(/[.!?:;…]+$/u, "")
+      .replace(/\s+/g, " ");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 export function narration(
   title: string,

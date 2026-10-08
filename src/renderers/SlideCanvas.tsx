@@ -119,7 +119,7 @@ export function SlideCanvas({
               <div className="layout-media">{image}</div>
             )}
             <div className="layout-text">
-              <Renderer slide={slide} />
+              <Renderer key={slide.id} slide={slide} />
             </div>
           </div>
         </article>

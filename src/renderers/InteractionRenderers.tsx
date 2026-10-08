@@ -1,4 +1,6 @@
 import type { Slide } from "../model/schema";
+import { useEffect, useRef, useState } from "react";
+import { wordCount } from "../quality/analyzer";
 import { useLessonSession } from "../player/SessionContext";
 import {
   canRetry,
@@ -46,38 +48,76 @@ export function WarmupRenderer({ slide }: { slide: Slide }) {
 }
 export function ScenarioRenderer({ slide }: { slide: Slide }) {
   const rt = useLessonSession();
-  if (slide.type !== "scenario") return null;
+  const [decision, setDecision] = useState(false);
+  const decisions = useRef<HTMLDivElement>(null);
+  const feedback = useRef<HTMLDivElement>(null);
   const selected = rt?.session.interactions[slide.id]?.choiceId;
+  useEffect(() => {
+    if (decision) decisions.current?.querySelector("button")?.focus();
+  }, [decision]);
+  useEffect(() => {
+    if (selected) feedback.current?.focus();
+  }, [selected]);
+  if (slide.type !== "scenario") return null;
   const choice = slide.data.choices.find((x) => x.id === selected);
+  const stepped =
+    !!rt &&
+    (wordCount(slide.data.situation) > 55 ||
+      slide.data.choices.reduce((n, c) => n + wordCount(c.text), 0) > 80);
+  const showDecision = !stepped || decision || !!choice;
   return (
     <>
       <p className="scenario-context">
         {slide.data.character} · {slide.data.context}
       </p>
-      <p className="scenario-situation">{slide.data.situation}</p>
-      <h3>{slide.data.question}</h3>
-      <div className="activity-grid">
-        {slide.data.choices.map((c) => (
-          <button
-            key={c.id}
-            disabled={!rt || !!choice}
-            aria-pressed={selected === c.id}
-            onClick={() =>
-              rt?.act({ type: "scenario", id: slide.id, choiceId: c.id })
-            }
-          >
-            <strong>{c.label}.</strong>
-            {c.text}
-          </button>
-        ))}
-      </div>
+      {(!showDecision || !stepped) && (
+        <p className="scenario-situation">{slide.data.situation}</p>
+      )}
+      {stepped && !showDecision && (
+        <button className="primary" onClick={() => setDecision(true)}>
+          Đọc xong — chọn cách xử lý
+        </button>
+      )}
+      {stepped && showDecision && (
+        <details className="scenario-source">
+          <summary>Xem lại tình huống</summary>
+          <p>{slide.data.situation}</p>
+        </details>
+      )}
+      {showDecision && (
+        <>
+          <h3>{slide.data.question}</h3>
+          {(!stepped || !choice) && (
+            <div ref={decisions} className="activity-grid scenario-choices">
+              {slide.data.choices.map((c) => (
+                <button
+                  key={c.id}
+                  disabled={!rt || !!choice}
+                  aria-pressed={selected === c.id}
+                  onClick={() =>
+                    rt?.act({ type: "scenario", id: slide.id, choiceId: c.id })
+                  }
+                >
+                  <strong>{c.label}.</strong>
+                  {c.text}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
       {choice && (
-        <div className="feedback" role="status">
+        <div ref={feedback} tabIndex={-1} className="feedback" role="status">
           <strong>
             {choice.isRecommended
               ? "✓ Cách xử lý được khuyến nghị"
               : "! Hãy cân nhắc cách xử lý khác"}
           </strong>
+          {stepped && (
+            <p>
+              <b>Em đã chọn {choice.label}:</b> {choice.text}
+            </p>
+          )}
           <p>{choice.feedback}</p>
           <p>
             <b>Kết quả:</b> {choice.consequence}

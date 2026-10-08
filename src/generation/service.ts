@@ -9,6 +9,7 @@ import type {
 } from "./model";
 import { DeterministicLessonGenerationProvider } from "./provider";
 import { validateGeneratedLesson } from "./validation";
+import { analyzeLessonQuality } from "../quality/analyzer";
 
 export class LessonGenerationService {
   private jobs = new Map<string, Promise<GenerationResult>>();
@@ -53,6 +54,22 @@ export class LessonGenerationService {
         await this.provider.generate(blueprint, context),
       );
       const warnings = validateGeneratedLesson(project, blueprint, context);
+      const quality = analyzeLessonQuality(project, {
+        outcomes: context.outcomes.map((o) => o.text),
+        bySlide: Object.fromEntries(
+          project.slides.map((s, i) => [
+            s.id,
+            blueprint.proposedSlides[i].contentOutline,
+          ]),
+        ),
+      });
+      warnings.push(
+        ...quality.issues.map((issue) => ({
+          code: issue.issueCode,
+          severity: issue.severity,
+          message: issue.explanation + " " + issue.suggestedAction,
+        })),
+      );
       if (warnings.some((w) => w.severity === "ERROR"))
         throw new Error(
           "Bài giảng chưa đạt kiểm tra nội dung. Thầy/cô kiểm tra kịch bản rồi thử lại.",

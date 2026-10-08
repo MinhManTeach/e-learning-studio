@@ -2,6 +2,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { z } from "zod";
 import { documentBlockSchema, semanticCategories } from "../src/import/model";
+import { projectSchema } from "../src/model/schema";
+import { enhanceWithOpenAi } from "./enhancement";
 import {
   analyzeWithOpenAi,
   connectionStatus,
@@ -55,7 +57,11 @@ export function localAiMiddleware(config: LocalAiConfig) {
       send(200, connectionStatus(config));
       return;
     }
-    if (req.url !== "/api/lesson-ai/analyze" || req.method !== "POST") {
+    const enhancing = req.url === "/api/lesson-ai/enhance";
+    if (
+      (!enhancing && req.url !== "/api/lesson-ai/analyze") ||
+      req.method !== "POST"
+    ) {
       send(404, { error: "AI_ROUTE" });
       return;
     }
@@ -80,9 +86,20 @@ export function localAiMiddleware(config: LocalAiConfig) {
         }
         chunks.push(bytes);
       }
-      const parsed = inputSchema.safeParse(
-        JSON.parse(Buffer.concat(chunks).toString("utf8")),
-      );
+      const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if (enhancing) {
+        const project = projectSchema.safeParse(body);
+        if (!project.success) {
+          send(400, { error: "AI_INPUT" });
+          return;
+        }
+        send(
+          200,
+          await enhanceWithOpenAi(config, project.data, controller.signal),
+        );
+        return;
+      }
+      const parsed = inputSchema.safeParse(body);
       if (!parsed.success) {
         send(400, { error: "AI_INPUT" });
         return;

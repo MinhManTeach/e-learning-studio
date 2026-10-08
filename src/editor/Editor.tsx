@@ -24,6 +24,8 @@ import { downloadProjectJSON, exportProjectJSON } from "../model/json";
 import { consistencyWarnings } from "../model/analysis";
 import { MediaPanel } from "../media/MediaPanel";
 import { jsonMediaWarning } from "../media/service";
+import { QualityPanel } from "../quality/QualityPanel";
+import { applyProposal } from "../quality/analyzer";
 
 export function Editor({
   project,
@@ -45,6 +47,7 @@ export function Editor({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [jsonExport, setJsonExport] = useState<string | null>(null);
   const [showMedia, setShowMedia] = useState(false);
+  const [showQuality, setShowQuality] = useState(false);
   const savingRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -132,6 +135,16 @@ export function Editor({
           <span>Không gian soạn bài của bạn</span>
         </div>
         <div className="top-actions">
+          {!preview && (
+            <button onClick={() => setShowQuality(true)}>
+              Rà soát chất lượng
+            </button>
+          )}
+          {!preview && state.qualityUndo && (
+            <button onClick={() => dispatch({ type: "quality-undo" })}>
+              Hoàn tác cải thiện
+            </button>
+          )}
           {!preview && (
             <button onClick={() => setShowMedia(true)}>
               Bổ sung hình ảnh cho bài giảng
@@ -377,6 +390,25 @@ export function Editor({
           attach={(id, asset, caption) =>
             dispatch({ type: "attach-media", id, asset, caption })
           }
+        />
+      )}
+      {showQuality && !preview && (
+        <QualityPanel
+          project={state.project}
+          close={() => setShowQuality(false)}
+          navigate={(id) => dispatch({ type: "select", id })}
+          apply={(proposal) => {
+            try {
+              applyProposal(stateRef.current.project, proposal);
+              dispatch({ type: "quality", proposal });
+            } catch (e) {
+              setError(
+                e instanceof Error
+                  ? e.message
+                  : "Hãy phân tích lại trang trước khi áp dụng.",
+              );
+            }
+          }}
         />
       )}
       {deleteTarget && (

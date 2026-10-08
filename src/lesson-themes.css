@@ -377,3 +377,95 @@
 .projects-heading > div {
   margin-right: auto;
 }
+.objective-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25cqw), 1fr));
+  gap: 1.5cqw;
+  margin: 0;
+}
+.objective-cards li {
+  margin: 0;
+  border: 1px solid var(--lesson-border);
+}
+.objectives-intro {
+  color: var(--lesson-muted);
+  margin-top: 0;
+}
+.scenario-choices {
+  grid-template-columns: 1fr;
+}
+.scenario-choices button {
+  display: flex;
+  gap: 1cqw;
+  overflow-wrap: anywhere;
+  min-height: 44px;
+}
+.scenario-source {
+  margin: 1cqw 0;
+}
+.scenario-source summary {
+  cursor: pointer;
+  color: var(--lesson-accent);
+}
+.quiz-options label {
+  min-width: 0;
+  min-height: 44px;
+}
+.quiz-options span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.quiz-options label:has(input:checked) {
+  outline: 2px solid var(--lesson-accent);
+}
+.quiz-options label:focus-within {
+  outline: 3px solid var(--lesson-focus);
+}
+/* Small preview containers keep 16:9 framing, with a readable vertically scrolling page. */
+@container (max-width: 600px) {
+  .student-preview .lesson.phase1 {
+    font-size: calc(max(1.8cqw, 16px) * var(--font-scale, 1));
+    padding: 4cqw;
+  }
+  .student-preview .phase1 h1 {
+    font-size: calc(max(3.6cqw, 23px) * var(--font-scale, 1));
+  }
+  .student-preview .phase1 h2,
+  .student-preview .phase1 h3 {
+    font-size: calc(max(2.1cqw, 18px) * var(--font-scale, 1));
+  }
+  .student-preview .phase1 .lesson-tag,
+  .student-preview .phase1 .hint,
+  .student-preview .phase1 .quiz-meta,
+  .student-preview .phase1 figcaption {
+    font-size: 12px;
+  }
+  .student-preview .phase1 .lesson-subtitle {
+    font-size: 16px;
+  }
+  .student-preview .quiz-options,
+  .student-preview .objective-cards {
+    grid-template-columns: 1fr;
+  }
+  .student-preview .slide-layout.layout-TEXT_LEFT_MEDIA_RIGHT,
+  .student-preview .slide-layout.layout-MEDIA_LEFT_TEXT_RIGHT {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .student-preview .layout-media img {
+    max-height: 40cqw;
+  }
+}
+.studio:not(.preview-mode) .topbar {
+  height: auto;
+  min-height: 76px;
+  flex-wrap: wrap;
+}
+.studio:not(.preview-mode) .project-name {
+  flex: 1;
+  min-width: 180px;
+}
+.studio:not(.preview-mode) .top-actions {
+  flex-wrap: wrap;
+}

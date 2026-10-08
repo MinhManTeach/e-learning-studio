@@ -1,4 +1,5 @@
 import type { Slide } from "../model/schema";
+import { uniqueObjectives } from "../quality/analyzer";
 export function TextRenderer({ slide }: { slide: Slide }) {
   if (slide.type !== "welcome" && slide.type !== "content") return null;
   const d = slide.data;
@@ -33,18 +34,23 @@ export function ObjectivesRenderer({ slide }: { slide: Slide }) {
   if (slide.type !== "objectives") return null;
   return (
     <>
-      <ul className="outcomes">
-        {slide.data.learningOutcomes.map((o, i) => (
+      {uniqueObjectives(slide.data.keyMessages)
+        .filter((m) => m.trim() !== slide.title.trim())
+        .map((m, i) => (
+          <p className="objectives-intro" key={i}>
+            {m}
+          </p>
+        ))}
+      <ul className="outcomes objective-cards">
+        {uniqueObjectives(slide.data.learningOutcomes).map((o, i) => (
           <li key={i}>
-            <span aria-hidden="true">{slide.data.icons[i] || "✓"}</span> {o}
+            <span aria-hidden="true">
+              {slide.data.icons[slide.data.learningOutcomes.indexOf(o)] || "✓"}
+            </span>{" "}
+            {o}
           </li>
         ))}
       </ul>
-      {slide.data.keyMessages.map((m, i) => (
-        <div className="takeaway" key={i}>
-          {m}
-        </div>
-      ))}
     </>
   );
 }

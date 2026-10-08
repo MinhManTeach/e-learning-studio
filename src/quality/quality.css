@@ -1,0 +1,38 @@
+.quality-panel {
+  width: min(1050px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid #b9d7ca;
+  border-radius: 12px;
+  padding: 24px;
+  color: #184d46;
+}
+.quality-panel::backdrop {
+  background: #14212888;
+}
+.quality-panel header,
+.quality-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.quality-panel button {
+  margin: 4px;
+  min-height: 40px;
+}
+.quality-issues {
+  padding-left: 20px;
+}
+.quality-issues li,
+.quality-proposal {
+  border-bottom: 1px solid #b9d7ca;
+  padding: 12px 0;
+}
+.quality-panel p {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.quality-panel .canvas {
+  margin: 12px 0;
+}
