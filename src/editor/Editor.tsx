@@ -22,6 +22,8 @@ import { SlideCanvas } from "../renderers/SlideCanvas";
 import { StudentPreview } from "../player/StudentPreview";
 import { downloadProjectJSON, exportProjectJSON } from "../model/json";
 import { consistencyWarnings } from "../model/analysis";
+import { MediaPanel } from "../media/MediaPanel";
+import { jsonMediaWarning } from "../media/service";
 
 export function Editor({
   project,
@@ -42,6 +44,7 @@ export function Editor({
   const [showSettings, setShowSettings] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [jsonExport, setJsonExport] = useState<string | null>(null);
+  const [showMedia, setShowMedia] = useState(false);
   const savingRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -129,6 +132,11 @@ export function Editor({
           <span>Không gian soạn bài của bạn</span>
         </div>
         <div className="top-actions">
+          {!preview && (
+            <button onClick={() => setShowMedia(true)}>
+              Bổ sung hình ảnh cho bài giảng
+            </button>
+          )}
           {!preview && (
             <button
               onClick={() => {
@@ -331,6 +339,9 @@ export function Editor({
             className="modal"
           >
             <h2 id="export-title">Xuất bài giảng JSON</h2>
+            {jsonMediaWarning(state.project) && (
+              <p role="alert">{jsonMediaWarning(state.project)}</p>
+            )}
             <p>
               Tệp chứa nội dung đang chỉnh sửa. Bạn cũng có thể chọn toàn bộ văn
               bản bên dưới để sao chép và lưu thành tệp .json.
@@ -357,6 +368,16 @@ export function Editor({
             </div>
           </section>
         </div>
+      )}
+      {showMedia && !preview && (
+        <MediaPanel
+          project={state.project}
+          initialSlideId={state.selectedId}
+          close={() => setShowMedia(false)}
+          attach={(id, asset, caption) =>
+            dispatch({ type: "attach-media", id, asset, caption })
+          }
+        />
       )}
       {deleteTarget && (
         <div className="modal-overlay">

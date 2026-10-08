@@ -91,12 +91,19 @@ export function SlideProperties({
             edit({ ...s, media: { ...s.media, enabled: !disabled } })
           }
         />
-        <Field
-          label="Đường dẫn hình ảnh"
-          value={asset?.url ?? ""}
-          onChange={(url) => mediaChange(url, asset?.altText ?? "")}
-          hint="Ảnh mạng cần kết nối Internet."
-        />
+        {asset?.status === "LOCAL" ? (
+          <p className="callout">
+            Ảnh đã lưu trên thiết bị. Dùng “Bổ sung hình ảnh cho bài giảng” để
+            thay ảnh.
+          </p>
+        ) : (
+          <Field
+            label="Đường dẫn hình ảnh"
+            value={asset?.url ?? ""}
+            onChange={(url) => mediaChange(url, asset?.altText ?? "")}
+            hint="Ảnh mạng cần kết nối Internet."
+          />
+        )}
         <Field
           label="Mô tả ảnh cho người nghe"
           value={asset?.altText ?? ""}

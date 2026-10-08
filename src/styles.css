@@ -1241,6 +1241,31 @@ button.primary:hover {
   .studio {
     min-width: 850px;
   }
+  .studio.preview-mode {
+    min-width: 0;
+  }
+  .preview-mode .student-preview {
+    padding: 20px 12px;
+  }
+  .preview-mode .topbar {
+    height: auto;
+    min-height: 76px;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .preview-mode .project-name {
+    flex-basis: 100%;
+    order: 1;
+  }
+  .preview-mode .preview-heading {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .preview-mode .preview-heading > div {
+    flex-basis: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .dashboard-hero {
     grid-template-columns: 1fr;
   }
@@ -1264,4 +1289,16 @@ button.primary:hover {
   overflow-x: hidden;
 }
 /* Personal local AI configuration entry; follows the existing dashboard layout. */
-.ai-settings-button { position: fixed; right: 24px; bottom: 24px; z-index: 20; padding: 10px 16px; border: 1px solid #d5dedb; border-radius: 10px; background: white; color: #194d42; cursor: pointer; box-shadow: 0 3px 16px #0001; }
+.ai-settings-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  padding: 10px 16px;
+  border: 1px solid #d5dedb;
+  border-radius: 10px;
+  background: white;
+  color: #194d42;
+  cursor: pointer;
+  box-shadow: 0 3px 16px #0001;
+}

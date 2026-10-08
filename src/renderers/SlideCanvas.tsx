@@ -3,20 +3,25 @@ import { BookOpen, ImageOff } from "lucide-react";
 import type { LessonProject, Slide } from "../model/schema";
 import { effectiveLayout, stageLabels } from "../model/analysis";
 import { slideRegistry } from "../slides/registry";
+import { useLocalImage } from "../media/useLocalImage";
 export { slideRegistry } from "../slides/registry";
 export function LessonImage({
   url,
   alt,
   caption,
+  local = false,
 }: {
   url: string;
   alt: string;
   caption: string;
+  local?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   let allowed = false;
   try {
-    allowed = ["http:", "https:"].includes(new URL(url).protocol);
+    allowed =
+      ["http:", "https:"].includes(new URL(url).protocol) ||
+      (local && new URL(url).protocol === "blob:");
   } catch {
     /* Invalid URLs render safe fallback. */
   }
@@ -35,7 +40,18 @@ export function LessonImage({
           <p>Không tải được hình ảnh. Hãy kiểm tra kết nối hoặc đường dẫn.</p>
         </div>
       )}
-      {caption && <figcaption>{caption}</figcaption>}
+      {caption && (
+        <figcaption>
+          {caption.length > 160 ? (
+            <details>
+              <summary>Ghi công &amp; nguồn ảnh</summary>
+              <p>{caption}</p>
+            </details>
+          ) : (
+            caption
+          )}
+        </figcaption>
+      )}
     </figure>
   );
 }
@@ -52,15 +68,25 @@ export function SlideCanvas({
         (a) => a.id === slide.media.assetId && a.kind === "IMAGE",
       )
     : undefined;
-  const layout = slide ? effectiveLayout(slide, !!asset) : "TEXT_ONLY";
+  const resolved = useLocalImage(asset, project.projectId);
+  const layout = slide
+    ? effectiveLayout(slide, !!asset && !resolved.error)
+    : "TEXT_ONLY";
   const image =
     asset && slide?.media.enabled ? (
-      <LessonImage
-        key={asset.url}
-        url={asset.url}
-        alt={asset.altText}
-        caption={slide.media.caption}
-      />
+      resolved.loading ? (
+        <p role="status">Đang đọc ảnh trên thiết bị…</p>
+      ) : resolved.error ? (
+        <p role="alert">{resolved.error}</p>
+      ) : (
+        <LessonImage
+          key={resolved.url}
+          url={resolved.url}
+          local={asset.status === "LOCAL"}
+          alt={asset.altText}
+          caption={slide.media.caption}
+        />
+      )
     ) : null;
   return (
     <div
@@ -87,6 +113,7 @@ export function SlideCanvas({
           {slide.subtitle && (
             <p className="lesson-subtitle">{slide.subtitle}</p>
           )}
+          {resolved.error && <p role="alert">{resolved.error}</p>}
           <div className={"slide-layout layout-" + layout} data-layout={layout}>
             {layout !== "TEXT_ONLY" && image && (
               <div className="layout-media">{image}</div>

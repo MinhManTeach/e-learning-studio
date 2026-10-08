@@ -1,4 +1,6 @@
 import { createSlide } from "../model/factories";
+import { attachMedia } from "../media/service";
+import type { AssetReference } from "../model/schema";
 import type {
   LessonProject,
   Metadata,
@@ -17,6 +19,7 @@ export type EditorAction =
   | { type: "objectives"; objectives: Objectives }
   | { type: "settings"; settings: LessonProject["settings"] }
   | { type: "media"; id: string; url: string; alt: string }
+  | { type: "attach-media"; id: string; asset: AssetReference; caption: string }
   | { type: "add"; slideType: SlideType }
   | { type: "edit"; slide: Slide }
   | { type: "duplicate"; id: string }
@@ -45,6 +48,17 @@ export function editorReducer(
           : selectedId,
     };
   switch (action.type) {
+    case "attach-media": {
+      const attached = attachMedia(
+        project,
+        action.id,
+        action.asset,
+        action.caption,
+      );
+      slides = attached.slides;
+      assets = attached.assets;
+      break;
+    }
     case "settings":
       settings = action.settings;
       break;
@@ -57,17 +71,20 @@ export function editorReducer(
         slides.some(
           (s) => s.id !== slide.id && s.media.assetId === existing.id,
         );
-      const asset = {
-        id: existing && !shared ? existing.id : crypto.randomUUID(),
-        kind: "IMAGE" as const,
-        sourceType: "URL" as const,
-        name: existing?.name ?? "",
-        fileName: "",
-        mimeType: "",
-        url: action.url,
-        altText: action.alt,
-        status: "EXTERNAL" as const,
-      };
+      const asset =
+        existing?.status === "LOCAL" && existing.url === action.url
+          ? { ...existing, altText: action.alt }
+          : {
+              id: existing && !shared ? existing.id : crypto.randomUUID(),
+              kind: "IMAGE" as const,
+              sourceType: "URL" as const,
+              name: existing?.name ?? "",
+              fileName: "",
+              mimeType: "",
+              url: action.url,
+              altText: action.alt,
+              status: "EXTERNAL" as const,
+            };
       assets = assets.some((a) => a.id === asset.id)
         ? assets.map((a) => (a.id === asset.id ? asset : a))
         : [...assets, asset];

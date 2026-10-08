@@ -118,22 +118,23 @@
 }
 .layout-MEDIA_FULL {
   display: grid;
+  grid-template-columns: 1fr;
 }
 .layout-MEDIA_FULL > div {
-  grid-area: 1/1;
+  grid-area: auto;
 }
 .layout-MEDIA_FULL .layout-text {
   align-self: end;
   background: var(--lesson-bg);
   opacity: 0.95;
   padding: 2cqw;
-  margin-top: 15cqw;
+  margin-top: 0;
 }
 .layout-MEDIA_FULL img {
   max-height: 38cqw;
   min-height: 25cqw;
   width: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .phase1 figure {
   margin: 0;
@@ -144,6 +145,14 @@
 .phase1 figcaption {
   color: var(--lesson-muted);
   font-size: 1.2cqw;
+  overflow-wrap: anywhere;
+}
+.phase1 figcaption details {
+  max-height: 10cqw;
+  overflow: auto;
+}
+.phase1 figcaption summary {
+  cursor: pointer;
 }
 .phase1 img {
   width: 100%;

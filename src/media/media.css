@@ -1,0 +1,137 @@
+.media-overlay {
+  z-index: 70;
+  padding: 24px;
+}
+.media-panel {
+  width: min(1100px, 96vw);
+  max-height: 92vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px;
+  color: #163b39;
+  box-shadow: 0 24px 80px #102f3940;
+}
+.media-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.media-panel h2 {
+  margin: 4px 0 16px;
+}
+.media-panel label {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+  font-weight: 600;
+}
+.media-panel input:not([type="checkbox"]),
+.media-panel select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #b4cec9;
+  border-radius: 8px;
+  background: white;
+}
+.media-panel button,
+.media-panel a {
+  margin: 4px;
+  padding: 8px 12px;
+}
+.media-panel form {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.media-panel form label {
+  flex: 1;
+  min-width: 220px;
+}
+.media-panel .media-consent {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.media-counts {
+  padding: 12px;
+  background: #eaf5f1;
+  border-radius: 10px;
+}
+.media-query-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.media-query-options button {
+  font-size: 12px;
+}
+.media-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.media-candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+.media-candidates article {
+  border: 1px solid #cbded9;
+  border-radius: 12px;
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+.media-candidates img {
+  width: 100%;
+  height: 170px;
+  object-fit: contain;
+  background: #f3f6f5;
+  border-radius: 8px;
+}
+.media-candidates h4 {
+  font-size: 16px;
+  line-height: 1.4;
+}
+.media-candidates p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.media-candidates .attribution {
+  max-height: 72px;
+  overflow: auto;
+}
+.media-large-preview img {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+}
+.media-large-preview figcaption {
+  font-size: 13px;
+}
+.media-panel button:focus-visible,
+.media-panel input:focus-visible,
+.media-panel select:focus-visible {
+  outline: 3px solid #168a7d;
+  outline-offset: 3px;
+}
+.media-panel button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 650px) {
+  .media-overlay {
+    padding: 6px;
+  }
+  .media-panel {
+    padding: 15px;
+  }
+  .media-candidates {
+    grid-template-columns: 1fr;
+  }
+}
