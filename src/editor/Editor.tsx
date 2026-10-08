@@ -26,6 +26,8 @@ import { MediaPanel } from "../media/MediaPanel";
 import { jsonMediaWarning } from "../media/service";
 import { QualityPanel } from "../quality/QualityPanel";
 import { applyProposal } from "../quality/analyzer";
+import { BackupButton } from "../backup/BackupButton";
+import "../backup/backup.css";
 
 export function Editor({
   project,
@@ -135,6 +137,7 @@ export function Editor({
           <span>Không gian soạn bài của bạn</span>
         </div>
         <div className="top-actions">
+          {!preview && <BackupButton project={state.project} />}
           {!preview && (
             <button onClick={() => setShowQuality(true)}>
               Rà soát chất lượng

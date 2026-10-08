@@ -15,6 +15,7 @@ import { createSampleProject } from "./fixtures/sampleLesson";
 import type { LessonProject } from "./model/schema";
 import type { ProjectStore } from "./storage/projects";
 import { Field } from "./editor/Fields";
+import { RestoreControl } from "./backup/RestoreControl";
 export function Dashboard({
   store,
   open,
@@ -172,6 +173,7 @@ export function Dashboard({
             <button onClick={() => file.current?.click()}>
               <FileUp size={17} /> Mở tệp bài giảng
             </button>
+            <RestoreControl store={store} open={open} />
             <button
               onClick={async () => {
                 try {
