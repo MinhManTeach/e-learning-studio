@@ -4,6 +4,8 @@ import { decodeStoredProject } from "../model/migrations";
 export interface ProjectStore {
   list(): Promise<{ projects: LessonProject[]; invalidCount: number }>;
   save(project: LessonProject): Promise<void>;
+  // Optional capability: restore requires atomic insert-only persistence.
+  saveNew?(project: LessonProject): Promise<void>;
   remove(id: string): Promise<void>;
 }
 function validated(values: unknown[]) {
@@ -66,6 +68,11 @@ export class IndexedProjectStore implements ProjectStore {
   async save(project: LessonProject) {
     await this.request("readwrite", (store) =>
       store.put(parseProject(project)),
+    );
+  }
+  async saveNew(project: LessonProject) {
+    await this.request("readwrite", (store) =>
+      store.add(parseProject(project)),
     );
   }
   async remove(id: string) {
