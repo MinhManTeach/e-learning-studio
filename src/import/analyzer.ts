@@ -504,6 +504,7 @@ export class DeterministicLessonAnalysisProvider implements LessonAnalysisProvid
             "periodCount",
             "minutesPerPeriod",
             "totalDurationMinutes",
+            "teachingPeriods",
             "curriculum",
             "sourceTraces",
             "classifications",

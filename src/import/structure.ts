@@ -8,6 +8,13 @@ import {
 } from "./model";
 import { normalizeHeading, parseDuration, parseGrade } from "./analyzer";
 import { detectLessonMetadata, finalizeLessonDuration } from "./lessonMetadata";
+import {
+  activityHeading,
+  periodHeading,
+  nonActivityBoundary,
+  finalizeActivityStructure,
+} from "./activityStructure";
+import { resolveCellRoles, type TableColumn } from "./tableRoles";
 
 type Category = BlockClassification["category"];
 type Section = {
@@ -86,11 +93,19 @@ function cleaned(text: string) {
   return text
     .trim()
     .replace(/^\[([^\]]+)\]$/, "$1")
-    .replace(/^(?:[IVXLCDM]+|\d+(?:\.\d+)*|[A-Za-z])[.):\-]\s*/i, "")
+    .replace(/^(?:[IVXLCDM]+|\d+(?:\.\d+)*|[A-Za-z])[.):\-]+\s*/i, "")
     .replace(/^[-•*–]\s*/, "")
     .trim();
 }
 function heading(text: string) {
+  const activity = activityHeading(text);
+  if (activity)
+    return {
+      category: activity,
+      field: "teachingActivities",
+      value: "",
+      label: text,
+    };
   const clean = cleaned(text);
   const colon = clean.indexOf(":");
   const label = (colon >= 0 ? clean.slice(0, colon) : clean)
@@ -145,6 +160,26 @@ export function classifyStructuredDocument(
 ) {
   const stack: Section[] = [];
   let active: TeachingActivity | undefined;
+  let periodId: string | undefined;
+  const tableIndices = new Map(
+    doc.blocks.filter((b) => b.table).map((b, i) => [b.id, i]),
+  );
+  const source = (
+    block: LessonDocumentBlock,
+    sourceText: string,
+    row?: number,
+    column?: number,
+    confidence = 0.85,
+    needsReview = false,
+  ) => ({
+    blockId: block.id,
+    sourceText,
+    tableIndex: tableIndices.get(block.id),
+    row,
+    column,
+    confidence,
+    needsReview,
+  });
   let seq = 0;
   let line = 1;
   function emit(
@@ -172,6 +207,8 @@ export function classifyStructuredDocument(
       column,
       needsReview,
       corrected: false,
+      tableIndex: tableIndices.get(block.id),
+      periodId,
     };
     if (
       !isHeading &&
@@ -228,6 +265,8 @@ export function classifyStructuredDocument(
         lineEnd: sourceLine + sourceText.split("\n").length - 1,
         confidence,
         blockId: block.id,
+        tableIndex: tableIndices.get(block.id),
+        periodId,
         row,
         column,
       });
@@ -245,23 +284,26 @@ export function classifyStructuredDocument(
   ) {
     const value = text.trim().replace(/^[-•*–]\s*/, "");
     if (!value) return;
+    if (field.startsWith("activity.") && !active) {
+      assign(
+        block,
+        text,
+        "OTHER",
+        "unmappedContent",
+        ["Chưa có tiêu đề hoạt động; giữ nội dung để kiểm tra"],
+        0.35,
+        row,
+        column,
+      );
+      return;
+    }
     let target = field;
     const needsReview = confidence < 0.6 || category === "OTHER";
     if (needsReview) {
       target = "unmappedContent";
       category = "OTHER";
     }
-    if (target.startsWith("activity.")) {
-      if (!active) {
-        active = activitySchema.parse({
-          id: `${doc.id}-activity-${block.id}-${row ?? 0}`,
-          title: "Hoạt động chưa xác định",
-          stage: null,
-          content: [],
-          estimatedMinutes: null,
-        });
-        a.teachingActivities.push(active);
-      }
+    if (target.startsWith("activity.") && active) {
       const key = target.slice(9) as
         | "content"
         | "teacherActivity"
@@ -346,6 +388,15 @@ export function classifyStructuredDocument(
         id: `${doc.id}-activity-${block.id}-${row ?? 0}`,
         title: cleaned(text),
         stage: stageMap[h.category] ?? null,
+        source: source(
+          block,
+          text,
+          row,
+          column,
+          parseDuration(text) === null ? 0.7 : 0.85,
+          parseDuration(text) === null,
+        ),
+        periodId,
         content: [],
         estimatedMinutes: parseDuration(text),
       });
@@ -513,6 +564,59 @@ export function classifyStructuredDocument(
     column?: number,
   ) {
     if (!text.trim()) return;
+    const session = periodHeading(text);
+    if (session) {
+      active = undefined;
+      stack.length = 0;
+      stack.push({
+        category: "TEACHING_ACTIVITY",
+        field: "teachingActivities",
+        level: 1,
+        heading: text,
+      });
+      periodId = doc.id + "-period-" + block.id + "-" + (row ?? 0);
+      (a.teachingPeriods ??= []).push({
+        id: periodId,
+        number: session.number,
+        durationMinutes: session.durationMinutes,
+        source: source(block, text, row, column, 0.95),
+      });
+      emit(
+        block,
+        text,
+        "TEACHING_ACTIVITY",
+        "teachingPeriods",
+        ["Tiêu đề tiết ghi rõ trong nguồn"],
+        0.95,
+        true,
+        row,
+        column,
+      );
+      return;
+    }
+    if (/^[.\s…_–-]+$/.test(text.trim()) || nonActivityBoundary(text)) {
+      if (nonActivityBoundary(text)) {
+        active = undefined;
+        stack.length = 0;
+        stack.push({
+          category: "OTHER",
+          field: "unmappedContent",
+          level: 1,
+          heading: text,
+        });
+      }
+      assign(
+        block,
+        text,
+        "OTHER",
+        "unmappedContent",
+        ["Ghi chú/đánh giá/phiếu hoặc dòng trống; không phải hoạt động"],
+        0.35,
+        row,
+        column,
+      );
+      return;
+    }
     if (
       startHeading(block, text, row, column) ||
       identity(block, text, row, column)
@@ -650,12 +754,16 @@ export function classifyStructuredDocument(
   }
   function columnRule(text: string) {
     const n = normalizeHeading(cleaned(text)).replace(/[:.]$/g, "");
-    if (/^(?:hoat dong(?: cua)?|viec lam(?: cua)?) (?:giao vien|gv)$/.test(n))
+    if (
+      /^(?:(?:hoat dong(?: cua)?|viec lam(?: cua)?) )?(?:giao vien|gv)$/.test(n)
+    )
       return {
         category: "TEACHER_ACTIVITY" as Category,
         field: "activity.teacherActivity",
       };
-    if (/^(?:hoat dong(?: cua)?|viec lam(?: cua)?) (?:hoc sinh|hs)$/.test(n))
+    if (
+      /^(?:(?:hoat dong(?: cua)?|viec lam(?: cua)?) )?(?:hoc sinh|hs)$/.test(n)
+    )
       return {
         category: "STUDENT_ACTIVITY" as Category,
         field: "activity.studentActivity",
@@ -690,12 +798,53 @@ export function classifyStructuredDocument(
     const h = heading(text);
     return h ? { category: h.category, field: h.field } : null;
   }
+  function recordSubactivity(
+    block: LessonDocumentBlock,
+    text: string,
+    row: number,
+    column: number,
+    allowUntimed = false,
+  ) {
+    if (!active || heading(text) || !/^\s*\d+[.):]+\s*/.test(text))
+      return false;
+    const duration = parseDuration(text);
+    if (
+      duration === null &&
+      (!allowUntimed || text.length > 180 || /[.!?;:]\s*$/.test(text))
+    )
+      return false;
+    (active.subactivities ??= []).push({
+      title: cleaned(text),
+      estimatedMinutes: duration,
+      blockId: block.id,
+      row,
+      column,
+      source: source(
+        block,
+        text,
+        row,
+        column,
+        duration === null ? 0.7 : 0.9,
+        duration === null,
+      ),
+    });
+    emit(
+      block,
+      text,
+      "TEACHING_ACTIVITY",
+      "teachingActivities",
+      ["Tiểu hoạt động trong hoạt động cha; giữ riêng thời lượng"],
+      duration === null ? 0.7 : 0.9,
+      true,
+      row,
+      column,
+      duration === null,
+    );
+    return true;
+  }
   function table(block: LessonDocumentBlock) {
-    let columns = new Map<
-      number,
-      { category: Category; field: string; header: string }
-    >();
-    let complex = false;
+    let columns = new Map<number, TableColumn>();
+    const ambiguousRows = new Set<number>();
     block.table!.rows.forEach((row, r) => {
       const headers = row.cells.map((cell, i) => ({
         cell,
@@ -703,6 +852,11 @@ export function classifyStructuredDocument(
         rule: columnRule(cell.text),
       }));
       const count = headers.filter((h) => h.rule).length;
+      const single = row.cells.filter((c) => c.text.trim());
+      if (single.length === 1 && periodHeading(single[0].text)) {
+        paragraph(block, single[0].text, r, single[0].column ?? 0);
+        return;
+      }
       if (
         row.cells.length === 2 &&
         count === 0 &&
@@ -749,14 +903,25 @@ export function classifyStructuredDocument(
         );
         return;
       }
-      if (count >= 2 || (r === 0 && count === 1 && row.cells.length === 1)) {
+      if (
+        count >= 2 ||
+        (r === 0 &&
+          count === 1 &&
+          row.cells.length === 1 &&
+          headers[0].rule?.field !== "teachingActivities")
+      ) {
         columns = new Map();
         for (const { cell, col, rule } of headers)
           if (rule) {
-            if ((cell.colspan ?? 1) > 1 || (cell.rowspan ?? 1) > 1)
-              complex = true;
             for (let j = 0; j < (cell.colspan ?? 1); j++)
-              columns.set(col + j, { ...rule, header: cell.text });
+              columns.set(col + j, {
+                ...rule,
+                header: cell.text,
+                reviewThrough:
+                  (cell.rowspan ?? 1) > 1
+                    ? r + (cell.rowspan ?? 1) - 1
+                    : undefined,
+              });
             emit(
               block,
               cell.text,
@@ -772,14 +937,16 @@ export function classifyStructuredDocument(
         return;
       }
       // Full-width activity/section title inside a table retains the surrounding columns.
-      if (row.cells.length === 1 && !row.cells[0].complex) {
-        const cell = row.cells[0];
+      if (single.length === 1 && !single[0].complex) {
+        const cell = single[0];
         const texts = cell.paragraphs?.length
           ? cell.paragraphs
           : cell.text.split("\n");
         if (
           heading(texts[0] ?? "") ||
-          (active && parseDuration(texts[0] ?? "") !== null)
+          (active &&
+            /^\s*\d+[.):]+/.test(texts[0] ?? "") &&
+            parseDuration(texts[0] ?? "") !== null)
         ) {
           let field = "activity.content";
           for (const text of texts) {
@@ -789,27 +956,12 @@ export function classifyStructuredDocument(
             )
               continue;
             const duration = parseDuration(text);
-            if (active && duration !== null && /^\s*\d+[.)]/.test(text)) {
-              (active.subactivities ??= []).push({
-                title: cleaned(text),
-                estimatedMinutes: duration,
-                blockId: block.id,
-                row: r,
-                column: cell.column ?? 0,
-              });
-              emit(
-                block,
-                text,
-                "TEACHING_ACTIVITY",
-                "teachingActivities",
-                ["Tiểu hoạt động có thời lượng trong hoạt động cha"],
-                0.9,
-                true,
-                r,
-                cell.column ?? 0,
-              );
+            if (
+              active &&
+              duration !== null &&
+              recordSubactivity(block, text, r, cell.column ?? 0)
+            )
               continue;
-            }
             const label = normalizeHeading(cleaned(text));
             if (/^muc tieu\s*:/.test(label)) {
               field = "activity.goals";
@@ -868,11 +1020,22 @@ export function classifyStructuredDocument(
       const title = headers.find(
         (h) => columns.get(h.col)?.field === "activity.title",
       );
-      if (title?.cell.text) {
+      if (
+        title?.cell.text &&
+        (nonActivityBoundary(title.cell.text) ||
+          /^[.\s…_–-]+$/.test(title.cell.text.trim()) ||
+          /^phan bo thoi (?:luong|gian)/.test(
+            normalizeHeading(title.cell.text),
+          ))
+      ) {
+        paragraph(block, title.cell.text, r, title.col);
+      } else if (title?.cell.text) {
         if (!startHeading(block, title.cell.text, r, title.col)) {
           active = activitySchema.parse({
             id: `${doc.id}-activity-${block.id}-${r}`,
             title: cleaned(title.cell.text),
+            source: source(block, title.cell.text, r, title.col, 0.8),
+            periodId,
             stage: null,
             content: [],
             estimatedMinutes: null,
@@ -892,82 +1055,79 @@ export function classifyStructuredDocument(
         }
       }
       for (const { cell, col } of headers) {
-        const covered = Array.from({ length: cell.colspan ?? 1 }, (_, j) =>
-          columns.get(col + j),
-        );
-        const mapping = covered[0];
-        const conflict = covered.some((m) => m?.field !== mapping?.field);
-        if (mapping?.field === "activity.title") continue;
+        if (columns.get(col)?.field === "activity.title") continue;
+        let resolvedEntries = resolveCellRoles(cell, col, r, columns);
+        const firstText = resolvedEntries[0]?.text;
         if (
-          mapping &&
-          !conflict &&
-          !complex &&
+          col === (row.cells[0].column ?? 0) &&
+          firstText &&
           !cell.complex &&
-          (cell.rowspan ?? 1) === 1
+          recordSubactivity(block, firstText, r, col, true)
+        )
+          resolvedEntries = resolvedEntries.slice(1);
+        const meaningful = resolvedEntries.filter((e) => e.text.trim());
+        if (
+          meaningful.length &&
+          meaningful.every((e) => !e.mapping) &&
+          (columns.size || cell.complex || row.cells.length > 1)
         ) {
-          const context = stack[stack.length - 1];
-          const signals = [
-            "+0.60 nhãn cột: " + mapping.header,
-            "+0.20 ô nằm dưới cột xác định",
-          ];
-          if (context) signals.push("ngữ cảnh mục: " + context.heading);
-          for (const text of cell.paragraphs?.length
-            ? cell.paragraphs
-            : cell.text.split("\n")) {
-            if (mapping.field === "specialNeedsSupport" && active)
-              (active.specialNeedsSupport ??= []).push(text.trim());
-            assign(
-              block,
-              text,
-              mapping.category,
-              mapping.field,
-              signals,
-              0.8,
-              r,
-              col,
-            );
-          }
-        } else if (
-          mapping ||
-          conflict ||
-          complex ||
-          cell.complex ||
-          (cell.rowspan ?? 1) > 1
-        ) {
+          if (columns.size || cell.complex) ambiguousRows.add(r);
           assign(
             block,
-            cell.text,
+            meaningful.map((e) => e.text).join("\n"),
             "OTHER",
             "unmappedContent",
-            [
-              "+0.80 nhãn bảng và ô",
-              "-0.45 quan hệ ô gộp/cột chưa chắc chắn; không tự gán",
-            ],
+            ["Ô chưa rõ vai trò; giữ toàn bộ đoạn trong ô để kiểm tra"],
             0.35,
             r,
             col,
           );
-        } else if (row.cells.length > 1 && !columns.size) {
-          assign(
-            block,
-            cell.text,
-            "OTHER",
-            "unmappedContent",
-            ["0.00 bảng nhiều cột chưa nhận ra nhãn; giữ ô để kiểm tra"],
-            0,
-            r,
-            col,
-          );
-        } else
-          for (const text of cell.paragraphs?.length
-            ? cell.paragraphs
-            : cell.text.split("\n"))
-            paragraph(block, text, r, col);
+          continue;
+        }
+        for (const resolved of resolvedEntries) {
+          if (!resolved.text.trim()) continue;
+          const mapping = resolved.mapping;
+          if (mapping && (active || !mapping.field.startsWith("activity."))) {
+            if (mapping.field === "specialNeedsSupport" && active)
+              (active.specialNeedsSupport ??= []).push(resolved.text.trim());
+            assign(
+              block,
+              resolved.text,
+              mapping.category,
+              mapping.field,
+              [
+                resolved.explicit
+                  ? "Nhãn vai trò ghi rõ trong đoạn; đối chiếu nhãn cột bảng"
+                  : "Ô nằm trọn trong phạm vi nhãn cột: " + mapping.header,
+              ],
+              resolved.explicit ? 0.9 : 0.8,
+              r,
+              col,
+            );
+          } else if (
+            columns.size ||
+            resolved.ambiguous ||
+            cell.complex ||
+            row.cells.length > 1
+          ) {
+            if (columns.size || cell.complex) ambiguousRows.add(r);
+            assign(
+              block,
+              resolved.text,
+              "OTHER",
+              "unmappedContent",
+              ["Ô giao vai trò, cấu trúc lồng hoặc thiếu nhãn; không tự gán"],
+              0.35,
+              r,
+              col,
+            );
+          } else paragraph(block, resolved.text, r, col);
+        }
       }
     });
-    if (complex)
+    if (ambiguousRows.size)
       a.sourceWarnings.push(
-        `Bảng ${block.sourceOrder + 1} có tiêu đề gộp nhiều hàng/cột; nội dung cần giáo viên phân loại lại.`,
+        `Bảng ${block.sourceOrder + 1} có ô gộp/ranh giới chưa rõ ở hàng ${[...ambiguousRows].map((r) => r + 1).join(", ")}; giữ nội dung để giáo viên kiểm tra.`,
       );
   }
   a.sourceWarnings.push(...doc.extractionWarnings);
@@ -1003,4 +1163,5 @@ export function classifyStructuredDocument(
     );
   }
   finalizeLessonDuration(a);
+  finalizeActivityStructure(a);
 }

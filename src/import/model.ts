@@ -53,6 +53,15 @@ export const semanticCategories = [
   "STUDENT_ACTIVITY",
   "OTHER",
 ] as const;
+export const activitySourceSchema = z.object({
+  blockId: text,
+  sourceText: text,
+  tableIndex: z.number().int().nonnegative().optional(),
+  row: z.number().int().nonnegative().optional(),
+  column: z.number().int().nonnegative().optional(),
+  confidence: z.number().min(0).max(1),
+  needsReview: z.boolean(),
+});
 export const classificationSchema = z.object({
   id: text,
   blockId: text,
@@ -68,6 +77,8 @@ export const classificationSchema = z.object({
     .enum(["SUBJECT_SPECIFIC", "GENERAL", "UNSPECIFIED"])
     .optional(),
   isRequiredOutcome: z.boolean().optional(),
+  tableIndex: z.number().int().nonnegative().optional(),
+  periodId: text.optional(),
   row: z.number().int().nonnegative().optional(),
   column: z.number().int().nonnegative().optional(),
 });
@@ -98,12 +109,15 @@ export const activitySchema = z.object({
   products: list.default([]),
   organization: list.default([]),
   specialNeedsSupport: list.optional(),
+  source: activitySourceSchema.optional(),
+  periodId: text.optional(),
   subactivities: z
     .array(
       z.object({
         title: text,
         estimatedMinutes: z.number().nonnegative().nullable(),
         blockId: text,
+        source: activitySourceSchema.optional(),
         row: z.number().int().nonnegative().optional(),
         column: z.number().int().nonnegative().optional(),
       }),
@@ -145,6 +159,17 @@ export const analysisSchema = z.object({
   aiIntegration: list,
   specialNeedsSupport: list,
   teachingActivities: z.array(activitySchema),
+  teachingPeriods: z
+    .array(
+      z.object({
+        id: text,
+        number: z.number().int().positive(),
+        durationMinutes: z.number().nonnegative().nullable(),
+        source: activitySourceSchema,
+        durationSource: z.array(activitySourceSchema).optional(),
+      }),
+    )
+    .optional(),
   keyKnowledge: list,
   assessmentEvidence: list,
   safetyTopics: list,
@@ -158,6 +183,8 @@ export const analysisSchema = z.object({
       lineEnd: z.number().int().positive(),
       confidence: z.number().min(0).max(1),
       blockId: text.optional(),
+      tableIndex: z.number().int().nonnegative().optional(),
+      periodId: text.optional(),
       row: z.number().int().nonnegative().optional(),
       column: z.number().int().nonnegative().optional(),
     }),
