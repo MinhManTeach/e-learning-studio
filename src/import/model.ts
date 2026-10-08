@@ -88,6 +88,24 @@ export const activitySchema = z.object({
   goals: list.default([]),
   products: list.default([]),
   organization: list.default([]),
+  specialNeedsSupport: list.optional(),
+  subactivities: z
+    .array(
+      z.object({
+        title: text,
+        estimatedMinutes: z.number().nonnegative().nullable(),
+        blockId: text,
+        row: z.number().int().nonnegative().optional(),
+        column: z.number().int().nonnegative().optional(),
+      }),
+    )
+    .optional(),
+});
+const gradeEvidenceSchema = z.object({
+  value: text,
+  source: z.enum(["UNKNOWN", "DOCUMENT", "TEACHER", "UNVERIFIED"]),
+  sourceText: text,
+  confirmed: z.boolean(),
 });
 export const analysisSchema = z.object({
   version: z.literal("1.0"),
@@ -96,6 +114,12 @@ export const analysisSchema = z.object({
   subject: text,
   curriculumGrade: text,
   targetAudienceGrade: text,
+  gradeProvenance: z
+    .object({
+      curriculumGrade: gradeEvidenceSchema,
+      targetAudienceGrade: gradeEvidenceSchema,
+    })
+    .optional(),
   lessonTitle: text,
   topic: text,
   durationMinutes: z.number().nonnegative().nullable(),

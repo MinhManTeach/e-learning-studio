@@ -21,7 +21,11 @@ const rules: [RegExp, Category, string][] = [
     "LEARNING_OUTCOME",
     "learningOutcomes",
   ],
-  [/^(?:ve )?kien thuc$/, "KNOWLEDGE", "knowledgeObjectives"],
+  [
+    /^(?:ve )?kien thuc(?:,? (?:va )?(?:ki|ky) nang)?$/,
+    "KNOWLEDGE",
+    "knowledgeObjectives",
+  ],
   [
     /^(?:noi dung (?:bai hoc|trong tam|cot loi)|kien thuc trong tam)$/,
     "KNOWLEDGE",
@@ -34,12 +38,12 @@ const rules: [RegExp, Category, string][] = [
   ],
   [/^(?:ve )?pham chat$/, "QUALITY", "qualities"],
   [
-    /^(?:do dung day hoc|thiet bi(?: day hoc)?(?: va hoc lieu)?|hoc lieu|chuan bi)$/,
+    /^(?:phuong tien day hoc|do dung day hoc|thiet bi(?: day hoc)?(?: va hoc lieu)?|hoc lieu|chuan bi)$/,
     "PREPARATION",
     "unmappedContent",
   ],
   [
-    /^(?:cac )?(?:hoat dong day hoc(?: chu yeu)?|tien trinh day hoc|activities)$/,
+    /^(?:cac )?(?:hoat dong day\s*[–—-]?\s*hoc(?: chu yeu)?|tien trinh day hoc|activities)$/,
     "TEACHING_ACTIVITY",
     "teachingActivities",
   ],
@@ -51,7 +55,7 @@ const rules: [RegExp, Category, string][] = [
   ],
   [/^(?:thuc hanh|luyen tap)$/, "PRACTICE", "teachingActivities"],
   [
-    /^(?:van dung|cung co(?: [–-] dan do)?|tong ket)$/,
+    /^(?:van dung|cung co(?:[, –-]+dan do)?|tong ket)$/,
     "APPLICATION",
     "teachingActivities",
   ],
@@ -338,7 +342,7 @@ export function classifyStructuredDocument(
     for (const [re, key] of metaRules) {
       const match = cleaned(text).match(re);
       if (!match) continue;
-      const value =
+      let value =
         key === "durationMinutes"
           ? parseDuration(
               /số tiết/i.test(text) && !/phút|giờ/i.test(match[1])
@@ -348,6 +352,11 @@ export function classifyStructuredDocument(
           : key === "curriculumGrade" || key === "targetAudienceGrade"
             ? parseGrade(match[1])
             : match[1].trim();
+      const numberedSession = text.match(
+        /^\s*bài\s+(\d+)\s*[:：]\s*(.*?)\s*\((?:t|tiết)\s*(\d+)\)\s*$/iu,
+      );
+      if (key === "lessonTitle" && numberedSession)
+        value = `Bài ${numberedSession[1]} — ${numberedSession[2]} (Tiết ${numberedSession[3]})`;
       if (value === null || value === "") {
         a.sourceWarnings.push(
           `Chưa xác định ${key === "durationMinutes" ? "thời lượng theo phút" : "lớp"} từ “${text}”.`,
@@ -442,7 +451,7 @@ export function classifyStructuredDocument(
     if (
       parent &&
       ["LEARNING_OUTCOME", "KNOWLEDGE"].includes(parent.category) &&
-      /^sau bai hoc(?: nay)?,? (?:hs|hoc sinh) se\s*:$/.test(
+      /^sau bai(?: hoc)?(?: nay)?,? (?:hs|hoc sinh) se\s*:$/.test(
         normalizeHeading(text),
       )
     ) {
@@ -578,6 +587,11 @@ export function classifyStructuredDocument(
         category: "STUDENT_ACTIVITY" as Category,
         field: "activity.studentActivity",
       };
+    if (/^(?:ho tro\s*)?(?:hskt|hoc sinh khuyet tat)$/.test(n))
+      return {
+        category: "SPECIAL_NEEDS" as Category,
+        field: "specialNeedsSupport",
+      };
     const activityContext = stack.some((s) => s.field === "teachingActivities");
     if (activityContext) {
       const cols: Record<string, string> = {
@@ -685,9 +699,98 @@ export function classifyStructuredDocument(
         return;
       }
       // Full-width activity/section title inside a table retains the surrounding columns.
-      if (row.cells.length === 1 && heading(row.cells[0].text)) {
-        startHeading(block, row.cells[0].text, r, row.cells[0].column ?? 0);
-        return;
+      if (row.cells.length === 1 && !row.cells[0].complex) {
+        const cell = row.cells[0];
+        const texts = cell.paragraphs?.length
+          ? cell.paragraphs
+          : cell.text.split("\n");
+        if (
+          heading(texts[0] ?? "") ||
+          (active && parseDuration(texts[0] ?? "") !== null)
+        ) {
+          let field = "activity.content";
+          for (const text of texts) {
+            if (
+              (!active || text === texts[0] || /^\s*\d+[.)]/.test(text)) &&
+              startHeading(block, text, r, cell.column ?? 0)
+            )
+              continue;
+            const duration = parseDuration(text);
+            if (active && duration !== null && /^\s*\d+[.)]/.test(text)) {
+              (active.subactivities ??= []).push({
+                title: cleaned(text),
+                estimatedMinutes: duration,
+                blockId: block.id,
+                row: r,
+                column: cell.column ?? 0,
+              });
+              emit(
+                block,
+                text,
+                "TEACHING_ACTIVITY",
+                "teachingActivities",
+                ["Tiểu hoạt động có thời lượng trong hoạt động cha"],
+                0.9,
+                true,
+                r,
+                cell.column ?? 0,
+              );
+              continue;
+            }
+            const label = normalizeHeading(cleaned(text));
+            if (/^muc tieu\s*:/.test(label)) {
+              field = "activity.goals";
+              const value = text.slice(text.indexOf(":") + 1).trim();
+              if (value)
+                assign(
+                  block,
+                  value,
+                  "TEACHING_ACTIVITY",
+                  field,
+                  ["Mục tiêu của hoạt động"],
+                  0.9,
+                  r,
+                  cell.column ?? 0,
+                );
+              emit(
+                block,
+                text,
+                "TEACHING_ACTIVITY",
+                "",
+                ["Nhãn mục tiêu hoạt động"],
+                0.9,
+                true,
+                r,
+                cell.column ?? 0,
+              );
+            } else if (/^cach (?:thuc )?(?:tien hanh|thuc hien)/.test(label)) {
+              field = "activity.teacherActivity";
+              emit(
+                block,
+                text,
+                "TEACHING_ACTIVITY",
+                "",
+                ["Nhãn tổ chức hoạt động"],
+                0.9,
+                true,
+                r,
+                cell.column ?? 0,
+              );
+            } else if (active)
+              assign(
+                block,
+                text,
+                "TEACHING_ACTIVITY",
+                field,
+                ["Đoạn trong ô cấu trúc của hoạt động"],
+                0.85,
+                r,
+                cell.column ?? 0,
+              );
+            else paragraph(block, text, r, cell.column ?? 0);
+          }
+          return;
+        }
       }
       const title = headers.find(
         (h) => columns.get(h.col)?.field === "activity.title",
@@ -737,7 +840,9 @@ export function classifyStructuredDocument(
           if (context) signals.push("ngữ cảnh mục: " + context.heading);
           for (const text of cell.paragraphs?.length
             ? cell.paragraphs
-            : cell.text.split("\n"))
+            : cell.text.split("\n")) {
+            if (mapping.field === "specialNeedsSupport" && active)
+              (active.specialNeedsSupport ??= []).push(text.trim());
             assign(
               block,
               text,
@@ -748,6 +853,7 @@ export function classifyStructuredDocument(
               r,
               col,
             );
+          }
         } else if (
           mapping ||
           conflict ||
@@ -806,5 +912,22 @@ export function classifyStructuredDocument(
         .join("\n") ??
       ""
     ).split("\n").length;
+  }
+  if (
+    a.durationMinutes === null &&
+    a.teachingActivities.length &&
+    a.teachingActivities.every((t) => t.estimatedMinutes !== null)
+  ) {
+    a.durationMinutes = a.teachingActivities.reduce(
+      (sum, t) => sum + t.estimatedMinutes!,
+      0,
+    );
+    a.sourceTraces.push({
+      field: "durationMinutes",
+      sourceText: a.teachingActivities.map((t) => t.title).join(" + "),
+      lineStart: 1,
+      lineEnd: Math.max(1, line - 1),
+      confidence: 0.85,
+    });
   }
 }

@@ -1,3 +1,4 @@
+import { gradeEvidence, confirmedGrades } from "./grades";
 import { analysisSchema, type PedagogicalAnalysis } from "./model";
 import { activitySchema, type BlockClassification } from "./model";
 export const correctionCategories: {
@@ -126,8 +127,10 @@ export function analysisWarnings(a: PedagogicalAnalysis): AnalysisWarning[] {
       message: "Chưa phát hiện nội dung đánh giá.",
     });
   if (
-    a.curriculumGrade &&
-    a.targetAudienceGrade &&
+    gradeEvidence(a, "curriculumGrade").confirmed &&
+    gradeEvidence(a, "targetAudienceGrade").confirmed &&
+    gradeEvidence(a, "curriculumGrade").value &&
+    gradeEvidence(a, "targetAudienceGrade").value &&
     a.curriculumGrade !== a.targetAudienceGrade
   )
     warnings.push({
@@ -165,6 +168,20 @@ export function editAnalysis<K extends keyof PedagogicalAnalysis>(
     ...a,
     [field]: value,
     classifications,
+    ...(field === "curriculumGrade" || field === "targetAudienceGrade"
+      ? {
+          gradeProvenance: {
+            curriculumGrade: gradeEvidence(a, "curriculumGrade"),
+            targetAudienceGrade: gradeEvidence(a, "targetAudienceGrade"),
+            [field]: {
+              value,
+              source: "TEACHER",
+              sourceText: "",
+              confirmed: false,
+            },
+          },
+        }
+      : {}),
     teacherEditedFields: [...new Set([...a.teacherEditedFields, field])],
   });
 }
@@ -184,5 +201,12 @@ export function confirmAnalysis(
     throw new Error(
       "Nội dung phân tích không khớp kế hoạch nguồn. Hãy phân tích lại.",
     );
-  return { ...draft, confirmedAt: new Date().toISOString() };
+  return {
+    ...draft,
+    analysis: {
+      ...draft.analysis,
+      gradeProvenance: confirmedGrades(draft.analysis),
+    },
+    confirmedAt: new Date().toISOString(),
+  };
 }

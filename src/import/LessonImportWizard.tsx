@@ -34,6 +34,7 @@ import { analysisSchema } from "./model";
 import { AnalysisReview } from "./AnalysisReview";
 import { BlueprintReview } from "../blueprint/BlueprintReview";
 import { LessonBlueprintGenerator } from "../blueprint/generator";
+import { canPlanForGrade } from "./grades";
 import { createBlueprintDraft, type BlueprintDraft } from "../blueprint/draft";
 import { DocumentDiagnostics } from "./DocumentDiagnostics";
 import {
@@ -543,6 +544,12 @@ export function LessonImportWizard({
               confirm={() => {
                 const confirmed = confirmAnalysis(draft, true);
                 setDraft(confirmed);
+                if (!canPlanForGrade(confirmed.analysis)) {
+                  setError(
+                    "Lớp: Chưa xác định. Thầy/cô hãy nhập và xác nhận lớp học sinh trước khi tạo kịch bản.",
+                  );
+                  return;
+                }
                 if (blueprintDraft) setStep("confirmed");
                 else
                   void new LessonBlueprintGenerator()

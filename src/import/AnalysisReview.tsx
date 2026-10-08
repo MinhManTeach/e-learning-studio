@@ -3,6 +3,7 @@ import { Plus, Trash2, CheckCircle2, ChevronDown } from "lucide-react";
 import { stageLabels } from "../model/analysis";
 import { stages } from "../model/schema";
 import type { PedagogicalAnalysis } from "./model";
+import { gradeEvidence } from "./grades";
 import { analysisWarnings } from "./review";
 
 export const reviewGroups: {
@@ -270,6 +271,22 @@ export function AnalysisReview({
                               </small>
                             )}
                           </span>
+                          {(f.key === "curriculumGrade" ||
+                            f.key === "targetAudienceGrade") && (
+                            <small>
+                              {!a[f.key]
+                                ? "Chưa xác định"
+                                : gradeEvidence(a, f.key).source === "DOCUMENT"
+                                  ? "Nguồn: tài liệu"
+                                  : gradeEvidence(a, f.key).source === "TEACHER"
+                                    ? "Nguồn: giáo viên nhập"
+                                    : "Nguồn: chưa xác minh"}
+                              {" · "}
+                              {gradeEvidence(a, f.key).confirmed
+                                ? "Đã xác nhận"
+                                : "Chưa xác nhận"}
+                            </small>
+                          )}
                           {f.kind === "list" ? (
                             <textarea
                               aria-label={f.label}
@@ -294,7 +311,12 @@ export function AnalysisReview({
                               type={f.kind === "number" ? "number" : "text"}
                               min={0}
                               value={value === null ? "" : String(value)}
-                              placeholder="Chưa phát hiện"
+                              placeholder={
+                                f.key === "curriculumGrade" ||
+                                f.key === "targetAudienceGrade"
+                                  ? "Chưa xác định"
+                                  : "Chưa phát hiện"
+                              }
                               onChange={(e) =>
                                 change(
                                   f.key,

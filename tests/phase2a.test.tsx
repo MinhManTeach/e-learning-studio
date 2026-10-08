@@ -285,7 +285,17 @@ describe("Vietnamese deterministic analyzer", () => {
     expect(a.unmappedContent).toEqual(["Đây là nội dung chưa có cấu trúc."]);
   });
   it("keeps distinct grades and reports mismatch", async () => {
-    const a = await analyze("Lớp chương trình: 4\nĐối tượng học sinh: Lớp 5");
+    const document = importPastedPlan(
+      "Lớp chương trình: 4\nĐối tượng học sinh: Lớp 5",
+    );
+    const extracted = await provider.analyze(document);
+    expect(
+      analysisWarnings(extracted).some((x) => x.code === "GRADE_MISMATCH"),
+    ).toBe(false);
+    const a = confirmAnalysis(
+      { document, analysis: extracted, confirmedAt: null },
+      true,
+    ).analysis;
     expect(a.curriculumGrade).toBe("4");
     expect(a.targetAudienceGrade).toBe("5");
     expect(analysisWarnings(a).some((x) => x.code === "GRADE_MISMATCH")).toBe(

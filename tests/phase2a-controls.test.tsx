@@ -145,7 +145,12 @@ describe("Phase 2A functional controls", () => {
     render(<LessonImportWizard active initialMode="paste" onClose={close} />);
     fireEvent.change(
       screen.getByRole("textbox", { name: "Nội dung kế hoạch bài dạy" }),
-      { target: { value: "Môn: Toán\nBài: Số học\nPhẩm chất\n- Chăm chỉ." } },
+      {
+        target: {
+          value:
+            "Môn: Toán\nLớp học sinh: 3\nBài: Số học\nPhẩm chất\n- Chăm chỉ.",
+        },
+      },
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Phân tích kế hoạch bài dạy" }),

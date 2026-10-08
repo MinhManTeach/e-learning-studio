@@ -164,6 +164,17 @@ export function normalizeSemanticAnalysis(
             : value;
   }
   a.sourceWarnings = [...document.extractionWarnings, ...result.warnings];
+  // A semantic suggestion is not a source declaration or a teacher selection.
+  for (const field of ["curriculumGrade", "targetAudienceGrade"] as const) {
+    if (a[field] && a[field] !== localEvidence[field])
+      a.sourceWarnings.push(
+        "Đề xuất lớp từ AI chưa có khai báo nguồn tương ứng; giữ lớp theo tài liệu hoặc Chưa xác định.",
+      );
+    a[field] = localEvidence[field];
+    a.sourceTraces.push(
+      ...localEvidence.sourceTraces.filter((t) => t.field === field),
+    );
+  }
   function add(
     item: AnalysisItem,
     field: string,

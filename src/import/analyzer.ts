@@ -165,7 +165,7 @@ export function parseDuration(value: string): number | null {
   if (/tiet/.test(v) && !/phut|gio|\bmin\b/.test(v)) return null;
   if (/\d\s*[-–]\s*\d/.test(v)) return null;
   const hours = v.match(/(\d+(?:[.,]\d+)?)\s*gio/);
-  const minutes = v.match(/(\d+(?:[.,]\d+)?)\s*(?:phut|min\b)/);
+  const minutes = v.match(/(\d+(?:[.,]\d+)?)\s*(?:phut|min\b|[’′'])/);
   if (hours || minutes)
     return (
       (hours ? Number(hours[1].replace(",", ".")) * 60 : 0) +
