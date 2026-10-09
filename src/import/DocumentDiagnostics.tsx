@@ -5,6 +5,7 @@ import type {
   PedagogicalAnalysis,
 } from "./model";
 import { correctionCategories } from "./review";
+import { groupedSourceReview } from "./reviewDiagnostics";
 
 export function DocumentDiagnostics({
   document,
@@ -18,58 +19,112 @@ export function DocumentDiagnostics({
   const [choices, setChoices] = useState<
     Record<string, BlockClassification["category"]>
   >({});
-  const uncertain = analysis.classifications.filter(
-    (c) => !c.isHeading && (c.needsReview || c.corrected),
-  );
+  const groups = groupedSourceReview(analysis);
+  const uncertain = groups.flatMap((g) => g.items);
   return (
     <>
       {uncertain.length > 0 && (
         <details className="analysis-card uncertain-review">
-          <summary>Cần thầy/cô kiểm tra · {uncertain.length} nội dung</summary>
+          <summary>
+            <span>
+              Cần thầy/cô kiểm tra ·{" "}
+              {
+                uncertain.filter(
+                  (item) =>
+                    item.id.startsWith("unmapped-") ||
+                    item.classification?.needsReview ||
+                    item.classification?.corrected,
+                ).length
+              }{" "}
+              nội dung
+            </span>{" "}
+            · Tổng đối chiếu: {uncertain.length}
+          </summary>
           <p>
             Những đoạn dưới đây chưa có đủ căn cứ để tự phân loại. Chọn nhóm rồi
             chuyển; nội dung sẽ xuất hiện ở mục tương ứng.
           </p>
-          {uncertain.map((c) => (
-            <div className="uncertain-item" key={c.id}>
-              <blockquote>{c.sourceText}</blockquote>
-              {c.corrected ? (
-                <p role="status">
-                  Đã xử lý bởi giáo viên ·{" "}
-                  {correctionCategories.find((x) => x.value === c.category)
-                    ?.label ?? c.category}
-                  . Sửa tiếp tại mục tương ứng.
-                </p>
-              ) : (
-                <div className="correction-actions">
-                  <label>
-                    Đây là nội dung gì?
-                    <select
-                      aria-label={`Phân loại ${c.id}`}
-                      value={choices[c.id] ?? "OTHER"}
-                      onChange={(e) =>
-                        setChoices({
-                          ...choices,
-                          [c.id]: e.target
-                            .value as BlockClassification["category"],
-                        })
-                      }
-                    >
-                      {correctionCategories.map((x) => (
-                        <option value={x.value} key={x.value}>
-                          {x.label}
-                        </option>
+          {groups.map((group) => (
+            <details key={group.key}>
+              <summary>
+                {group.label} · {group.items.length} nội dung
+              </summary>
+              {group.items.map((item) => {
+                const c = item.classification;
+                return (
+                  <div className="uncertain-item" key={item.id}>
+                    <blockquote>{item.text}</blockquote>
+                    <small>
+                      {item.severity} · Khối {item.blockId ?? "Chưa có mã"} · Độ
+                      tin cậy{" "}
+                      {item.confidence === undefined
+                        ? "Chưa xác định"
+                        : item.confidence.toFixed(2)}
+                    </small>
+                    <details className="source-trace">
+                      <summary>Đối chiếu nguồn · {item.id}</summary>
+                      <p>{c?.sourceText ?? item.text}</p>
+                      <p>
+                        {item.blockId ?? "Chưa có mã nguồn"}
+                        {c?.row !== undefined
+                          ? ` · hàng ${c.row + 1}, cột ${(c.column ?? 0) + 1}`
+                          : ""}
+                      </p>
+                      <p>
+                        Trường: {c?.field || "Chưa phân loại"} · Độ tin cậy{" "}
+                        {item.confidence === undefined
+                          ? "Chưa xác định"
+                          : item.confidence.toFixed(2)}
+                      </p>
+                      {c?.signals.map((signal, i) => (
+                        <p key={i}>{signal}</p>
                       ))}
-                    </select>
-                  </label>
-                  <button
-                    onClick={() => correct(c.id, choices[c.id] ?? "OTHER")}
-                  >
-                    Chuyển vào nhóm đã chọn
-                  </button>
-                </div>
-              )}
-            </div>
+                    </details>
+                    {c?.corrected ? (
+                      <p role="status">
+                        Đã xử lý bởi giáo viên ·{" "}
+                        {correctionCategories.find(
+                          (x) => x.value === c.category,
+                        )?.label ?? c.category}
+                        . Sửa tiếp tại mục tương ứng.
+                      </p>
+                    ) : c && /^unmappedContent\[\d+\]$/.test(c.field) ? (
+                      <div className="correction-actions">
+                        <label>
+                          Đây là nội dung gì?
+                          <select
+                            aria-label={`Phân loại ${c.id}`}
+                            value={choices[c.id] ?? "OTHER"}
+                            onChange={(e) =>
+                              setChoices({
+                                ...choices,
+                                [c.id]: e.target
+                                  .value as BlockClassification["category"],
+                              })
+                            }
+                          >
+                            {correctionCategories.map((x) => (
+                              <option value={x.value} key={x.value}>
+                                {x.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button
+                          onClick={() =>
+                            correct(c.id, choices[c.id] ?? "OTHER")
+                          }
+                        >
+                          Chuyển vào nhóm đã chọn
+                        </button>
+                      </div>
+                    ) : (
+                      <p>Sửa tại mục nội dung tương ứng.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </details>
           ))}
         </details>
       )}

@@ -1,6 +1,6 @@
 import { AssessmentReview } from "./AssessmentReview";
 import { PeriodSelection } from "../blueprint/PeriodSelection";
-import { periodReviewWarnings } from "../blueprint/periods";
+import { continuationDiagnostics } from "./reviewDiagnostics";
 import { useState, type ReactNode } from "react";
 import { Plus, Trash2, CheckCircle2, ChevronDown } from "lucide-react";
 import { stageLabels } from "../model/analysis";
@@ -113,10 +113,24 @@ export function AnalysisReview({
 }) {
   const [reviewedAnalysis, setReviewedAnalysis] =
     useState<PedagogicalAnalysis | null>(null);
-  const reviewed = reviewedAnalysis === a;
+  // Period approval is independent; edits to lesson content still require a new review.
+  const contentSnapshot = (value: PedagogicalAnalysis) =>
+    JSON.stringify({
+      ...value,
+      periodReview: undefined,
+      teacherEditedFields: value.teacherEditedFields.filter(
+        (field) => field !== "periodReview",
+      ),
+    });
+  const reviewed =
+    reviewedAnalysis !== null &&
+    contentSnapshot(reviewedAnalysis) === contentSnapshot(a);
   const warnings = analysisWarnings(a);
+  const blockers = continuationDiagnostics(a, reviewed).filter(
+    (d) => d.severity === "BLOCKING",
+  );
   function change(field: keyof PedagogicalAnalysis, value: unknown) {
-    setReviewedAnalysis(null);
+    if (field !== "periodReview") setReviewedAnalysis(null);
     edit(field, value);
   }
   return (
@@ -177,19 +191,10 @@ export function AnalysisReview({
             }{" "}
             nội dung nên kiểm tra
           </summary>
-          {a.classifications
-            .filter(
-              (c) =>
-                !c.isHeading &&
-                !c.corrected &&
-                c.confidence >= 0.6 &&
-                c.confidence < 0.85,
-            )
-            .map((c) => (
-              <p key={c.id}>
-                <strong>Nên kiểm tra</strong> · {c.sourceText}
-              </p>
-            ))}
+          <p>
+            REVIEW · Mở các nhóm nội dung nguồn bên dưới để đối chiếu văn bản,
+            khối nguồn và độ tin cậy.
+          </p>
           <p>
             Các mục có độ tin cậy thấp được giữ ở phần nội dung chưa phân loại
             bên dưới.
@@ -296,6 +301,20 @@ export function AnalysisReview({
                                 : "Chưa xác nhận"}
                             </small>
                           )}
+                          {f.key === "targetAudienceGrade" &&
+                            !gradeEvidence(
+                              a,
+                              a.targetAudienceGrade
+                                ? "targetAudienceGrade"
+                                : "curriculumGrade",
+                            ).value && (
+                              <small id="grade-planning-help">
+                                BLOCKING · Tạo kịch bản cần lớp từ 1 đến 12.
+                                Nhập lớp học sinh hợp lệ, hoặc để trống để dùng
+                                lớp chương trình hợp lệ, rồi xác nhận trách
+                                nhiệm. Không tự suy đoán lớp.
+                              </small>
+                            )}
                           {f.kind === "list" ? (
                             <textarea
                               aria-label={f.label}
@@ -317,6 +336,17 @@ export function AnalysisReview({
                           ) : (
                             <input
                               aria-label={f.label}
+                              aria-describedby={
+                                f.key === "targetAudienceGrade" &&
+                                !gradeEvidence(
+                                  a,
+                                  a.targetAudienceGrade
+                                    ? "targetAudienceGrade"
+                                    : "curriculumGrade",
+                                ).value
+                                  ? "grade-planning-help"
+                                  : undefined
+                              }
                               type={f.kind === "number" ? "number" : "text"}
                               min={0}
                               value={value === null ? "" : String(value)}
@@ -566,6 +596,29 @@ export function AnalysisReview({
       </div>
       {diagnostics}
       <div className="review-confirm">
+        <section aria-label="Điều kiện tiếp tục" aria-live="polite">
+          {blockers.length ? (
+            <>
+              <strong>Cần hoàn tất trước khi tiếp tục</strong>
+              <ul>
+                {blockers.map((d) => (
+                  <li key={d.code}>
+                    <strong>BLOCKING</strong> ·{" "}
+                    {d.field === "periodReview"
+                      ? "Tiết và thời lượng"
+                      : "Xác nhận trách nhiệm"}
+                    : {d.message}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p>
+              Đã đáp ứng các điều kiện xác nhận. Các lưu ý REVIEW không khóa
+              tiếp tục.
+            </p>
+          )}
+        </section>
         <label className="review-check">
           <input
             type="checkbox"
@@ -579,10 +632,7 @@ export function AnalysisReview({
           <button onClick={reanalyze}>Phân tích lại</button>
           <button
             className="primary"
-            disabled={
-              !reviewed ||
-              periodReviewWarnings(a).some((w) => w.severity === "ERROR")
-            }
+            disabled={blockers.length > 0}
             onClick={confirm}
           >
             Xác nhận & tiếp tục <CheckCircle2 size={16} />

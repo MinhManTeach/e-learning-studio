@@ -77,6 +77,12 @@ export function PeriodSelection({
         {ids.length} tiết được chọn · Tổng thời lượng xác nhận:{" "}
         {ids.length * minutes} phút
       </p>
+      {(!Number.isFinite(minutes) || minutes <= 0) && (
+        <p>
+          BLOCKING · Phút mỗi tiết phải là số lớn hơn 0. Nhập lại trước khi xác
+          nhận lựa chọn tiết.
+        </p>
+      )}
       {a.teachingActivities.some((t) => !t.periodId) && (
         <details>
           <summary>Hoạt động chưa gắn tiết · chọn riêng nếu cần</summary>
@@ -142,7 +148,10 @@ export function PeriodSelection({
         </p>
       )}
       {periodReviewWarnings(a).map((w) => (
-        <p key={w.code}>{w.message}</p>
+        <p key={w.code} role={w.severity === "ERROR" ? "alert" : undefined}>
+          <strong>{w.severity === "ERROR" ? "BLOCKING" : "REVIEW"}</strong> ·{" "}
+          {w.message}
+        </p>
       ))}
       {error && <p role="alert">{error}</p>}
     </section>

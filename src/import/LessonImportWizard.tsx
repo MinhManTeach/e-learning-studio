@@ -558,6 +558,7 @@ export function LessonImportWizard({
                   );
                   return;
                 }
+                setError("");
                 if (blueprintDraft) setStep("confirmed");
                 else
                   void new LessonBlueprintGenerator()
