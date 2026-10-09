@@ -11,6 +11,7 @@ import {
   type SessionAction,
 } from "./session";
 import { SessionContext } from "./SessionContext";
+import { useSpeech } from "./useSpeech";
 export function StudentPreview({
   project,
   initialId,
@@ -21,8 +22,6 @@ export function StudentPreview({
   const [session, setSession] = useState(() =>
     createSession(project, initialId),
   );
-  const [speaking, setSpeaking] = useState(false);
-  const [notice, setNotice] = useState("");
   const index = project.slides.findIndex(
     (s) => s.id === session.currentSlideId,
   );
@@ -33,11 +32,7 @@ export function StudentPreview({
     const target = project.slides[index + delta];
     if (target) act({ type: "visit", id: target.id });
   }
-  useEffect(() => {
-    setSpeaking(false);
-    window.speechSynthesis?.cancel();
-    return () => window.speechSynthesis?.cancel();
-  }, [session.currentSlideId]);
+  const speech = useSpeech(slide);
   useEffect(() => {
     function key(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
@@ -54,32 +49,6 @@ export function StudentPreview({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [index]);
-  function speak() {
-    if (!("speechSynthesis" in window)) {
-      setNotice("Trình duyệt này chưa hỗ trợ đọc bài.");
-      return;
-    }
-    if (speaking) {
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
-      return;
-    }
-    if (!slide) return;
-    const utter = new SpeechSynthesisUtterance(
-      slide.narration.text || slide.voiceScript || slide.title,
-    );
-    utter.lang = slide.narration.lang;
-    utter.rate = 0.95;
-    utter.onend = () => setSpeaking(false);
-    utter.onerror = () => {
-      setSpeaking(false);
-      setNotice(
-        "Chưa thể đọc bài. Hãy kiểm tra giọng tiếng Việt trên thiết bị.",
-      );
-    };
-    setSpeaking(true);
-    window.speechSynthesis.speak(utter);
-  }
   function review() {
     const first = project.slides[0];
     if (first) act({ type: "visit", id: first.id });
@@ -112,12 +81,9 @@ export function StudentPreview({
             <span className="eyebrow">GÓC NHÌN HỌC SINH</span>
             <h2>{project.metadata.projectTitle}</h2>
           </div>
-          <button
-            onClick={speak}
-            disabled={!slide || slide.narration.mode !== "BROWSER_TTS"}
-          >
-            {speaking ? <Square size={16} /> : <Volume2 size={18} />}{" "}
-            {speaking ? "Dừng đọc" : "Đọc bài"}
+          <button onClick={speech.toggle} disabled={!speech.available}>
+            {speech.speaking ? <Square size={16} /> : <Volume2 size={18} />}{" "}
+            {speech.speaking ? "Dừng đọc" : "Đọc bài"}
           </button>
           <button onClick={() => setSession(createSession(project, initialId))}>
             Bắt đầu lại xem trước
@@ -150,7 +116,7 @@ export function StudentPreview({
           Dùng phím ← → để chuyển trang khi không chọn điều khiển. Giọng đọc tùy
           thiết bị.
         </p>
-        {notice && <p role="status">{notice}</p>}
+        {speech.notice && <p role="status">{speech.notice}</p>}
       </main>
     </SessionContext.Provider>
   );
