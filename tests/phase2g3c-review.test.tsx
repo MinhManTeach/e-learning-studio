@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 import { it, expect, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  cleanup,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { useState } from "react";
 import {
   AssessmentReview,

@@ -44,20 +44,18 @@ it("validates AI advice, falls back on failure and never alters the input", asyn
   );
 });
 it("keeps credentials on server and checks structured mocked provider output", async () => {
-  const transport = vi
-    .fn()
-    .mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          choices: [
-            {
-              finish_reason: "stop",
-              message: { content: JSON.stringify({ issues: [issue] }) },
-            },
-          ],
-        }),
-      ),
-    );
+  const transport = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        choices: [
+          {
+            finish_reason: "stop",
+            message: { content: JSON.stringify({ issues: [issue] }) },
+          },
+        ],
+      }),
+    ),
+  );
   const result = await enhanceWithOpenAi(
     {
       provider: "openai",
