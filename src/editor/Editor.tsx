@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import type { LessonProject } from "../model/schema";
+import { ZodError } from "zod";
 import { ProjectConflictError, type ProjectStore } from "../storage/projects";
 import { editorReducer, editorState } from "./reducer";
 import { SlideList } from "./SlideList";
@@ -87,6 +88,10 @@ export function Editor({
       return true;
     } catch (error) {
       if (error instanceof ProjectConflictError) setConflict(true);
+      else if (error instanceof ZodError)
+        setError(
+          "Không thể lưu vì dữ liệu chưa hợp lệ (ví dụ một trường bắt buộc đang trống). Bản đang sửa vẫn còn ở đây; hãy kiểm tra các trường vừa thay đổi rồi lưu lại.",
+        );
       else
         setError(
           "Không thể lưu bài. Dữ liệu đang chỉnh sửa vẫn còn ở đây. Hãy kiểm tra dung lượng trình duyệt rồi thử lưu lại.",

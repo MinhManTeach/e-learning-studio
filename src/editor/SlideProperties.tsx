@@ -54,13 +54,17 @@ export function SlideProperties({
         <summary>Bố cục & giai đoạn</summary>
         <SelectField
           label="Giai đoạn sư phạm"
-          value={s.pedagogicalStage ?? "DISCOVERY"}
-          options={
-            Object.fromEntries(
+          // Unset stays visibly unset; the canvas then shows the step name.
+          value={s.pedagogicalStage ?? ""}
+          options={{
+            "": "Chưa chọn giai đoạn",
+            ...(Object.fromEntries(
               stages.map((x) => [x, stageLabels[x]]),
-            ) as typeof stageLabels
+            ) as typeof stageLabels),
+          }}
+          onChange={(stage) =>
+            edit({ ...s, pedagogicalStage: stage || undefined })
           }
-          onChange={(pedagogicalStage) => edit({ ...s, pedagogicalStage })}
         />
         <NumberField
           label="Thời lượng dự kiến (phút)"

@@ -3,28 +3,33 @@ import { uniqueObjectives } from "../quality/analyzer";
 export function TextRenderer({ slide }: { slide: Slide }) {
   if (slide.type !== "welcome" && slide.type !== "content") return null;
   const d = slide.data;
+  // Editors split text on newlines; skip blank lines instead of empty items.
+  const filled = (lines: string[]) => lines.filter((line) => line.trim());
+  const paragraphs = filled(d.paragraphs);
+  const bulletPoints = filled(d.bulletPoints);
+  const keywords = filled(d.keywords);
   return (
     <>
       <p className="body-text">{d.body}</p>
-      {d.paragraphs.map((p, i) => (
+      {paragraphs.map((p, i) => (
         <p key={i}>{p}</p>
       ))}
-      {!!d.bulletPoints.length && (
+      {!!bulletPoints.length && (
         <ul>
-          {d.bulletPoints.map((b, i) => (
+          {bulletPoints.map((b, i) => (
             <li key={i}>{b}</li>
           ))}
         </ul>
       )}
-      {!!d.keywords.length && (
+      {!!keywords.length && (
         <div className="keywords">
-          {d.keywords.map((k, i) => (
+          {keywords.map((k, i) => (
             <span key={i}>{k}</span>
           ))}
         </div>
       )}
       {d.keyTakeaway && <div className="takeaway">✦ {d.keyTakeaway}</div>}
-      {!d.body && !d.paragraphs.length && !d.bulletPoints.length && (
+      {!d.body && !paragraphs.length && !bulletPoints.length && (
         <p className="canvas-placeholder">Hãy thêm nội dung cho trang này.</p>
       )}
     </>

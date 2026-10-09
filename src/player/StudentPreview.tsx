@@ -41,8 +41,7 @@ export function StudentPreview({
   useEffect(() => {
     function key(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
-      if (["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName))
-        return;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         navigate(-1);
