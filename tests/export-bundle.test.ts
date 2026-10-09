@@ -24,6 +24,11 @@ it("builds one classic script that runs without ES modules", () => {
   expect(bundle.css).toContain(".lesson-player");
 });
 
+async function until(ready: () => boolean) {
+  for (let i = 0; i < 100 && !ready(); i++)
+    await new Promise((r) => setTimeout(r, 20));
+}
+
 async function openPackage(url: string, api?: Record<string, unknown>) {
   const { p, media } = await backupFixture();
   p.metadata.projectTitle = "Bài 4. Làm việc với máy tính";
@@ -44,8 +49,7 @@ async function openPackage(url: string, api?: Record<string, unknown>) {
   if (api) win.API = api;
   win.eval(strFromU8(files["lesson-data.js"]));
   win.eval(strFromU8(files["player.js"]));
-  for (let i = 0; i < 50 && !win.document.querySelector("article"); i++)
-    await new Promise((r) => setTimeout(r, 20));
+  await until(() => !!win.document.querySelector("article"));
   return { win, p, dom };
 }
 
@@ -67,6 +71,8 @@ it("opens inside an LMS, starts a SCORM attempt and shows the first page", async
     api,
   );
   expect(calls[0]).toBe("init");
+  // React reports to the LMS in an effect, just after the page is drawn.
+  await until(() => !!values["cmi.core.lesson_location"]);
   expect(win.document.querySelector(".player-title h1")?.textContent).toBe(
     "Bài 4. Làm việc với máy tính",
   );
