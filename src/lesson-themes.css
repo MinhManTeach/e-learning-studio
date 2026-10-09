@@ -160,6 +160,15 @@
   max-height: 26cqw;
   object-fit: contain;
 }
+.phase1 .lesson-video video {
+  width: 100%;
+  display: block;
+  max-height: 34cqw;
+  background: #000;
+}
+.layout-MEDIA_FULL .lesson-video video {
+  max-height: 38cqw;
+}
 .phase1 .takeaway,
 .phase1 .feedback,
 .phase1 .legacy-notice,

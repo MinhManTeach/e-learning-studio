@@ -20,41 +20,62 @@ export interface LessonPackage {
   bytes: Uint8Array;
   fileName: string;
   imageCount: number;
+  videoCount: number;
 }
 
 const extensions: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
 };
+/** Recognises the file by its bytes, not by its name or claimed type. */
+export function detectMediaMime(bytes: Uint8Array) {
+  const image = detectImageMime(bytes);
+  if (image) return image;
+  if (String.fromCharCode(...bytes.slice(4, 8)) === "ftyp") return "video/mp4";
+  if (
+    bytes[0] === 0x1a &&
+    bytes[1] === 0x45 &&
+    bytes[2] === 0xdf &&
+    bytes[3] === 0xa3
+  )
+    return "video/webm";
+  return "";
+}
 const pageName = (p: LessonProject, slideId: string) => {
   const i = p.slides.findIndex((s) => s.id === slideId);
   return `trang ${i + 1} “${p.slides[i]?.title ?? ""}”`;
 };
 
-function shownImages(p: LessonProject) {
+/** Images and videos students will actually see, with the first page showing each. */
+function shownMedia(p: LessonProject) {
   const used = new Map<string, string>(); // assetId -> first slide id
   for (const s of p.slides)
     if (s.media.enabled && s.media.assetId && !used.has(s.media.assetId))
       used.set(s.media.assetId, s.id);
   return [...used].flatMap(([id, slideId]) => {
-    const asset = p.assets.find((a) => a.id === id && a.kind === "IMAGE");
+    const asset = p.assets.find(
+      (a) => a.id === id && (a.kind === "IMAGE" || a.kind === "VIDEO"),
+    );
     return asset ? [{ asset, slideId }] : [];
   });
 }
+const mediaWord = (kind: string) => (kind === "VIDEO" ? "video" : "ảnh");
 
 /** Problems a teacher should know about before exporting. BLOCK stops the export. */
 export function exportIssues(p: LessonProject): ExportIssue[] {
   const issues: ExportIssue[] = [];
   if (!p.slides.length)
     issues.push({ level: "BLOCK", message: "Bài giảng chưa có trang nào." });
-  const external = shownImages(p).filter(
+  const external = shownMedia(p).filter(
     ({ asset }) => asset.status !== "LOCAL",
   );
   if (external.length)
     issues.push({
       level: "WARN",
-      message: `${external.length} ảnh lấy từ Internet (ví dụ ${pageName(p, external[0].slideId)}). Học sinh cần có mạng để thấy các ảnh này.`,
+      message: `${external.length} ảnh/video lấy từ Internet (ví dụ ${pageName(p, external[0].slideId)}). Học sinh cần có mạng để xem các nội dung này.`,
     });
   const emptyQuiz = p.slides.find(
     (s) => s.type === "quiz" && !s.data.questions.length,
@@ -177,7 +198,7 @@ const guide = `HƯỚNG DẪN SỬ DỤNG GÓI BÀI GIẢNG
    Giải nén toàn bộ tệp ZIP vào một thư mục, rồi nháy đúp vào index.html.
    Chạy được trên Chrome, Edge, Cốc Cốc, Firefox. Tiến độ được nhớ trên máy đó.
 
-Ảnh lấy từ Internet (nếu có) chỉ hiện khi máy có mạng.
+Ảnh và video lấy từ Internet (nếu có) chỉ hiện khi máy có mạng.
 `;
 
 /** Builds the ZIP from the teacher's current edited lesson. Nothing is regenerated. */
@@ -191,21 +212,27 @@ export async function buildLessonPackage(
   if (blocking.length) throw new Error(blocking[0].message);
   const entries: Zippable = {};
   const files: Record<string, string> = {};
-  let n = 0;
-  for (const { asset, slideId } of shownImages(p)) {
+  let images = 0;
+  let videos = 0;
+  for (const { asset, slideId } of shownMedia(p)) {
     if (asset.status !== "LOCAL") continue;
+    const word = mediaWord(asset.kind);
     const stored = await media.get(asset.id, project.projectId);
     if (!stored)
       throw new Error(
-        `Thiếu ảnh “${asset.name || asset.fileName}” ở ${pageName(p, slideId)}. Hãy tải ảnh lên lại rồi xuất gói.`,
+        `Thiếu ${word} “${asset.name || asset.fileName}” ở ${pageName(p, slideId)}. Hãy tải ${word} lên lại rồi xuất gói.`,
       );
     const bytes = new Uint8Array(await stored.blob.arrayBuffer());
-    const mime = detectImageMime(bytes);
-    if (!extensions[mime])
+    const mime = detectMediaMime(bytes);
+    const isVideo = mime.startsWith("video/");
+    if (!extensions[mime] || isVideo !== (asset.kind === "VIDEO"))
       throw new Error(
-        `Ảnh ở ${pageName(p, slideId)} không phải PNG, JPEG hoặc WebP hợp lệ.`,
+        asset.kind === "VIDEO"
+          ? `Video ở ${pageName(p, slideId)} không phải MP4 hoặc WebM hợp lệ.`
+          : `Ảnh ở ${pageName(p, slideId)} không phải PNG, JPEG hoặc WebP hợp lệ.`,
       );
-    const path = `media/${String(++n).padStart(4, "0")}.${extensions[mime]}`;
+    const n = isVideo ? ++videos : ++images;
+    const path = `media/${isVideo ? "video-" : ""}${String(n).padStart(4, "0")}.${extensions[mime]}`;
     files[asset.id] = path;
     entries[path] = [bytes, { level: 0 }]; // already compressed
   }
@@ -228,6 +255,7 @@ export async function buildLessonPackage(
   return {
     bytes: zipSync(entries, { level: 6 }),
     fileName: packageFileName(p.metadata.projectTitle),
-    imageCount: n,
+    imageCount: images,
+    videoCount: videos,
   };
 }

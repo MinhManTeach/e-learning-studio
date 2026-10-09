@@ -99,3 +99,30 @@ it("does not let a teacher-typed file: address through", () => {
   );
   expect(screen.queryByRole("img")).toBeNull();
 });
+
+it("plays a packaged lesson video with controls", () => {
+  const p = lessonWith({
+    ...localAsset,
+    id: "clip",
+    kind: "VIDEO",
+    mimeType: "video/mp4",
+    altText: "Buổi học đầu tiên của Khoa",
+  });
+  const { container } = render(
+    <ImageResolverContext.Provider
+      value={packagedImageResolver(
+        { clip: "media/video-0001.mp4" },
+        "https://lms.example/sco/index.html",
+      )}
+    >
+      <SlideCanvas slide={p.slides[0]} project={p} />
+    </ImageResolverContext.Provider>,
+  );
+  const video = container.querySelector("video")!;
+  expect(video.getAttribute("src")).toBe(
+    "https://lms.example/sco/media/video-0001.mp4",
+  );
+  expect(video.hasAttribute("controls")).toBe(true);
+  expect(video.getAttribute("aria-label")).toBe("Buổi học đầu tiên của Khoa");
+  expect(screen.queryByRole("img")).toBeNull();
+});

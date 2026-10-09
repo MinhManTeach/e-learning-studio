@@ -57,6 +57,48 @@ export function LessonImage({
     </figure>
   );
 }
+/** A lesson video from the package or this device; never a teacher-typed file path. */
+export function LessonVideo({
+  url,
+  label,
+  caption,
+  local = false,
+}: {
+  url: string;
+  label: string;
+  caption: string;
+  local?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  let allowed = false;
+  try {
+    allowed =
+      ["http:", "https:"].includes(new URL(url).protocol) ||
+      (local && ["blob:", "file:"].includes(new URL(url).protocol));
+  } catch {
+    /* Invalid URLs render safe fallback. */
+  }
+  return (
+    <figure className="lesson-video">
+      {allowed && !failed ? (
+        <video
+          src={url}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={label || caption || "Video bài học"}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="image-fallback">
+          <ImageOff />
+          <p>Không phát được video. Hãy kiểm tra tệp hoặc kết nối mạng.</p>
+        </div>
+      )}
+      {caption && <figcaption>{caption}</figcaption>}
+    </figure>
+  );
+}
 export function SlideCanvas({
   slide,
   project,
@@ -70,7 +112,9 @@ export function SlideCanvas({
   const Renderer = slide ? slideRegistry[slide.type].Renderer : null;
   const asset = slide?.media.enabled
     ? project.assets.find(
-        (a) => a.id === slide.media.assetId && a.kind === "IMAGE",
+        (a) =>
+          a.id === slide.media.assetId &&
+          (a.kind === "IMAGE" || a.kind === "VIDEO"),
       )
     : undefined;
   const resolveImage = useImageResolver();
@@ -84,6 +128,14 @@ export function SlideCanvas({
         <p role="status">Đang đọc ảnh trên thiết bị…</p>
       ) : resolved.error ? (
         <p role="alert">{resolved.error}</p>
+      ) : asset.kind === "VIDEO" ? (
+        <LessonVideo
+          key={resolved.url}
+          url={resolved.url}
+          local={asset.status === "LOCAL"}
+          label={asset.altText || asset.name}
+          caption={slide.media.caption}
+        />
       ) : (
         <LessonImage
           key={resolved.url}

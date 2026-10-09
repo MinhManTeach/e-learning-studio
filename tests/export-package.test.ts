@@ -117,3 +117,62 @@ it("makes a safe file name from a Vietnamese title", () => {
   );
   expect(packageFileName("???")).toBe("bai-giang-scorm.zip");
 });
+
+// A tiny MP4 header: size, "ftyp", brand. Enough for byte sniffing.
+const mp4 = new Uint8Array([
+  0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, 0, 0, 2, 0,
+]);
+async function lessonWithVideo(bytes: Uint8Array | null) {
+  const { p, media } = await backupFixture();
+  p.slides[2] = {
+    ...p.slides[2],
+    media: { ...p.slides[2].media, enabled: true, assetId: "clip" },
+  };
+  p.assets.push({
+    id: "clip",
+    kind: "VIDEO",
+    sourceType: "UPLOAD",
+    name: "Buổi học đầu tiên của Khoa",
+    fileName: "khoa.mp4",
+    mimeType: "video/mp4",
+    url: "local-media:clip",
+    altText: "Video lớp học máy tính",
+    status: "LOCAL",
+  });
+  const reader = {
+    async get(id: string, projectId: string) {
+      if (id !== "clip") return media.get(id, projectId);
+      if (!bytes) return undefined;
+      const stored = await media.get("picture", projectId);
+      return { ...stored!, assetId: id, blob: new Blob([bytes]) };
+    },
+  };
+  return { p, reader };
+}
+
+it("puts lesson videos into the package next to the images", async () => {
+  const { p, reader } = await lessonWithVideo(mp4);
+  const pkg = await buildLessonPackage(p, reader, player);
+  const files = unzipSync(pkg.bytes);
+  expect(files["media/video-0001.mp4"]).toEqual(mp4);
+  expect(pkg.videoCount).toBe(1);
+  expect(pkg.imageCount).toBe(1);
+  expect(lessonData(files).files.clip).toBe("media/video-0001.mp4");
+  expect(strFromU8(files["imsmanifest.xml"])).toContain(
+    '<file href="media/video-0001.mp4"/>',
+  );
+});
+
+it("stops with the page name when a video is missing on this device", async () => {
+  const { p, reader } = await lessonWithVideo(null);
+  await expect(buildLessonPackage(p, reader, player)).rejects.toThrow(
+    /Thiếu video “Buổi học đầu tiên của Khoa” ở trang 3/,
+  );
+});
+
+it("refuses a file that is called a video but is not one", async () => {
+  const { p, reader } = await lessonWithVideo(png);
+  await expect(buildLessonPackage(p, reader, player)).rejects.toThrow(
+    /không phải MP4 hoặc WebM hợp lệ/,
+  );
+});

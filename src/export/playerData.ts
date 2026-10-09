@@ -18,7 +18,7 @@ export function readPlayerData(value: unknown): PlayerPackageData {
   for (const [id, path] of Object.entries(data.files ?? {}))
     if (
       typeof path === "string" &&
-      /^media\/[0-9]{4}\.(png|jpg|webp)$/.test(path)
+      /^media\/(?:video-)?[0-9]{4}\.(png|jpg|webp|mp4|webm)$/.test(path)
     )
       files[id] = path;
   return {
