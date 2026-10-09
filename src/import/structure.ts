@@ -4,8 +4,8 @@ import {
   type LessonDocumentBlock,
   type PedagogicalAnalysis,
 } from "./model";
-import { normalizeHeading, parseDuration, parseGrade } from "./analyzer";
-import { detectLessonMetadata, finalizeLessonDuration } from "./lessonMetadata";
+import { normalizeHeading, parseDuration } from "./analyzer";
+import { finalizeLessonDuration } from "./lessonMetadata";
 import {
   periodHeading,
   nonActivityBoundary,
@@ -14,257 +14,15 @@ import {
 import { resolveCellRoles, type TableColumn } from "./tableRoles";
 import { createContext } from "./structure/context";
 import { assign, emit, source } from "./structure/record";
-import {
-  cleaned,
-  heading,
-  metaRules,
-  stageMap,
-  type Category,
-} from "./structure/rules";
+import { startHeading } from "./structure/headings";
+import { identity } from "./structure/identity";
+import { cleaned, heading, type Category } from "./structure/rules";
 
 export function classifyStructuredDocument(
   doc: ImportedLessonDocument,
   a: PedagogicalAnalysis,
 ) {
   const ctx = createContext(doc, a);
-  function startHeading(
-    block: LessonDocumentBlock,
-    text: string,
-    row?: number,
-    column?: number,
-  ) {
-    const h = heading(text);
-    if (!h) return false;
-    const numbered = /^\s*([IVXLCDM]+|\d+(?:\.\d+)*|[A-Z])[.)]/i.exec(text);
-    const level =
-      block.level ??
-      (numbered
-        ? /^[a-z]\)/.test(text.trim())
-          ? 3
-          : /^[IVXLCDM]+$/i.test(numbered[1])
-            ? 1
-            : 2
-        : h.field === "teachingActivities"
-          ? 2
-          : 3);
-    while (ctx.stack.length && ctx.stack[ctx.stack.length - 1].level >= level)
-      ctx.stack.pop();
-    if (
-      h.category === "PREPARATION" ||
-      h.category === "TEACHING_ACTIVITY" ||
-      h.category === "LEARNING_OUTCOME"
-    ) {
-      ctx.stack.length = 0;
-      ctx.active = undefined;
-    }
-    if (h.field !== "teachingActivities") ctx.active = undefined;
-    ctx.stack.push({
-      category: h.category,
-      field: h.field,
-      level,
-      heading: h.label,
-    });
-    emit(
-      ctx,
-      block,
-      text,
-      h.category,
-      "",
-      ["+0.55 tiêu đề khớp nhóm", "+0.25 ranh giới mục xác định"],
-      0.8,
-      true,
-      row,
-      column,
-    );
-    if (
-      h.field === "teachingActivities" &&
-      h.category !== "TEACHING_ACTIVITY"
-    ) {
-      ctx.active = activitySchema.parse({
-        id: `${doc.id}-activity-${block.id}-${row ?? 0}`,
-        title: cleaned(text),
-        stage: stageMap[h.category] ?? null,
-        source: source(
-          ctx,
-          block,
-          text,
-          row,
-          column,
-          parseDuration(text) === null ? 0.7 : 0.85,
-          parseDuration(text) === null,
-        ),
-        periodId: ctx.periodId,
-        content: [],
-        estimatedMinutes: parseDuration(text),
-      });
-      a.teachingActivities.push(ctx.active);
-    }
-    if (h.value)
-      assign(
-        ctx,
-        block,
-        h.category === "AI_INTEGRATION" ? cleaned(text) : h.value,
-        h.category,
-        h.field === "teachingActivities" ? "activity.content" : h.field,
-        ["+0.55 nhãn mục", "+0.25 nội dung cùng nhãn"],
-        h.category === "AI_INTEGRATION" ? 0.95 : 0.8,
-        row,
-        column,
-      );
-    return true;
-  }
-  function identity(
-    block: LessonDocumentBlock,
-    text: string,
-    row?: number,
-    column?: number,
-  ) {
-    const facts = detectLessonMetadata(
-      text,
-      ctx.stack.length === 0 && !ctx.active,
-    );
-    for (const fact of facts) {
-      const previous = a[fact.field];
-      if (
-        previous !== undefined &&
-        previous !== null &&
-        previous !== "" &&
-        previous !== fact.value
-      ) {
-        a.sourceWarnings.push(
-          "Thông tin xung đột: " + text + ". Giữ giá trị đầu tiên.",
-        );
-        assign(
-          ctx,
-          block,
-          text,
-          "OTHER",
-          "unmappedContent",
-          ["Xung đột metadata"],
-          0.4,
-          row,
-          column,
-        );
-        continue;
-      }
-      (a as unknown as Record<string, unknown>)[fact.field] = fact.value;
-      emit(
-        ctx,
-        block,
-        text,
-        "LESSON_IDENTITY",
-        fact.field,
-        ["Khai báo rõ trong nguồn"],
-        0.9,
-        false,
-        row,
-        column,
-      );
-    }
-    if (
-      facts.length &&
-      !(facts.length === 1 && facts[0].field === "lessonNumber")
-    )
-      return true;
-    for (const [re, key] of metaRules) {
-      const match = cleaned(text).match(re);
-      if (!match) continue;
-      let value =
-        key === "durationMinutes"
-          ? parseDuration(
-              /số tiết/i.test(text) && !/phút|giờ/i.test(match[1])
-                ? match[1] + " tiết"
-                : match[1],
-            )
-          : key === "curriculumGrade" || key === "targetAudienceGrade"
-            ? parseGrade(match[1])
-            : match[1].trim();
-      const numberedSession = text.match(
-        /^\s*bài\s+(\d+)\s*[:：]\s*(.*?)\s*\((?:t|tiết)\s*(\d+)\)\s*$/iu,
-      );
-      if (key === "lessonTitle" && numberedSession)
-        value = `Bài ${numberedSession[1]} — ${numberedSession[2]} (Tiết ${numberedSession[3]})`;
-      if (value === null || value === "") {
-        a.sourceWarnings.push(
-          `Chưa xác định ${key === "durationMinutes" ? "thời lượng theo phút" : "lớp"} từ “${text}”.`,
-        );
-        assign(
-          ctx,
-          block,
-          text,
-          "OTHER",
-          "unmappedContent",
-          ["+0.55 nhãn thông tin", "-0.15 giá trị thiếu hoặc chưa rõ đơn vị"],
-          0.4,
-          row,
-          column,
-        );
-        return true;
-      }
-      if (a[key] !== "" && a[key] !== null && a[key] !== value) {
-        a.sourceWarnings.push(
-          `Thông tin xung đột: ${text}. Giữ giá trị đầu tiên.`,
-        );
-        assign(
-          ctx,
-          block,
-          text,
-          "OTHER",
-          "unmappedContent",
-          ["+0.55 nhãn thông tin", "-0.15 xung đột thông tin đã có"],
-          0.4,
-          row,
-          column,
-        );
-        return true;
-      }
-      (a as unknown as Record<string, unknown>)[key] = value;
-      emit(
-        ctx,
-        block,
-        text,
-        "LESSON_IDENTITY",
-        key,
-        ["+0.55 nhãn thông tin", "+0.30 giá trị đúng dạng"],
-        0.85,
-        false,
-        row,
-        column,
-      );
-      return true;
-    }
-    // Explicit identity inside a document title, not a default subject or grade.
-    const identityTitle = text
-      .replace(/^GIÁO ÁN\s+TUẦN\s+\d+\s*[–—-]\s*/iu, "GIÁO ÁN ")
-      .replace(/\s*\(.*\)\s*$/u, "");
-    const title = identityTitle.match(
-      /^GIÁO ÁN\s+(?!TUẦN\b)(.+?)\s+(?:LỚP\s+)?(1[0-2]|[1-9])(?:\s*[–—-].*)?$/iu,
-    );
-    if (title) {
-      if (!a.subject) a.subject = title[1];
-      if (!a.curriculumGrade) a.curriculumGrade = title[2];
-      emit(
-        ctx,
-        block,
-        text,
-        "LESSON_IDENTITY",
-        "subject",
-        ["+0.55 tiêu đề giáo án", "+0.30 môn/lớp ghi rõ"],
-        0.85,
-      );
-      emit(
-        ctx,
-        block,
-        text,
-        "LESSON_IDENTITY",
-        "curriculumGrade",
-        ["+0.55 tiêu đề giáo án", "+0.30 lớp ghi rõ"],
-        0.85,
-      );
-      return true;
-    }
-    return false;
-  }
   function paragraph(
     block: LessonDocumentBlock,
     text: string,
@@ -328,8 +86,8 @@ export function classifyStructuredDocument(
       return;
     }
     if (
-      startHeading(block, text, row, column) ||
-      identity(block, text, row, column)
+      startHeading(ctx, block, text, row, column) ||
+      identity(ctx, block, text, row, column)
     )
       return;
     // A lead-in within objectives preserves the parent section rather than
@@ -585,6 +343,7 @@ export function classifyStructuredDocument(
         )
       ) {
         identity(
+          ctx,
           block,
           `${row.cells[0].text.replace(/:\s*$/, "")}: ${row.cells[1].text}`,
           r,
@@ -675,7 +434,7 @@ export function classifyStructuredDocument(
           for (const text of texts) {
             if (
               (!ctx.active || text === texts[0] || /^\s*\d+[.)]/.test(text)) &&
-              startHeading(block, text, r, cell.column ?? 0)
+              startHeading(ctx, block, text, r, cell.column ?? 0)
             )
               continue;
             const duration = parseDuration(text);
@@ -757,7 +516,7 @@ export function classifyStructuredDocument(
       ) {
         paragraph(block, title.cell.text, r, title.col);
       } else if (title?.cell.text) {
-        if (!startHeading(block, title.cell.text, r, title.col)) {
+        if (!startHeading(ctx, block, title.cell.text, r, title.col)) {
           ctx.active = activitySchema.parse({
             id: `${doc.id}-activity-${block.id}-${r}`,
             title: cleaned(title.cell.text),
