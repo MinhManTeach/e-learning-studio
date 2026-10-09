@@ -4,6 +4,8 @@ import { generationFixture } from "./support/phase2cFixture";
 import { confirmPeriods } from "../src/blueprint/periods";
 import { DeterministicLessonBlueprintProvider } from "../src/blueprint/generator";
 import { DeterministicLessonGenerationProvider } from "../src/generation/provider";
+import { LessonGenerationService } from "../src/generation/service";
+import type { LessonGenerationProvider } from "../src/generation/model";
 
 describe("messages shown to teachers and students", () => {
   it("names periods as 'Tiết N' instead of internal IDs in blueprint warnings", async () => {
@@ -36,5 +38,40 @@ describe("messages shown to teachers and students", () => {
     expect(done?.type === "completion" && done.data.message).toMatch(
       /bài kiểm tra/,
     );
+  });
+});
+
+describe("generation warnings", () => {
+  it("names the slide a slide-level quality warning is about", async () => {
+    const { draft, context } = await generationFixture();
+    const inner = new DeterministicLessonGenerationProvider();
+    // Make one content slide drift from its approved outline.
+    const provider: LessonGenerationProvider = {
+      generate: async (...args) => {
+        const p = await inner.generate(...args);
+        const slide = p.slides.find((s) => s.type === "content");
+        if (slide?.type === "content")
+          slide.data = {
+            ...slide.data,
+            body: "Hoàn toàn khác",
+            bulletPoints: ["Nội dung không liên quan đến dàn ý"],
+          };
+        return p;
+      },
+    };
+    const service = new LessonGenerationService(
+      {
+        list: async () => ({ projects: [], invalidCount: 0 }),
+        save: async () => {},
+        remove: async () => {},
+      },
+      provider,
+    );
+    const { project, warnings } = await service.generate(draft, context);
+    const titles = project.slides.map((s) => s.title);
+    const slideLevel = warnings.filter((w) => w.code === "SOURCE_REVIEW");
+    expect(slideLevel.length).toBeGreaterThan(0);
+    for (const w of slideLevel)
+      expect(titles.some((t) => w.message.includes(`“${t}”`))).toBe(true);
   });
 });

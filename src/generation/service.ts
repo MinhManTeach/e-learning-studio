@@ -66,11 +66,16 @@ export class LessonGenerationService {
         ),
       });
       warnings.push(
-        ...quality.issues.map((issue) => ({
-          code: issue.issueCode,
-          severity: issue.severity,
-          message: issue.explanation + " " + issue.suggestedAction,
-        })),
+        ...quality.issues.map((issue) => {
+          // Say which slide a slide-level issue is about.
+          const slide = project.slides.find((s) => s.id === issue.slideId);
+          const where = slide ? `Trang “${slide.title}”: ` : "";
+          return {
+            code: issue.issueCode,
+            severity: issue.severity,
+            message: where + issue.explanation + " " + issue.suggestedAction,
+          };
+        }),
       );
       if (warnings.some((w) => w.severity === "ERROR"))
         throw contentCheckError();
