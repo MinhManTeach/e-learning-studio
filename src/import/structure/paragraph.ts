@@ -15,6 +15,26 @@ export function paragraph(
   column?: number,
 ) {
   if (!text.trim()) return;
+  if (periodTitle(ctx, block, text, row, column)) return;
+  if (blankOrNonActivity(ctx, block, text, row, column)) return;
+  if (
+    startHeading(ctx, block, text, row, column) ||
+    identity(ctx, block, text, row, column)
+  )
+    return;
+  if (objectivesLeadIn(ctx, block, text, row, column)) return;
+  if (unknownHeading(ctx, block, text, row, column)) return;
+  sectionContent(ctx, block, text, row, column);
+}
+
+// "Tiết N" starts a new teaching period and resets the heading stack.
+function periodTitle(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+) {
   const session = periodHeading(text);
   if (session) {
     ctx.active = undefined;
@@ -44,8 +64,19 @@ export function paragraph(
       row,
       column,
     );
-    return;
+    return true;
   }
+  return false;
+}
+
+// Filler lines and note/assessment/worksheet boundaries are kept unmapped.
+function blankOrNonActivity(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+) {
   if (/^[.\s…_–-]+$/.test(text.trim()) || nonActivityBoundary(text)) {
     if (nonActivityBoundary(text)) {
       ctx.active = undefined;
@@ -68,13 +99,18 @@ export function paragraph(
       row,
       column,
     );
-    return;
+    return true;
   }
-  if (
-    startHeading(ctx, block, text, row, column) ||
-    identity(ctx, block, text, row, column)
-  )
-    return;
+  return false;
+}
+
+function objectivesLeadIn(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+) {
   // A lead-in within objectives preserves the parent section rather than
   // starting an unknown section. This is a structural hint, not semantic AI.
   const parent = ctx.stack.at(-1);
@@ -97,8 +133,19 @@ export function paragraph(
       row,
       column,
     );
-    return;
+    return true;
   }
+  return false;
+}
+
+// A heading-like line that matched no rule.
+function unknownHeading(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+) {
   const isBoundary =
     block.type === "HEADING" ||
     /^\s*[IVXLCDM]+[.)]\s*/i.test(text) ||
@@ -130,7 +177,7 @@ export function paragraph(
         row,
         column,
       );
-      return;
+      return true;
     }
     const level = block.level ?? 1;
     while (ctx.stack.length && ctx.stack[ctx.stack.length - 1].level >= level)
@@ -165,8 +212,19 @@ export function paragraph(
       row,
       column,
     );
-    return;
+    return true;
   }
+  return false;
+}
+
+// Plain text belongs to the nearest open section.
+function sectionContent(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+) {
   const context = ctx.stack[ctx.stack.length - 1];
   if (context) {
     const signals =
