@@ -3,7 +3,7 @@ import { BookOpen, ImageOff } from "lucide-react";
 import type { LessonProject, Slide } from "../model/schema";
 import { effectiveLayout, stageLabels } from "../model/analysis";
 import { slideRegistry } from "../slides/registry";
-import { useLocalImage } from "../media/useLocalImage";
+import { useImageResolver } from "../media/imageResolver";
 export { slideRegistry } from "../slides/registry";
 export function LessonImage({
   url,
@@ -19,9 +19,11 @@ export function LessonImage({
   const [failed, setFailed] = useState(false);
   let allowed = false;
   try {
+    // Teacher-typed URLs must be web URLs. `local` URLs come from the app itself:
+    // blob: for images stored on this device, file: for an unzipped package.
     allowed =
       ["http:", "https:"].includes(new URL(url).protocol) ||
-      (local && new URL(url).protocol === "blob:");
+      (local && ["blob:", "file:"].includes(new URL(url).protocol));
   } catch {
     /* Invalid URLs render safe fallback. */
   }
@@ -68,7 +70,8 @@ export function SlideCanvas({
         (a) => a.id === slide.media.assetId && a.kind === "IMAGE",
       )
     : undefined;
-  const resolved = useLocalImage(asset, project.projectId);
+  const resolveImage = useImageResolver();
+  const resolved = resolveImage(asset, project.projectId);
   const layout = slide
     ? effectiveLayout(slide, !!asset && !resolved.error)
     : "TEXT_ONLY";
