@@ -153,7 +153,24 @@ export function SlideCanvas({
       data-contrast={slide?.accessibility.highContrast ? "high" : undefined}
       aria-label="Nội dung trang bài giảng"
     >
-      {slide && Renderer ? (
+      {slide && Renderer && layout === "MEDIA_COVER" && image ? (
+        // The teacher's own slide picture (or a video) fills the 16:9 page; the
+        // text stays in the page for screen readers, read-aloud and search.
+        <article
+          className={"lesson phase1 cover " + slide.type}
+          style={
+            {
+              "--font-scale": slide.accessibility.fontScale * fontBoost,
+            } as React.CSSProperties
+          }
+        >
+          <h1 className="visually-hidden">{slide.title}</h1>
+          <div className="cover-media">{image}</div>
+          <div className="visually-hidden">
+            <Renderer key={slide.id} slide={slide} />
+          </div>
+        </article>
+      ) : slide && Renderer ? (
         <article
           className={"lesson phase1 " + slide.type}
           style={

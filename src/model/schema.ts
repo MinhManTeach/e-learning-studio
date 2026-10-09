@@ -21,6 +21,7 @@ export const layouts = [
   "MEDIA_LEFT_TEXT_RIGHT",
   "MEDIA_FULL",
   "CENTERED",
+  "MEDIA_COVER",
 ] as const;
 export const themes = ["SAFE_TEAL", "NAVY", "FOCUS_DARK"] as const;
 export const metadataSchema = metadata21.extend({

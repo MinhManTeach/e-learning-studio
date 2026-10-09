@@ -12,6 +12,7 @@ export const layoutLabels: Record<Layout, string> = {
   MEDIA_LEFT_TEXT_RIGHT: "Ảnh trái · Chữ phải",
   MEDIA_FULL: "Ảnh toàn trang",
   CENTERED: "Căn giữa",
+  MEDIA_COVER: "Ảnh/video phủ kín trang",
 };
 export interface ConsistencyWarning {
   code: string;
@@ -80,5 +81,11 @@ export function analyzeSlideDensity(
 export function effectiveLayout(s: Slide, hasImage: boolean): Layout {
   if (!s.media.enabled || !hasImage)
     return s.layout === "CENTERED" ? "CENTERED" : "TEXT_ONLY";
+  // A picture covering the page would hide the questions students must answer.
+  if (
+    s.layout === "MEDIA_COVER" &&
+    (s.type === "warmup" || s.type === "scenario" || s.type === "quiz")
+  )
+    return "MEDIA_FULL";
   return s.layout;
 }

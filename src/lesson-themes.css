@@ -482,3 +482,36 @@
 .studio:not(.preview-mode) .top-actions {
   flex-wrap: wrap;
 }
+/* Ảnh/video phủ kín trang: the teacher's slide picture fills the 16:9 page. */
+.lesson.phase1.cover {
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+.cover .cover-media,
+.cover .cover-media figure {
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
+}
+.cover .cover-media img,
+.cover .cover-media video {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+.cover .cover-media figcaption {
+  display: none;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
