@@ -226,6 +226,8 @@ describe("Phase 2A functional controls", () => {
     );
     expect(close).toHaveBeenCalledOnce();
   });
+  // Parses a real DOCX in jsdom (~1.3 s alone); the longer timeout leaves
+  // headroom when the machine also runs a dev server or another test process.
   it("imports real DOCX through file input, retains columns and resets confirmation after correction", async () => {
     const { container } = render(
       <LessonImportWizard active initialMode="file" onClose={() => {}} />,
@@ -293,7 +295,7 @@ describe("Phase 2A functional controls", () => {
         })) as HTMLTextAreaElement
       ).value,
     ).toContain("Thảo luận");
-  });
+  }, 15_000);
   it("imports TXT and preserves previous source on invalid file", async () => {
     const { container } = render(
       <LessonImportWizard active initialMode="file" onClose={() => {}} />,
