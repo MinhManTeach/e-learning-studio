@@ -144,7 +144,7 @@ async function lessonWithVideo(bytes: Uint8Array | null) {
       if (id !== "clip") return media.get(id, projectId);
       if (!bytes) return undefined;
       const stored = await media.get("picture", projectId);
-      return { ...stored!, assetId: id, blob: new Blob([bytes]) };
+      return { ...stored!, assetId: id, blob: new Blob([new Uint8Array(bytes)]) };
     },
   };
   return { p, reader };
