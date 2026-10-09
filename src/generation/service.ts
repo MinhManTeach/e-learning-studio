@@ -1,7 +1,7 @@
 import { lessonBlueprintSchema } from "../blueprint/model";
 import type { BlueprintDraft } from "../blueprint/draft";
 import { parseProject } from "../model/schema";
-import type { ProjectStore } from "../storage/projects";
+import { findProject, type ProjectStore } from "../storage/projects";
 import type {
   GenerationResult,
   LessonGenerationContext,
@@ -45,11 +45,7 @@ export class LessonGenerationService {
     let rollback: (() => Promise<void>) | undefined;
     try {
       const blueprint = lessonBlueprintSchema.parse(input);
-      if (
-        (await this.store.list()).projects.some(
-          (p) => p.projectId === context.projectId,
-        )
-      )
+      if (await findProject(this.store, context.projectId))
         throw new Error("Mã bài giảng đã tồn tại. Hãy tạo lại với mã mới.");
       const { prepareProject, ...providerContext } = context;
       let project = parseProject(

@@ -13,7 +13,7 @@ import { createProject } from "./model/factories";
 import { importProjectJSON } from "./model/json";
 import { createSampleProject } from "./fixtures/sampleLesson";
 import type { LessonProject } from "./model/schema";
-import type { ProjectStore } from "./storage/projects";
+import { findProject, type ProjectStore } from "./storage/projects";
 import { localMediaStore, type LocalMediaAssetStore } from "./media/storage";
 import { Field } from "./editor/Fields";
 import { RestoreControl } from "./backup/RestoreControl";
@@ -74,9 +74,7 @@ export function Dashboard({
     try {
       if (selected.size > 10 * 1024 * 1024) throw new Error("too large");
       const project = importProjectJSON(await selected.text());
-      const existing = (await store.list()).projects.find(
-        (p) => p.projectId === project.projectId,
-      );
+      const existing = await findProject(store, project.projectId);
       if (
         existing &&
         !confirm(

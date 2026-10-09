@@ -18,6 +18,17 @@ export interface ProjectStore {
   // Optional capability: restore requires atomic insert-only persistence.
   saveNew?(project: LessonProject): Promise<void>;
   remove(id: string): Promise<void>;
+  // Optional capability: read one project without decoding the whole store.
+  // Use findProject(), which falls back to list() for stores without it.
+  get?(id: string): Promise<LessonProject | undefined>;
+}
+// Unreadable records count as absent, exactly as list() skips them.
+export async function findProject(
+  store: ProjectStore,
+  id: string,
+): Promise<LessonProject | undefined> {
+  if (store.get) return store.get(id);
+  return (await store.list()).projects.find((p) => p.projectId === id);
 }
 function storedUpdatedAt(value: unknown): string | undefined {
   return value && typeof value === "object" && "updatedAt" in value
@@ -73,6 +84,17 @@ export class LocalProjectStore implements ProjectStore {
     if (isStale(stored, options)) throw new ProjectConflictError();
     this.storage.setItem(key, JSON.stringify(valid));
   }
+  async get(id: string) {
+    const raw = this.storage.getItem("elearning.project." + id);
+    if (raw === null) return undefined;
+    let value: unknown;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+    return validated([value]).projects[0];
+  }
   async remove(id: string) {
     this.storage.removeItem("elearning.project." + id);
   }
@@ -123,6 +145,10 @@ export class IndexedProjectStore implements ProjectStore {
     await this.request("readwrite", (store) =>
       store.add(parseProject(project)),
     );
+  }
+  async get(id: string) {
+    const value = await this.request("readonly", (store) => store.get(id));
+    return value === undefined ? undefined : validated([value]).projects[0];
   }
   async remove(id: string) {
     await this.request("readwrite", (store) => store.delete(id));

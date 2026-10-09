@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { LessonProject } from "../model/schema";
-import type { ProjectStore } from "../storage/projects";
+import { findProject, type ProjectStore } from "../storage/projects";
 import { localMediaStore } from "../media/storage";
 import { inspectBackup, type InspectedBackup } from "./package";
 import { restoreBackup } from "./restore";
@@ -41,9 +41,8 @@ export function RestoreControl({
         throw new Error("Tệp sao lưu vượt 80 MB.");
       const data = new Uint8Array(await selected.arrayBuffer()),
         validated = await inspectBackup(data);
-      const existing = (await store.list()).projects;
       setConflict(
-        existing.some((p) => p.projectId === validated.project.projectId),
+        (await findProject(store, validated.project.projectId)) !== undefined,
       );
       setBytes(data);
       setSummary(validated);

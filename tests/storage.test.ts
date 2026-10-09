@@ -1,8 +1,9 @@
 import { IDBFactory } from "fake-indexeddb";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   LocalProjectStore,
   ProjectConflictError,
+  findProject,
   openIndexedStore,
 } from "../src/storage/projects";
 import { createProject } from "../src/model/factories";
@@ -119,4 +120,32 @@ describe.each(["indexed", "local"])("%s conflict detection", (backend) => {
     await tab.save({ ...third, updatedAt: later(p, 3000) });
     expect((await tab.list()).projects).toHaveLength(1);
   });
+});
+describe.each(["indexed", "local"])("%s single-project lookup", (backend) => {
+  async function setup() {
+    return backend === "indexed"
+      ? openIndexedStore(new IDBFactory())
+      : new LocalProjectStore(memoryStorage());
+  }
+  it("finds one project by ID without listing the store", async () => {
+    const store = await setup();
+    const a = createProject("Bài A");
+    const b = createProject("Bài B");
+    await store.save(a);
+    await store.save(b);
+    const list = vi.spyOn(store, "list");
+    expect(await findProject(store, b.projectId)).toEqual(b);
+    expect(await findProject(store, "missing")).toBeUndefined();
+    expect(list).not.toHaveBeenCalled();
+  });
+});
+it("falls back to list() for stores without get()", async () => {
+  const p = createProject();
+  const store = {
+    list: async () => ({ projects: [p], invalidCount: 0 }),
+    save: async () => {},
+    remove: async () => {},
+  };
+  expect(await findProject(store, p.projectId)).toEqual(p);
+  expect(await findProject(store, "missing")).toBeUndefined();
 });

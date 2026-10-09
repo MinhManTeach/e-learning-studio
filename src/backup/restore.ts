@@ -1,6 +1,6 @@
 import { parseProject } from "../model/schema";
 import type { StoredMedia } from "../media/model";
-import type { ProjectStore } from "../storage/projects";
+import { findProject, type ProjectStore } from "../storage/projects";
 import { inspectBackup } from "./package";
 export interface BackupMediaWriter {
   addNew(value: StoredMedia): Promise<void>;
@@ -23,8 +23,7 @@ export async function restoreBackup(
     projectId: crypto.randomUUID(),
     updatedAt: new Date().toISOString(),
   });
-  const existing = (await store.list()).projects;
-  if (existing.some((p) => p.projectId === project.projectId))
+  if (await findProject(store, project.projectId))
     throw new Error("Mã bản sao bị trùng. Hãy thử khôi phục lại.");
   const added: string[] = [];
   try {

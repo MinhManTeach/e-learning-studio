@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { Dashboard } from "./Dashboard";
 import { Editor } from "./editor/Editor";
 import type { LessonProject } from "./model/schema";
-import { openProjectStore, type ProjectStore } from "./storage/projects";
+import {
+  findProject,
+  openProjectStore,
+  type ProjectStore,
+} from "./storage/projects";
 import { LessonImportWizard } from "./import/LessonImportWizard";
 import { AiSettings } from "./import/AiSettings";
 import {
@@ -88,12 +92,8 @@ export function App() {
         aiConfigured={aiStatus.configured}
         store={storage.store}
         openGenerated={(generated, preview) => {
-          void storage.store
-            .list()
-            .then(({ projects }) => {
-              const saved = projects.find(
-                (p) => p.projectId === generated.projectId,
-              );
+          void findProject(storage.store, generated.projectId)
+            .then((saved) => {
               if (!saved)
                 throw new Error(
                   "Bài giảng không còn trong kho. Hãy tạo lại từ kịch bản đã duyệt.",
