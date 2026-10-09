@@ -1,0 +1,37 @@
+.backup-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+}
+.backup-control > span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.restore-control {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.restore-control p {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.restore-dialog {
+  border: 1px solid #b9d7ca;
+  border-radius: 12px;
+  padding: 24px;
+  width: min(560px, 90vw);
+  max-height: 90vh;
+  overflow: auto;
+  color: #184d46;
+}
+.restore-dialog::backdrop {
+  background: #14212888;
+}
+.restore-dialog p {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}

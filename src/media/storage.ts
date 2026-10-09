@@ -68,7 +68,7 @@ export class LocalMediaAssetStore {
       transaction.onabort = fail;
     });
   }
-  async put(value: StoredMedia) {
+  private async write(value: StoredMedia, insertOnly: boolean) {
     const mime = await validateImageBlob(value.blob);
     if (
       mime !== value.mimeType ||
@@ -77,7 +77,16 @@ export class LocalMediaAssetStore {
       !value.assetId
     )
       throw new Error("Dữ liệu ảnh không hợp lệ.");
-    await this.request("readwrite", (store) => store.put(value));
+    await this.request("readwrite", (store) =>
+      insertOnly ? store.add(value) : store.put(value),
+    );
+  }
+  async put(value: StoredMedia) {
+    await this.write(value, false);
+  }
+  // Restore must never overwrite a pre-existing project-scoped binary.
+  async addNew(value: StoredMedia) {
+    await this.write(value, true);
   }
   async get(
     assetId: string,
@@ -90,6 +99,20 @@ export class LocalMediaAssetStore {
     await this.request("readwrite", (store) =>
       store.delete([projectId, assetId]),
     );
+  }
+  // Deletes every binary owned by one project (keys are [projectId, assetId]).
+  async removeProject(projectId: string) {
+    await this.request("readwrite", (store) => {
+      const cursor = store.openCursor();
+      cursor.onsuccess = () => {
+        const entry = cursor.result;
+        if (!entry) return;
+        if ((entry.primaryKey as [string, string])[0] === projectId)
+          entry.delete();
+        entry.continue();
+      };
+      return cursor;
+    });
   }
 }
 export const localMediaStore = new LocalMediaAssetStore();

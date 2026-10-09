@@ -14,15 +14,19 @@ import { importProjectJSON } from "./model/json";
 import { createSampleProject } from "./fixtures/sampleLesson";
 import type { LessonProject } from "./model/schema";
 import type { ProjectStore } from "./storage/projects";
+import { localMediaStore, type LocalMediaAssetStore } from "./media/storage";
 import { Field } from "./editor/Fields";
+import { RestoreControl } from "./backup/RestoreControl";
 export function Dashboard({
   store,
   open,
   startImport,
+  media = localMediaStore,
 }: {
   store: ProjectStore;
   open: (project: LessonProject) => void;
   startImport: (mode: "paste" | "file") => void;
+  media?: Pick<LocalMediaAssetStore, "removeProject">;
 }) {
   const [projects, setProjects] = useState<LessonProject[]>([]);
   const [error, setError] = useState("");
@@ -172,6 +176,7 @@ export function Dashboard({
             <button onClick={() => file.current?.click()}>
               <FileUp size={17} /> Mở tệp bài giảng
             </button>
+            <RestoreControl store={store} open={open} />
             <button
               onClick={async () => {
                 try {
@@ -315,6 +320,10 @@ export function Dashboard({
                 onClick={async () => {
                   try {
                     await store.remove(deleteTarget.projectId);
+                    // Leftover images only waste space; never fail the delete over them.
+                    await media
+                      .removeProject(deleteTarget.projectId)
+                      .catch(() => {});
                     setDeleteTarget(null);
                     await refresh();
                   } catch {

@@ -4,11 +4,11 @@ import {
   type Slide,
   type SlideType,
 } from "./schema";
-import { slideRegistry } from "../slides/registry";
+import { createDefaultSlide } from "../slides/defaults";
 export function createSlide<T extends SlideType>(
   type: T,
 ): Extract<Slide, { type: T }> {
-  return slideRegistry[type].defaultFactory() as Extract<Slide, { type: T }>;
+  return createDefaultSlide(type) as Extract<Slide, { type: T }>;
 }
 export function createProject(projectTitle = "Bài giảng mới"): LessonProject {
   const now = new Date().toISOString();

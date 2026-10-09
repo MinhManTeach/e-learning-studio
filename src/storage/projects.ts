@@ -1,10 +1,36 @@
 import { parseProject, type LessonProject } from "../model/schema";
 import { decodeStoredProject } from "../model/migrations";
 
+export interface SaveOptions {
+  // updatedAt of the copy this editor last loaded or saved. When the stored copy
+  // differs, another tab saved in between and the write is refused.
+  expectedUpdatedAt?: string;
+}
+export class ProjectConflictError extends Error {
+  constructor() {
+    super("Bài giảng vừa được lưu ở cửa sổ khác.");
+    this.name = "ProjectConflictError";
+  }
+}
 export interface ProjectStore {
   list(): Promise<{ projects: LessonProject[]; invalidCount: number }>;
-  save(project: LessonProject): Promise<void>;
+  save(project: LessonProject, options?: SaveOptions): Promise<void>;
+  // Optional capability: restore requires atomic insert-only persistence.
+  saveNew?(project: LessonProject): Promise<void>;
   remove(id: string): Promise<void>;
+}
+function storedUpdatedAt(value: unknown): string | undefined {
+  return value && typeof value === "object" && "updatedAt" in value
+    ? String(value.updatedAt)
+    : undefined;
+}
+function isStale(stored: unknown, options?: SaveOptions) {
+  const current = storedUpdatedAt(stored);
+  return (
+    options?.expectedUpdatedAt !== undefined &&
+    current !== undefined &&
+    current !== options.expectedUpdatedAt
+  );
 }
 function validated(values: unknown[]) {
   const projects: LessonProject[] = [];
@@ -35,11 +61,17 @@ export class LocalProjectStore implements ProjectStore {
     }
     return validated(values);
   }
-  async save(project: LessonProject) {
-    this.storage.setItem(
-      "elearning.project." + project.projectId,
-      JSON.stringify(parseProject(project)),
-    );
+  async save(project: LessonProject, options?: SaveOptions) {
+    const valid = parseProject(project);
+    const key = "elearning.project." + valid.projectId;
+    let stored: unknown;
+    try {
+      stored = JSON.parse(this.storage.getItem(key) ?? "null");
+    } catch {
+      stored = null;
+    }
+    if (isStale(stored, options)) throw new ProjectConflictError();
+    this.storage.setItem(key, JSON.stringify(valid));
   }
   async remove(id: string) {
     this.storage.removeItem("elearning.project." + id);
@@ -63,9 +95,33 @@ export class IndexedProjectStore implements ProjectStore {
   async list() {
     return validated(await this.request("readonly", (store) => store.getAll()));
   }
-  async save(project: LessonProject) {
+  async save(project: LessonProject, options?: SaveOptions) {
+    const valid = parseProject(project);
+    // Read, compare and write in one readwrite transaction so no other tab can interleave.
+    await new Promise<void>((resolve, reject) => {
+      const transaction = this.db.transaction("projects", "readwrite");
+      const store = transaction.objectStore("projects");
+      let conflict = false;
+      const current = store.get(valid.projectId);
+      current.onsuccess = () => {
+        if (isStale(current.result, options)) {
+          conflict = true;
+          transaction.abort();
+        } else store.put(valid);
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () =>
+        reject(
+          conflict
+            ? new ProjectConflictError()
+            : (transaction.error ?? new Error("Không thể hoàn tất lưu bài.")),
+        );
+    });
+  }
+  async saveNew(project: LessonProject) {
     await this.request("readwrite", (store) =>
-      store.put(parseProject(project)),
+      store.add(parseProject(project)),
     );
   }
   async remove(id: string) {

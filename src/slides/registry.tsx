@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { slideSchemas, type Slide, type SlideType } from "../model/schema";
+import type { Slide, SlideType } from "../model/schema";
 import { createDefaultSlide, slideLabels } from "./defaults";
 import {
   TypeSpecificEditor,
@@ -33,7 +33,6 @@ interface Entry {
   Renderer: ComponentType<{ slide: Slide }>;
   Editor: ComponentType<TypeEditorProps>;
   defaultFactory: () => Slide;
-  validator: (typeof slideSchemas)[Slide["type"]];
 }
 export const slideRegistry = Object.fromEntries(
   Object.entries(renderers).map(([key, Renderer]) => {
@@ -49,7 +48,6 @@ export const slideRegistry = Object.fromEntries(
             throw new Error("Không tạo mới trang tham chiếu.");
           return createDefaultSlide(type);
         },
-        validator: slideSchemas[type],
       },
     ];
   }),

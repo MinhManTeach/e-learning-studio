@@ -20,17 +20,25 @@ export interface ConsistencyWarning {
   resolved: boolean;
 }
 export function consistencyWarnings(p: LessonProject): ConsistencyWarning[] {
+  const warnings: ConsistencyWarning[] = [];
   const { curriculumGrade: a, targetAudienceGrade: b } = p.metadata;
-  return a && b && a !== b
-    ? [
-        {
-          code: "GRADE_MISMATCH",
-          severity: "warning",
-          message: `Yêu cầu cần đạt thuộc chương trình lớp ${a}, trong khi đối tượng học sinh được khai báo là lớp ${b}.`,
-          resolved: false,
-        },
-      ]
-    : [];
+  if (a && b && a !== b)
+    warnings.push({
+      code: "GRADE_MISMATCH",
+      severity: "warning",
+      message: `Yêu cầu cần đạt thuộc chương trình lớp ${a}, trong khi đối tượng học sinh được khai báo là lớp ${b}.`,
+      resolved: false,
+    });
+  // Completion stays IN_PROGRESS by spec here; warn instead of changing the rule.
+  if (p.settings.requireQuiz && !p.slides.some((s) => s.type === "quiz"))
+    warnings.push({
+      code: "REQUIRE_QUIZ_WITHOUT_QUIZ",
+      severity: "warning",
+      message:
+        "Bài giảng đang yêu cầu hoàn tất trắc nghiệm nhưng chưa có trang trắc nghiệm. Học sinh sẽ không thể hoàn thành bài. Hãy thêm trang trắc nghiệm, hoặc bỏ chọn “Yêu cầu hoàn tất trắc nghiệm” ở Thông tin bài giảng → Giao diện & hoàn thành bài.",
+      resolved: false,
+    });
+  return warnings;
 }
 export const densityThresholds = {
   title: 90,
