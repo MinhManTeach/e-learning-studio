@@ -56,6 +56,10 @@ export class LessonGenerationService {
         await this.provider.generate(blueprint, providerContext),
       );
       const warnings = validateGeneratedLesson(project, blueprint, context);
+      // Quality analysis pairs slides with blueprint entries by index; stop on
+      // structural errors first so they are reported instead of crashing it.
+      if (warnings.some((w) => w.severity === "ERROR"))
+        throw contentCheckError();
       const quality = analyzeLessonQuality(project, {
         outcomes: context.outcomes.map((o) => o.text),
         bySlide: Object.fromEntries(
@@ -73,9 +77,7 @@ export class LessonGenerationService {
         })),
       );
       if (warnings.some((w) => w.severity === "ERROR"))
-        throw new Error(
-          "Bài giảng chưa đạt kiểm tra nội dung. Thầy/cô kiểm tra kịch bản rồi thử lại.",
-        );
+        throw contentCheckError();
       if (prepareProject) {
         const prepared = await prepareProject(project);
         rollback = prepared.rollback;
@@ -95,4 +97,9 @@ export class LessonGenerationService {
       );
     }
   }
+}
+function contentCheckError() {
+  return new Error(
+    "Bài giảng chưa đạt kiểm tra nội dung. Thầy/cô kiểm tra kịch bản rồi thử lại.",
+  );
 }
