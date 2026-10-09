@@ -6,13 +6,29 @@ import type { StructureContext } from "./context";
 import { assign, emit } from "./record";
 import { cleaned, metaRules } from "./rules";
 
+// Records lesson identity facts in the line; true when the line was consumed.
 export function identity(
   ctx: StructureContext,
   block: LessonDocumentBlock,
   text: string,
   row?: number,
   column?: number,
-) {
+): boolean {
+  return (
+    detectedFacts(ctx, block, text, row, column) ||
+    labeledField(ctx, block, text, row, column) ||
+    documentTitle(ctx, block, text)
+  );
+}
+
+// Facts found by the shared lesson metadata detector.
+function detectedFacts(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+): boolean {
   const facts = detectLessonMetadata(
     text,
     ctx.stack.length === 0 && !ctx.active,
@@ -60,6 +76,17 @@ export function identity(
     !(facts.length === 1 && facts[0].field === "lessonNumber")
   )
     return true;
+  return false;
+}
+
+// "Label: value" lines such as "Môn học: Tin học" or "Thời lượng: 35 phút".
+function labeledField(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+  row?: number,
+  column?: number,
+): boolean {
   for (const [re, key] of metaRules) {
     const match = cleaned(text).match(re);
     if (!match) continue;
@@ -127,7 +154,15 @@ export function identity(
     );
     return true;
   }
-  // Explicit identity inside a document title, not a default subject or grade.
+  return false;
+}
+
+// Explicit subject/grade inside a title like "GIÁO ÁN TIN HỌC 4".
+function documentTitle(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  text: string,
+): boolean {
   const identityTitle = text
     .replace(/^GIÁO ÁN\s+TUẦN\s+\d+\s*[–—-]\s*/iu, "GIÁO ÁN ")
     .replace(/\s*\(.*\)\s*$/u, "");
