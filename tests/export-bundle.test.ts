@@ -19,6 +19,8 @@ it("builds one classic script that runs without ES modules", () => {
   expect(bundle.js.length).toBeGreaterThan(50_000);
   expect(bundle.js).not.toMatch(/^\s*(import|export)\s/m);
   expect(bundle.js).not.toContain("process.env.NODE_ENV");
+  // Dev JSX would crash on the production React build (blank page).
+  expect(bundle.js).not.toContain("jsxDEV");
   expect(bundle.css).toContain(".lesson-player");
 });
 
@@ -44,7 +46,7 @@ async function openPackage(url: string, api?: Record<string, unknown>) {
   win.eval(strFromU8(files["player.js"]));
   for (let i = 0; i < 50 && !win.document.querySelector("article"); i++)
     await new Promise((r) => setTimeout(r, 20));
-  return { win, p };
+  return { win, p, dom };
 }
 
 it("opens inside an LMS, starts a SCORM attempt and shows the first page", async () => {
@@ -60,7 +62,7 @@ it("opens inside an LMS, starts a SCORM attempt and shows the first page", async
     LMSCommit: () => (calls.push("commit"), "true"),
     LMSGetLastError: () => "0",
   };
-  const { win, p } = await openPackage(
+  const { win, p, dom } = await openPackage(
     "https://lms.example/mod/scorm/sco/index.html",
     api,
   );
@@ -78,7 +80,7 @@ it("opens inside an LMS, starts a SCORM attempt and shows the first page", async
   expect(img?.getAttribute("src")).toBe(
     "https://lms.example/mod/scorm/sco/media/0001.png",
   );
-  win.dispatchEvent(new win.Event("pagehide"));
+  dom.window.dispatchEvent(new dom.window.Event("pagehide"));
   expect(calls).toContain("finish");
 }, 30_000);
 

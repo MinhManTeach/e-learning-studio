@@ -16,6 +16,21 @@ export interface PlayerBundle {
  * blocked, so the same files work offline and inside an LMS.
  */
 export async function buildPlayerBundle(root: string): Promise<PlayerBundle> {
+  // Vite and the React plugin decide "production" from NODE_ENV, which is
+  // "development" under `npm run dev` and "test" under Vitest. Without this the
+  // package would use React's dev JSX runtime, which the production React build
+  // does not provide, and the exported page would stay blank.
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    return await buildProductionBundle(root);
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+}
+
+async function buildProductionBundle(root: string): Promise<PlayerBundle> {
   const result = await build({
     configFile: false,
     root,
