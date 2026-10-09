@@ -1,6 +1,5 @@
 import {
   activitySchema,
-  type BlockClassification,
   type ImportedLessonDocument,
   type LessonDocumentBlock,
   type PedagogicalAnalysis,
@@ -14,6 +13,7 @@ import {
 } from "./activityStructure";
 import { resolveCellRoles, type TableColumn } from "./tableRoles";
 import { createContext } from "./structure/context";
+import { assign, emit, source } from "./structure/record";
 import {
   cleaned,
   heading,
@@ -27,173 +27,6 @@ export function classifyStructuredDocument(
   a: PedagogicalAnalysis,
 ) {
   const ctx = createContext(doc, a);
-  const source = (
-    block: LessonDocumentBlock,
-    sourceText: string,
-    row?: number,
-    column?: number,
-    confidence = 0.85,
-    needsReview = false,
-  ) => ({
-    blockId: block.id,
-    sourceText,
-    tableIndex: ctx.tableIndices.get(block.id),
-    row,
-    column,
-    confidence,
-    needsReview,
-  });
-  function emit(
-    block: LessonDocumentBlock,
-    sourceText: string,
-    category: Category,
-    field: string,
-    signals: string[],
-    confidence: number,
-    isHeading = false,
-    row?: number,
-    column?: number,
-    needsReview = false,
-  ) {
-    const c: BlockClassification = {
-      id: `${block.id}-${ctx.seq++}`,
-      blockId: block.id,
-      sourceText,
-      category,
-      field,
-      signals,
-      confidence,
-      isHeading,
-      row,
-      column,
-      needsReview,
-      corrected: false,
-      tableIndex: ctx.tableIndices.get(block.id),
-      periodId: ctx.periodId,
-    };
-    if (
-      !isHeading &&
-      [
-        "LEARNING_OUTCOME",
-        "KNOWLEDGE",
-        "COMPETENCY",
-        "QUALITY",
-        "DIGITAL_COMPETENCY",
-        "AI_INTEGRATION",
-      ].includes(category)
-    ) {
-      c.isRequiredOutcome =
-        category === "LEARNING_OUTCOME" ||
-        ctx.stack.some((s) => s.category === "LEARNING_OUTCOME");
-      if (category === "COMPETENCY") {
-        const label = normalizeHeading(ctx.stack.at(-1)?.heading ?? "");
-        c.competencyKind = /nang luc chung$/.test(label)
-          ? "GENERAL"
-          : /nang luc (?:dac thu|.+)$/.test(label)
-            ? "SUBJECT_SPECIFIC"
-            : "UNSPECIFIED";
-      }
-    }
-    a.classifications.push(c);
-    let sourceLine = ctx.line;
-    if (row !== undefined && block.table) {
-      for (const previousRow of block.table.rows.slice(0, row))
-        sourceLine += previousRow.cells
-          .map((c) => c.text)
-          .join("\t")
-          .split("\n").length;
-      const cells = block.table.rows[row]?.cells ?? [];
-      const current = cells.find(
-        (c) => (c.column ?? cells.indexOf(c)) === column,
-      );
-      for (const cell of cells) {
-        if (cell === current) break;
-        sourceLine += cell.text.split("\n").length - 1;
-      }
-      const offset = current?.text.indexOf(sourceText) ?? -1;
-      if (offset > 0)
-        sourceLine += current!.text.slice(0, offset).split("\n").length - 1;
-    }
-    const activityTiming =
-      isHeading &&
-      ["WARMUP", "DISCOVERY", "PRACTICE", "APPLICATION"].includes(category) &&
-      parseDuration(sourceText) !== null;
-    if (!isHeading || activityTiming)
-      a.sourceTraces.push({
-        field: activityTiming ? "activityDurationMinutes" : field.split("[")[0],
-        sourceText,
-        lineStart: sourceLine,
-        lineEnd: sourceLine + sourceText.split("\n").length - 1,
-        confidence,
-        blockId: block.id,
-        tableIndex: ctx.tableIndices.get(block.id),
-        periodId: ctx.periodId,
-        row,
-        column,
-      });
-    return c;
-  }
-  function assign(
-    block: LessonDocumentBlock,
-    text: string,
-    category: Category,
-    field: string,
-    signals: string[],
-    confidence: number,
-    row?: number,
-    column?: number,
-  ) {
-    const value = text.trim().replace(/^[-•*–]\s*/, "");
-    if (!value) return;
-    if (field.startsWith("activity.") && !ctx.active) {
-      assign(
-        block,
-        text,
-        "OTHER",
-        "unmappedContent",
-        ["Chưa có tiêu đề hoạt động; giữ nội dung để kiểm tra"],
-        0.35,
-        row,
-        column,
-      );
-      return;
-    }
-    let target = field;
-    const needsReview = confidence < 0.6 || category === "OTHER";
-    if (needsReview) {
-      target = "unmappedContent";
-      category = "OTHER";
-    }
-    if (target.startsWith("activity.") && ctx.active) {
-      const key = target.slice(9) as
-        | "content"
-        | "teacherActivity"
-        | "studentActivity"
-        | "goals"
-        | "products"
-        | "organization";
-      const values = ctx.active[key];
-      target = `teachingActivities[${a.teachingActivities.indexOf(ctx.active)}].${key}[${values.length}]`;
-      values.push(value);
-    } else {
-      const values = a[target as keyof PedagogicalAnalysis];
-      if (!Array.isArray(values)) return;
-      target = `${target}[${values.length}]`;
-      (values as string[]).push(value);
-    }
-    emit(
-      block,
-      text,
-      category,
-      target,
-      signals,
-      confidence,
-      false,
-      row,
-      column,
-      needsReview,
-    );
-  }
   function startHeading(
     block: LessonDocumentBlock,
     text: string,
@@ -232,6 +65,7 @@ export function classifyStructuredDocument(
       heading: h.label,
     });
     emit(
+      ctx,
       block,
       text,
       h.category,
@@ -251,6 +85,7 @@ export function classifyStructuredDocument(
         title: cleaned(text),
         stage: stageMap[h.category] ?? null,
         source: source(
+          ctx,
           block,
           text,
           row,
@@ -266,6 +101,7 @@ export function classifyStructuredDocument(
     }
     if (h.value)
       assign(
+        ctx,
         block,
         h.category === "AI_INTEGRATION" ? cleaned(text) : h.value,
         h.category,
@@ -299,6 +135,7 @@ export function classifyStructuredDocument(
           "Thông tin xung đột: " + text + ". Giữ giá trị đầu tiên.",
         );
         assign(
+          ctx,
           block,
           text,
           "OTHER",
@@ -312,6 +149,7 @@ export function classifyStructuredDocument(
       }
       (a as unknown as Record<string, unknown>)[fact.field] = fact.value;
       emit(
+        ctx,
         block,
         text,
         "LESSON_IDENTITY",
@@ -351,6 +189,7 @@ export function classifyStructuredDocument(
           `Chưa xác định ${key === "durationMinutes" ? "thời lượng theo phút" : "lớp"} từ “${text}”.`,
         );
         assign(
+          ctx,
           block,
           text,
           "OTHER",
@@ -367,6 +206,7 @@ export function classifyStructuredDocument(
           `Thông tin xung đột: ${text}. Giữ giá trị đầu tiên.`,
         );
         assign(
+          ctx,
           block,
           text,
           "OTHER",
@@ -380,6 +220,7 @@ export function classifyStructuredDocument(
       }
       (a as unknown as Record<string, unknown>)[key] = value;
       emit(
+        ctx,
         block,
         text,
         "LESSON_IDENTITY",
@@ -403,6 +244,7 @@ export function classifyStructuredDocument(
       if (!a.subject) a.subject = title[1];
       if (!a.curriculumGrade) a.curriculumGrade = title[2];
       emit(
+        ctx,
         block,
         text,
         "LESSON_IDENTITY",
@@ -411,6 +253,7 @@ export function classifyStructuredDocument(
         0.85,
       );
       emit(
+        ctx,
         block,
         text,
         "LESSON_IDENTITY",
@@ -444,9 +287,10 @@ export function classifyStructuredDocument(
         id: ctx.periodId,
         number: session.number,
         durationMinutes: session.durationMinutes,
-        source: source(block, text, row, column, 0.95),
+        source: source(ctx, block, text, row, column, 0.95),
       });
       emit(
+        ctx,
         block,
         text,
         "TEACHING_ACTIVITY",
@@ -471,6 +315,7 @@ export function classifyStructuredDocument(
         });
       }
       assign(
+        ctx,
         block,
         text,
         "OTHER",
@@ -498,6 +343,7 @@ export function classifyStructuredDocument(
       )
     ) {
       emit(
+        ctx,
         block,
         text,
         parent.category,
@@ -527,6 +373,7 @@ export function classifyStructuredDocument(
         // A named task/subheading inside an activity remains in that activity;
         // it is not an instructional objective just because it contains “học sinh”.
         assign(
+          ctx,
           block,
           text,
           "TEACHING_ACTIVITY",
@@ -553,6 +400,7 @@ export function classifyStructuredDocument(
       });
       ctx.active = undefined;
       emit(
+        ctx,
         block,
         text,
         "OTHER",
@@ -564,6 +412,7 @@ export function classifyStructuredDocument(
         column,
       );
       assign(
+        ctx,
         block,
         text,
         "OTHER",
@@ -594,6 +443,7 @@ export function classifyStructuredDocument(
           "+0.05 cụm từ phù hợp nội dung giáo dục (không tự quyết định nhóm)",
         );
       assign(
+        ctx,
         block,
         text,
         context.category,
@@ -607,6 +457,7 @@ export function classifyStructuredDocument(
       );
     } else
       assign(
+        ctx,
         block,
         text,
         "OTHER",
@@ -687,6 +538,7 @@ export function classifyStructuredDocument(
       row,
       column,
       source: source(
+        ctx,
         block,
         text,
         row,
@@ -696,6 +548,7 @@ export function classifyStructuredDocument(
       ),
     });
     emit(
+      ctx,
       block,
       text,
       "TEACHING_ACTIVITY",
@@ -748,6 +601,7 @@ export function classifyStructuredDocument(
       ) {
         const { rule, cell } = headers[0];
         emit(
+          ctx,
           block,
           cell.text,
           rule.category,
@@ -759,6 +613,7 @@ export function classifyStructuredDocument(
           0,
         );
         assign(
+          ctx,
           block,
           row.cells[1].text,
           rule.category,
@@ -790,6 +645,7 @@ export function classifyStructuredDocument(
                     : undefined,
               });
             emit(
+              ctx,
               block,
               cell.text,
               rule.category,
@@ -835,6 +691,7 @@ export function classifyStructuredDocument(
               const value = text.slice(text.indexOf(":") + 1).trim();
               if (value)
                 assign(
+                  ctx,
                   block,
                   value,
                   "TEACHING_ACTIVITY",
@@ -845,6 +702,7 @@ export function classifyStructuredDocument(
                   cell.column ?? 0,
                 );
               emit(
+                ctx,
                 block,
                 text,
                 "TEACHING_ACTIVITY",
@@ -858,6 +716,7 @@ export function classifyStructuredDocument(
             } else if (/^cach (?:thuc )?(?:tien hanh|thuc hien)/.test(label)) {
               field = "activity.teacherActivity";
               emit(
+                ctx,
                 block,
                 text,
                 "TEACHING_ACTIVITY",
@@ -870,6 +729,7 @@ export function classifyStructuredDocument(
               );
             } else if (ctx.active)
               assign(
+                ctx,
                 block,
                 text,
                 "TEACHING_ACTIVITY",
@@ -901,7 +761,7 @@ export function classifyStructuredDocument(
           ctx.active = activitySchema.parse({
             id: `${doc.id}-activity-${block.id}-${r}`,
             title: cleaned(title.cell.text),
-            source: source(block, title.cell.text, r, title.col, 0.8),
+            source: source(ctx, block, title.cell.text, r, title.col, 0.8),
             periodId: ctx.periodId,
             stage: null,
             content: [],
@@ -909,6 +769,7 @@ export function classifyStructuredDocument(
           });
           a.teachingActivities.push(ctx.active);
           emit(
+            ctx,
             block,
             title.cell.text,
             "TEACHING_ACTIVITY",
@@ -940,6 +801,7 @@ export function classifyStructuredDocument(
         ) {
           if (columns.size || cell.complex) ambiguousRows.add(r);
           assign(
+            ctx,
             block,
             meaningful.map((e) => e.text).join("\n"),
             "OTHER",
@@ -963,6 +825,7 @@ export function classifyStructuredDocument(
                 resolved.text.trim(),
               );
             assign(
+              ctx,
               block,
               resolved.text,
               mapping.category,
@@ -984,6 +847,7 @@ export function classifyStructuredDocument(
           ) {
             if (columns.size || cell.complex) ambiguousRows.add(r);
             assign(
+              ctx,
               block,
               resolved.text,
               "OTHER",
