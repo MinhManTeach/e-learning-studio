@@ -14,7 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import type { LessonProject } from "../model/schema";
-import type { ProjectStore } from "../storage/projects";
+import { ProjectConflictError, type ProjectStore } from "../storage/projects";
 import { editorReducer, editorState } from "./reducer";
 import { SlideList } from "./SlideList";
 import { Properties } from "./Properties";
@@ -50,7 +50,10 @@ export function Editor({
   const [jsonExport, setJsonExport] = useState<string | null>(null);
   const [showMedia, setShowMedia] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
-  const savingRef = useRef(false);
+  const inflightSave = useRef<Promise<boolean> | null>(null);
+  // updatedAt of the copy last loaded from or written to storage.
+  const baseline = useRef(project.updatedAt);
+  const [conflict, setConflict] = useState(false);
   const stateRef = useRef(state);
   stateRef.current = state;
   const dirty = state.revision !== savedRevision;
@@ -58,38 +61,50 @@ export function Editor({
   const index = state.project.slides.findIndex(
     (s) => s.id === state.selectedId,
   );
-  async function save() {
-    if (savingRef.current) return false;
-    savingRef.current = true;
+  // Concurrent callers (autosave, Ctrl+S, back) share the in-flight save instead of failing.
+  function save(overwrite = false): Promise<boolean> {
+    inflightSave.current ??= runSave(overwrite).finally(() => {
+      inflightSave.current = null;
+    });
+    return inflightSave.current;
+  }
+  async function runSave(overwrite: boolean) {
     setSaving(true);
     setError("");
     try {
       let snapshot;
       do {
         snapshot = stateRef.current;
-        await store.save(snapshot.project);
+        await store.save(
+          snapshot.project,
+          overwrite ? undefined : { expectedUpdatedAt: baseline.current },
+        );
+        baseline.current = snapshot.project.updatedAt;
+        overwrite = false;
         setSavedRevision(snapshot.revision);
       } while (stateRef.current.revision !== snapshot.revision);
+      setConflict(false);
       return true;
-    } catch {
-      setError(
-        "Không thể lưu bài. Dữ liệu đang chỉnh sửa vẫn còn ở đây. Hãy kiểm tra dung lượng trình duyệt rồi thử lưu lại.",
-      );
+    } catch (error) {
+      if (error instanceof ProjectConflictError) setConflict(true);
+      else
+        setError(
+          "Không thể lưu bài. Dữ liệu đang chỉnh sửa vẫn còn ở đây. Hãy kiểm tra dung lượng trình duyệt rồi thử lưu lại.",
+        );
       return false;
     } finally {
-      savingRef.current = false;
       setSaving(false);
     }
   }
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty || conflict) return;
     const timeout = window.setTimeout(() => {
       void save();
     }, 900);
     return () => window.clearTimeout(timeout);
     // Every edit restarts the explicit, visible autosave countdown. Manual retry handles failures.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.revision, dirty]);
+  }, [state.revision, dirty, conflict]);
   useEffect(() => {
     function leave(event: BeforeUnloadEvent) {
       if (dirty) {
@@ -174,7 +189,7 @@ export function Editor({
           >
             {saving ? (
               "Đang lưu…"
-            ) : error ? (
+            ) : error || conflict ? (
               "Lưu chưa thành công"
             ) : dirty ? (
               "Chưa lưu"
@@ -215,6 +230,16 @@ export function Editor({
             các bài đã lưu.
           </p>
           <button onClick={() => setShowSettings(false)}>Đã hiểu</button>
+        </div>
+      )}
+      {conflict && (
+        <div className="error-banner" role="alert">
+          Bài này vừa được lưu ở cửa sổ khác. Để tránh mất nội dung, bản đang
+          sửa ở đây chưa được lưu.
+          <button onClick={() => void save(true)}>
+            Ghi đè bằng bản đang sửa
+          </button>
+          <button onClick={back}>Bỏ thay đổi, về danh sách</button>
         </div>
       )}
       {error && (

@@ -1,6 +1,10 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
-import { LocalProjectStore, openIndexedStore } from "../src/storage/projects";
+import {
+  LocalProjectStore,
+  ProjectConflictError,
+  openIndexedStore,
+} from "../src/storage/projects";
 import { createProject } from "../src/model/factories";
 function memoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -78,4 +82,41 @@ it("propagates quota errors instead of claiming save success", async () => {
   await expect(
     new LocalProjectStore(storage).save(createProject()),
   ).rejects.toThrow("full");
+});
+describe.each(["indexed", "local"])("%s conflict detection", (backend) => {
+  async function twoTabs() {
+    if (backend === "indexed") {
+      const factory = new IDBFactory();
+      return [await openIndexedStore(factory), await openIndexedStore(factory)];
+    }
+    const storage = memoryStorage();
+    return [new LocalProjectStore(storage), new LocalProjectStore(storage)];
+  }
+  const later = (p: { updatedAt: string }, ms: number) =>
+    new Date(Date.parse(p.updatedAt) + ms).toISOString();
+  it("rejects a stale save from another tab and keeps the newer copy", async () => {
+    const [tabA, tabB] = await twoTabs();
+    const opened = createProject("Bài chung");
+    await tabA.save(opened);
+    const fromA = { ...opened, updatedAt: later(opened, 1000) };
+    fromA.metadata = { ...opened.metadata, topic: "Sửa ở tab A" };
+    await tabA.save(fromA, { expectedUpdatedAt: opened.updatedAt });
+    const fromB = { ...opened, updatedAt: later(opened, 2000) };
+    fromB.metadata = { ...opened.metadata, topic: "Sửa ở tab B" };
+    await expect(
+      tabB.save(fromB, { expectedUpdatedAt: opened.updatedAt }),
+    ).rejects.toBeInstanceOf(ProjectConflictError);
+    expect((await tabB.list()).projects[0].metadata.topic).toBe("Sửa ở tab A");
+  });
+  it("accepts consecutive saves from the same tab and saves without a baseline", async () => {
+    const [tab] = await twoTabs();
+    const p = createProject();
+    await tab.save(p);
+    const next = { ...p, updatedAt: later(p, 1000) };
+    await tab.save(next, { expectedUpdatedAt: p.updatedAt });
+    const third = { ...next, updatedAt: later(p, 2000) };
+    await tab.save(third, { expectedUpdatedAt: next.updatedAt });
+    await tab.save({ ...third, updatedAt: later(p, 3000) });
+    expect((await tab.list()).projects).toHaveLength(1);
+  });
 });
