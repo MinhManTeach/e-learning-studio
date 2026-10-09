@@ -1221,13 +1221,15 @@ button.primary:hover {
   .save-status {
     margin-right: 0;
   }
-  /* Below this width the actions never fit beside the title; give them one
-     full-width row instead of a ragged leftover. */
   .top-actions {
-    flex-basis: 100%;
     gap: 6px;
   }
-  .top-actions > button {
+  /* Below this width the editor's actions never fit beside the title; give
+     them one full-width row. The preview bar does not wrap, so leave it be. */
+  .studio:not(.preview-mode) .top-actions {
+    flex-basis: 100%;
+  }
+  .studio:not(.preview-mode) .top-actions > button {
     padding: 7px 10px;
     font-size: 12px;
   }
