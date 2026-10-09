@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { unzipSync } from "fflate";
 import { createProject, createSlide } from "../src/model/factories";
 import { parseProject, type AssetReference } from "../src/model/schema";
 import { SlideCanvas } from "../src/renderers/SlideCanvas";
@@ -9,8 +8,6 @@ import {
   ImageResolverContext,
   packagedImageResolver,
 } from "../src/media/imageResolver";
-import { buildLessonPackage } from "../src/export/package";
-import { backupFixture, png } from "./fixtures/backup";
 
 afterEach(cleanup);
 
@@ -127,16 +124,4 @@ it("keeps answer pictures when the lesson is saved and reopened", () => {
   expect(s.type === "quiz" && s.data.questions[0].options[1].imageAssetId).toBe(
     "pose-b",
   );
-});
-
-it("packages pictures used only on answer cards", async () => {
-  const { p, media } = await backupFixture();
-  p.slides[0].media = { ...p.slides[0].media, enabled: false };
-  const quiz = p.slides.find((s) => s.type === "quiz")!;
-  if (quiz.type !== "quiz") throw new Error("fixture");
-  quiz.data.questions[0].options[0].imageAssetId = "picture";
-  const zip = unzipSync(
-    (await buildLessonPackage(p, media, { js: "", css: "" })).bytes,
-  );
-  expect(zip["media/0001.png"]).toEqual(png);
 });

@@ -180,3 +180,16 @@ it("refuses a file that is called a video but is not one", async () => {
     /không phải MP4 hoặc WebM hợp lệ/,
   );
 });
+
+// Runs in Node: under jsdom, blobs read back from fake IndexedDB lose arrayBuffer().
+it("packages pictures used only on answer cards", async () => {
+  const { p, media } = await backupFixture();
+  p.slides[0].media = { ...p.slides[0].media, enabled: false };
+  const quiz = p.slides.find((s) => s.type === "quiz")!;
+  if (quiz.type !== "quiz") throw new Error("fixture");
+  quiz.data.questions[0].options[0].imageAssetId = "picture";
+  const zip = unzipSync(
+    (await buildLessonPackage(p, media, { js: "", css: "" })).bytes,
+  );
+  expect(zip["media/0001.png"]).toEqual(png);
+});
