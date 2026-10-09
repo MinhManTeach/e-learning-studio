@@ -461,6 +461,10 @@
   height: auto;
   min-height: 76px;
   flex-wrap: wrap;
+  /* Wrapped rows need vertical padding or the lesson title is clipped. */
+  padding-top: 10px;
+  padding-bottom: 10px;
+  row-gap: 8px;
 }
 .studio:not(.preview-mode) .project-name {
   flex: 1;
