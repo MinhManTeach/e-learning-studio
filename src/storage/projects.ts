@@ -85,15 +85,18 @@ export class LocalProjectStore implements ProjectStore {
     this.storage.setItem(key, JSON.stringify(valid));
   }
   async get(id: string) {
-    const raw = this.storage.getItem("elearning.project." + id);
-    if (raw === null) return undefined;
-    let value: unknown;
+    // Fast path: save() always writes a project under its own key.
     try {
-      value = JSON.parse(raw);
+      const raw = this.storage.getItem("elearning.project." + id);
+      const found =
+        raw === null ? undefined : validated([JSON.parse(raw)]).projects[0];
+      if (found?.projectId === id) return found;
     } catch {
-      return undefined;
+      // Unreadable entry: fall through to the scan, which skips it.
     }
-    return validated([value]).projects[0];
+    // A record stored under another key (or unreadable here) is resolved
+    // exactly as list() would; localStorage is the small fallback backend.
+    return (await this.list()).projects.find((p) => p.projectId === id);
   }
   async remove(id: string) {
     this.storage.removeItem("elearning.project." + id);

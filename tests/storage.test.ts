@@ -135,8 +135,9 @@ describe.each(["indexed", "local"])("%s single-project lookup", (backend) => {
     await store.save(b);
     const list = vi.spyOn(store, "list");
     expect(await findProject(store, b.projectId)).toEqual(b);
-    expect(await findProject(store, "missing")).toBeUndefined();
     expect(list).not.toHaveBeenCalled();
+    // A miss may scan on the localStorage fallback to keep list() semantics.
+    expect(await findProject(store, "missing")).toBeUndefined();
   });
 });
 it("falls back to list() for stores without get()", async () => {
@@ -148,4 +149,29 @@ it("falls back to list() for stores without get()", async () => {
   };
   expect(await findProject(store, p.projectId)).toEqual(p);
   expect(await findProject(store, "missing")).toBeUndefined();
+});
+describe("localStorage lookup keeps list() semantics", () => {
+  it("matches by projectId, not by storage key", async () => {
+    const storage = memoryStorage();
+    const b = createProject("Bài B");
+    // A valid record for project B stored under another project's key.
+    storage.setItem("elearning.project.A", JSON.stringify(b));
+    const store = new LocalProjectStore(storage);
+    expect(await findProject(store, "A")).toBeUndefined();
+    expect(await findProject(store, b.projectId)).toEqual(b);
+  });
+  it("treats an unreadable entry like list() does instead of rejecting", async () => {
+    const storage = memoryStorage();
+    const p = createProject();
+    storage.setItem("elearning.project." + p.projectId, JSON.stringify(p));
+    const getItem = storage.getItem;
+    storage.getItem = (key) => {
+      if (key === "elearning.project.broken") throw new Error("read failed");
+      return getItem(key);
+    };
+    storage.setItem("elearning.project.broken", "{}");
+    const store = new LocalProjectStore(storage);
+    await expect(findProject(store, "broken")).resolves.toBeUndefined();
+    expect(await findProject(store, p.projectId)).toEqual(p);
+  });
 });
