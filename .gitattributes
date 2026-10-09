@@ -1,1 +1,8 @@
+# Keep LF in the repository and working tree on every OS; Windows editors
+# and agents otherwise rewrite whole files with CRLF.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.docx binary
+*.zip binary
 reference/** -text
