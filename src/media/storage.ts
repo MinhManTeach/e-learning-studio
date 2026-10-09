@@ -100,5 +100,19 @@ export class LocalMediaAssetStore {
       store.delete([projectId, assetId]),
     );
   }
+  // Deletes every binary owned by one project (keys are [projectId, assetId]).
+  async removeProject(projectId: string) {
+    await this.request("readwrite", (store) => {
+      const cursor = store.openCursor();
+      cursor.onsuccess = () => {
+        const entry = cursor.result;
+        if (!entry) return;
+        if ((entry.primaryKey as [string, string])[0] === projectId)
+          entry.delete();
+        entry.continue();
+      };
+      return cursor;
+    });
+  }
 }
 export const localMediaStore = new LocalMediaAssetStore();
