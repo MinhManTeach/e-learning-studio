@@ -4,7 +4,6 @@ import {
   type ImportedLessonDocument,
   type LessonDocumentBlock,
   type PedagogicalAnalysis,
-  type TeachingActivity,
 } from "./model";
 import { normalizeHeading, parseDuration, parseGrade } from "./analyzer";
 import { detectLessonMetadata, finalizeLessonDuration } from "./lessonMetadata";
@@ -14,25 +13,20 @@ import {
   finalizeActivityStructure,
 } from "./activityStructure";
 import { resolveCellRoles, type TableColumn } from "./tableRoles";
+import { createContext } from "./structure/context";
 import {
   cleaned,
   heading,
   metaRules,
   stageMap,
   type Category,
-  type Section,
 } from "./structure/rules";
 
 export function classifyStructuredDocument(
   doc: ImportedLessonDocument,
   a: PedagogicalAnalysis,
 ) {
-  const stack: Section[] = [];
-  let active: TeachingActivity | undefined;
-  let periodId: string | undefined;
-  const tableIndices = new Map(
-    doc.blocks.filter((b) => b.table).map((b, i) => [b.id, i]),
-  );
+  const ctx = createContext(doc, a);
   const source = (
     block: LessonDocumentBlock,
     sourceText: string,
@@ -43,14 +37,12 @@ export function classifyStructuredDocument(
   ) => ({
     blockId: block.id,
     sourceText,
-    tableIndex: tableIndices.get(block.id),
+    tableIndex: ctx.tableIndices.get(block.id),
     row,
     column,
     confidence,
     needsReview,
   });
-  let seq = 0;
-  let line = 1;
   function emit(
     block: LessonDocumentBlock,
     sourceText: string,
@@ -64,7 +56,7 @@ export function classifyStructuredDocument(
     needsReview = false,
   ) {
     const c: BlockClassification = {
-      id: `${block.id}-${seq++}`,
+      id: `${block.id}-${ctx.seq++}`,
       blockId: block.id,
       sourceText,
       category,
@@ -76,8 +68,8 @@ export function classifyStructuredDocument(
       column,
       needsReview,
       corrected: false,
-      tableIndex: tableIndices.get(block.id),
-      periodId,
+      tableIndex: ctx.tableIndices.get(block.id),
+      periodId: ctx.periodId,
     };
     if (
       !isHeading &&
@@ -92,9 +84,9 @@ export function classifyStructuredDocument(
     ) {
       c.isRequiredOutcome =
         category === "LEARNING_OUTCOME" ||
-        stack.some((s) => s.category === "LEARNING_OUTCOME");
+        ctx.stack.some((s) => s.category === "LEARNING_OUTCOME");
       if (category === "COMPETENCY") {
-        const label = normalizeHeading(stack.at(-1)?.heading ?? "");
+        const label = normalizeHeading(ctx.stack.at(-1)?.heading ?? "");
         c.competencyKind = /nang luc chung$/.test(label)
           ? "GENERAL"
           : /nang luc (?:dac thu|.+)$/.test(label)
@@ -103,7 +95,7 @@ export function classifyStructuredDocument(
       }
     }
     a.classifications.push(c);
-    let sourceLine = line;
+    let sourceLine = ctx.line;
     if (row !== undefined && block.table) {
       for (const previousRow of block.table.rows.slice(0, row))
         sourceLine += previousRow.cells
@@ -134,8 +126,8 @@ export function classifyStructuredDocument(
         lineEnd: sourceLine + sourceText.split("\n").length - 1,
         confidence,
         blockId: block.id,
-        tableIndex: tableIndices.get(block.id),
-        periodId,
+        tableIndex: ctx.tableIndices.get(block.id),
+        periodId: ctx.periodId,
         row,
         column,
       });
@@ -153,7 +145,7 @@ export function classifyStructuredDocument(
   ) {
     const value = text.trim().replace(/^[-•*–]\s*/, "");
     if (!value) return;
-    if (field.startsWith("activity.") && !active) {
+    if (field.startsWith("activity.") && !ctx.active) {
       assign(
         block,
         text,
@@ -172,7 +164,7 @@ export function classifyStructuredDocument(
       target = "unmappedContent";
       category = "OTHER";
     }
-    if (target.startsWith("activity.") && active) {
+    if (target.startsWith("activity.") && ctx.active) {
       const key = target.slice(9) as
         | "content"
         | "teacherActivity"
@@ -180,8 +172,8 @@ export function classifyStructuredDocument(
         | "goals"
         | "products"
         | "organization";
-      const values = active[key];
-      target = `teachingActivities[${a.teachingActivities.indexOf(active)}].${key}[${values.length}]`;
+      const values = ctx.active[key];
+      target = `teachingActivities[${a.teachingActivities.indexOf(ctx.active)}].${key}[${values.length}]`;
       values.push(value);
     } else {
       const values = a[target as keyof PedagogicalAnalysis];
@@ -222,17 +214,18 @@ export function classifyStructuredDocument(
         : h.field === "teachingActivities"
           ? 2
           : 3);
-    while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+    while (ctx.stack.length && ctx.stack[ctx.stack.length - 1].level >= level)
+      ctx.stack.pop();
     if (
       h.category === "PREPARATION" ||
       h.category === "TEACHING_ACTIVITY" ||
       h.category === "LEARNING_OUTCOME"
     ) {
-      stack.length = 0;
-      active = undefined;
+      ctx.stack.length = 0;
+      ctx.active = undefined;
     }
-    if (h.field !== "teachingActivities") active = undefined;
-    stack.push({
+    if (h.field !== "teachingActivities") ctx.active = undefined;
+    ctx.stack.push({
       category: h.category,
       field: h.field,
       level,
@@ -253,7 +246,7 @@ export function classifyStructuredDocument(
       h.field === "teachingActivities" &&
       h.category !== "TEACHING_ACTIVITY"
     ) {
-      active = activitySchema.parse({
+      ctx.active = activitySchema.parse({
         id: `${doc.id}-activity-${block.id}-${row ?? 0}`,
         title: cleaned(text),
         stage: stageMap[h.category] ?? null,
@@ -265,11 +258,11 @@ export function classifyStructuredDocument(
           parseDuration(text) === null ? 0.7 : 0.85,
           parseDuration(text) === null,
         ),
-        periodId,
+        periodId: ctx.periodId,
         content: [],
         estimatedMinutes: parseDuration(text),
       });
-      a.teachingActivities.push(active);
+      a.teachingActivities.push(ctx.active);
     }
     if (h.value)
       assign(
@@ -290,7 +283,10 @@ export function classifyStructuredDocument(
     row?: number,
     column?: number,
   ) {
-    const facts = detectLessonMetadata(text, stack.length === 0 && !active);
+    const facts = detectLessonMetadata(
+      text,
+      ctx.stack.length === 0 && !ctx.active,
+    );
     for (const fact of facts) {
       const previous = a[fact.field];
       if (
@@ -435,17 +431,17 @@ export function classifyStructuredDocument(
     if (!text.trim()) return;
     const session = periodHeading(text);
     if (session) {
-      active = undefined;
-      stack.length = 0;
-      stack.push({
+      ctx.active = undefined;
+      ctx.stack.length = 0;
+      ctx.stack.push({
         category: "TEACHING_ACTIVITY",
         field: "teachingActivities",
         level: 1,
         heading: text,
       });
-      periodId = doc.id + "-period-" + block.id + "-" + (row ?? 0);
+      ctx.periodId = doc.id + "-period-" + block.id + "-" + (row ?? 0);
       (a.teachingPeriods ??= []).push({
-        id: periodId,
+        id: ctx.periodId,
         number: session.number,
         durationMinutes: session.durationMinutes,
         source: source(block, text, row, column, 0.95),
@@ -465,9 +461,9 @@ export function classifyStructuredDocument(
     }
     if (/^[.\s…_–-]+$/.test(text.trim()) || nonActivityBoundary(text)) {
       if (nonActivityBoundary(text)) {
-        active = undefined;
-        stack.length = 0;
-        stack.push({
+        ctx.active = undefined;
+        ctx.stack.length = 0;
+        ctx.stack.push({
           category: "OTHER",
           field: "unmappedContent",
           level: 1,
@@ -493,7 +489,7 @@ export function classifyStructuredDocument(
       return;
     // A lead-in within objectives preserves the parent section rather than
     // starting an unknown section. This is a structural hint, not semantic AI.
-    const parent = stack.at(-1);
+    const parent = ctx.stack.at(-1);
     if (
       parent &&
       ["LEARNING_OUTCOME", "KNOWLEDGE"].includes(parent.category) &&
@@ -519,7 +515,7 @@ export function classifyStructuredDocument(
       /^\s*[IVXLCDM]+[.)]\s*/i.test(text) ||
       /:\s*$/.test(text);
     if (isBoundary) {
-      const activityParent = [...stack]
+      const activityParent = [...ctx.stack]
         .reverse()
         .find((s) => s.field === "teachingActivities");
       const isMajor = /^\s*[IVXLCDM]+[.)]\s*/i.test(text);
@@ -547,15 +543,15 @@ export function classifyStructuredDocument(
         return;
       }
       const level = block.level ?? 1;
-      while (stack.length && stack[stack.length - 1].level >= level)
-        stack.pop();
-      stack.push({
+      while (ctx.stack.length && ctx.stack[ctx.stack.length - 1].level >= level)
+        ctx.stack.pop();
+      ctx.stack.push({
         category: "OTHER",
         field: "unmappedContent",
         level,
         heading: text,
       });
-      active = undefined;
+      ctx.active = undefined;
       emit(
         block,
         text,
@@ -579,7 +575,7 @@ export function classifyStructuredDocument(
       );
       return;
     }
-    const context = stack[stack.length - 1];
+    const context = ctx.stack[ctx.stack.length - 1];
     if (context) {
       const signals =
         context.category === "OTHER"
@@ -642,7 +638,9 @@ export function classifyStructuredDocument(
         category: "SPECIAL_NEEDS" as Category,
         field: "specialNeedsSupport",
       };
-    const activityContext = stack.some((s) => s.field === "teachingActivities");
+    const activityContext = ctx.stack.some(
+      (s) => s.field === "teachingActivities",
+    );
     if (activityContext) {
       const cols: Record<string, string> = {
         "hoat dong": "title",
@@ -674,7 +672,7 @@ export function classifyStructuredDocument(
     column: number,
     allowUntimed = false,
   ) {
-    if (!active || heading(text) || !/^\s*\d+[.):]+\s*/.test(text))
+    if (!ctx.active || heading(text) || !/^\s*\d+[.):]+\s*/.test(text))
       return false;
     const duration = parseDuration(text);
     if (
@@ -682,7 +680,7 @@ export function classifyStructuredDocument(
       (!allowUntimed || text.length > 180 || /[.!?;:]\s*$/.test(text))
     )
       return false;
-    (active.subactivities ??= []).push({
+    (ctx.active.subactivities ??= []).push({
       title: cleaned(text),
       estimatedMinutes: duration,
       blockId: block.id,
@@ -813,20 +811,20 @@ export function classifyStructuredDocument(
           : cell.text.split("\n");
         if (
           heading(texts[0] ?? "") ||
-          (active &&
+          (ctx.active &&
             /^\s*\d+[.):]+/.test(texts[0] ?? "") &&
             parseDuration(texts[0] ?? "") !== null)
         ) {
           let field = "activity.content";
           for (const text of texts) {
             if (
-              (!active || text === texts[0] || /^\s*\d+[.)]/.test(text)) &&
+              (!ctx.active || text === texts[0] || /^\s*\d+[.)]/.test(text)) &&
               startHeading(block, text, r, cell.column ?? 0)
             )
               continue;
             const duration = parseDuration(text);
             if (
-              active &&
+              ctx.active &&
               duration !== null &&
               recordSubactivity(block, text, r, cell.column ?? 0)
             )
@@ -870,7 +868,7 @@ export function classifyStructuredDocument(
                 r,
                 cell.column ?? 0,
               );
-            } else if (active)
+            } else if (ctx.active)
               assign(
                 block,
                 text,
@@ -900,16 +898,16 @@ export function classifyStructuredDocument(
         paragraph(block, title.cell.text, r, title.col);
       } else if (title?.cell.text) {
         if (!startHeading(block, title.cell.text, r, title.col)) {
-          active = activitySchema.parse({
+          ctx.active = activitySchema.parse({
             id: `${doc.id}-activity-${block.id}-${r}`,
             title: cleaned(title.cell.text),
             source: source(block, title.cell.text, r, title.col, 0.8),
-            periodId,
+            periodId: ctx.periodId,
             stage: null,
             content: [],
             estimatedMinutes: null,
           });
-          a.teachingActivities.push(active);
+          a.teachingActivities.push(ctx.active);
           emit(
             block,
             title.cell.text,
@@ -956,9 +954,14 @@ export function classifyStructuredDocument(
         for (const resolved of resolvedEntries) {
           if (!resolved.text.trim()) continue;
           const mapping = resolved.mapping;
-          if (mapping && (active || !mapping.field.startsWith("activity."))) {
-            if (mapping.field === "specialNeedsSupport" && active)
-              (active.specialNeedsSupport ??= []).push(resolved.text.trim());
+          if (
+            mapping &&
+            (ctx.active || !mapping.field.startsWith("activity."))
+          ) {
+            if (mapping.field === "specialNeedsSupport" && ctx.active)
+              (ctx.active.specialNeedsSupport ??= []).push(
+                resolved.text.trim(),
+              );
             assign(
               block,
               resolved.text,
@@ -1007,7 +1010,7 @@ export function classifyStructuredDocument(
     else
       for (const text of block.items?.length ? block.items : [block.text ?? ""])
         paragraph(block, text);
-    line += (
+    ctx.line += (
       block.text ??
       block.table?.rows
         .map((r) => r.cells.map((c) => c.text).join("\t"))
