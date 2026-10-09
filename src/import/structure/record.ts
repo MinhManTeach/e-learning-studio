@@ -55,49 +55,9 @@ export function emit(
     tableIndex: ctx.tableIndices.get(block.id),
     periodId: ctx.periodId,
   };
-  if (
-    !isHeading &&
-    [
-      "LEARNING_OUTCOME",
-      "KNOWLEDGE",
-      "COMPETENCY",
-      "QUALITY",
-      "DIGITAL_COMPETENCY",
-      "AI_INTEGRATION",
-    ].includes(category)
-  ) {
-    c.isRequiredOutcome =
-      category === "LEARNING_OUTCOME" ||
-      ctx.stack.some((s) => s.category === "LEARNING_OUTCOME");
-    if (category === "COMPETENCY") {
-      const label = normalizeHeading(ctx.stack.at(-1)?.heading ?? "");
-      c.competencyKind = /nang luc chung$/.test(label)
-        ? "GENERAL"
-        : /nang luc (?:dac thu|.+)$/.test(label)
-          ? "SUBJECT_SPECIFIC"
-          : "UNSPECIFIED";
-    }
-  }
+  if (!isHeading) markOutcome(ctx, c, category);
   ctx.a.classifications.push(c);
-  let sourceLine = ctx.line;
-  if (row !== undefined && block.table) {
-    for (const previousRow of block.table.rows.slice(0, row))
-      sourceLine += previousRow.cells
-        .map((c) => c.text)
-        .join("\t")
-        .split("\n").length;
-    const cells = block.table.rows[row]?.cells ?? [];
-    const current = cells.find(
-      (c) => (c.column ?? cells.indexOf(c)) === column,
-    );
-    for (const cell of cells) {
-      if (cell === current) break;
-      sourceLine += cell.text.split("\n").length - 1;
-    }
-    const offset = current?.text.indexOf(sourceText) ?? -1;
-    if (offset > 0)
-      sourceLine += current!.text.slice(0, offset).split("\n").length - 1;
-  }
+  const sourceLine = sourceLineOf(ctx, block, sourceText, row, column);
   const activityTiming =
     isHeading &&
     ["WARMUP", "DISCOVERY", "PRACTICE", "APPLICATION"].includes(category) &&
@@ -181,4 +141,63 @@ export function assign(
     column,
     needsReview,
   );
+}
+
+const outcomeCategories: Category[] = [
+  "LEARNING_OUTCOME",
+  "KNOWLEDGE",
+  "COMPETENCY",
+  "QUALITY",
+  "DIGITAL_COMPETENCY",
+  "AI_INTEGRATION",
+];
+
+// Marks required-outcome and competency kind on outcome-like classifications.
+function markOutcome(
+  ctx: StructureContext,
+  c: BlockClassification,
+  category: Category,
+) {
+  if (!outcomeCategories.includes(category)) return;
+  c.isRequiredOutcome =
+    category === "LEARNING_OUTCOME" ||
+    ctx.stack.some((s) => s.category === "LEARNING_OUTCOME");
+  if (category === "COMPETENCY") {
+    const label = normalizeHeading(ctx.stack.at(-1)?.heading ?? "");
+    c.competencyKind = /nang luc chung$/.test(label)
+      ? "GENERAL"
+      : /nang luc (?:dac thu|.+)$/.test(label)
+        ? "SUBJECT_SPECIFIC"
+        : "UNSPECIFIED";
+  }
+}
+
+// 1-based source line of sourceText, counting table rows/cells before it.
+function sourceLineOf(
+  ctx: StructureContext,
+  block: LessonDocumentBlock,
+  sourceText: string,
+  row?: number,
+  column?: number,
+) {
+  let sourceLine = ctx.line;
+  if (row !== undefined && block.table) {
+    for (const previousRow of block.table.rows.slice(0, row))
+      sourceLine += previousRow.cells
+        .map((c) => c.text)
+        .join("\t")
+        .split("\n").length;
+    const cells = block.table.rows[row]?.cells ?? [];
+    const current = cells.find(
+      (c) => (c.column ?? cells.indexOf(c)) === column,
+    );
+    for (const cell of cells) {
+      if (cell === current) break;
+      sourceLine += cell.text.split("\n").length - 1;
+    }
+    const offset = current?.text.indexOf(sourceText) ?? -1;
+    if (offset > 0)
+      sourceLine += current!.text.slice(0, offset).split("\n").length - 1;
+  }
+  return sourceLine;
 }
