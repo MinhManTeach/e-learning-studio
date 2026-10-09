@@ -268,6 +268,9 @@ export function validateLessonBlueprint(
       );
   }
   for (const id of b.periodReview?.selectedPeriodIds ?? []) {
+    // Teachers see "Tiết N", never the internal period ID.
+    const number = analysis.teachingPeriods?.find((p) => p.id === id)?.number;
+    const label = number ? `Tiết ${number}` : "tiết đã chọn";
     const minutes = slides
       .filter((s) => s.plannedPeriodId === id)
       .reduce((n, s) => n + s.estimatedMinutes, 0);
@@ -275,7 +278,7 @@ export function validateLessonBlueprint(
       add(
         "PERIOD_TIME",
         "WARNING",
-        `Phân bổ trang trong tiết ${id}: ${minutes.toFixed(1)} phút; xác nhận ${b.periodReview!.minutesPerPeriod} phút.`,
+        `Phân bổ trang trong ${label}: ${minutes.toFixed(1)} phút; xác nhận ${b.periodReview!.minutesPerPeriod} phút.`,
       );
   }
   const budget = b.periodReview

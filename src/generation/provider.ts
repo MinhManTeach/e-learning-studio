@@ -32,6 +32,7 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
       url: string;
       altText: string;
     }[] = [];
+    const hasQuiz = b.proposedSlides.some((s) => s.type === "QUIZ");
     const slides: Slide[] = b.proposedSlides.map((s, i) => {
       const m = s.mediaIntent;
       const requested = !!m && m.type !== "NONE";
@@ -124,8 +125,10 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
         };
       if (slide.type === "completion")
         slide.data = {
-          message:
-            "Em đã đi hết bài học. Hãy xem kết quả bên dưới, ôn lại những ý cần củng cố và thử lại bài kiểm tra khi cần.",
+          // Only mention a quiz when the lesson actually has one.
+          message: hasQuiz
+            ? "Em đã đi hết bài học. Hãy xem kết quả bên dưới, ôn lại những ý cần củng cố và thử lại bài kiểm tra khi cần."
+            : "Em đã đi hết bài học. Hãy ôn lại những ý cần củng cố cùng thầy cô và các bạn.",
           reviewLabel: "Ôn lại bài",
           retryLabel: "Làm lại bài kiểm tra",
         };
