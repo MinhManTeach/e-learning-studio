@@ -113,10 +113,17 @@ export function integrateSourceAssessments(
         : [],
     },
   });
+  // b.warnings already holds validation results for the blueprint before
+  // source questions were attached. Drop those stale results (they would
+  // otherwise appear twice or no longer apply) and keep planning warnings.
+  const key = (w: BlueprintWarning) => `${w.severity}|${w.code}|${w.message}`;
+  const stale = new Set(validateLessonBlueprint(b, a).map(key));
   next.warnings = [
     ...validateLessonBlueprint(next, a),
     ...b.warnings.filter(
-      (w) => !["ASSESSMENT", "ASSESSMENT_GAP"].includes(w.code),
+      (w) =>
+        !stale.has(key(w)) &&
+        !["ASSESSMENT", "ASSESSMENT_GAP"].includes(w.code),
     ),
     ...warnings,
   ];

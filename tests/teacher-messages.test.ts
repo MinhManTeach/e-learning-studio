@@ -97,3 +97,14 @@ describe("blueprint outcome coverage", () => {
     ]);
   });
 });
+
+describe("blueprint warning list", () => {
+  it("lists each warning once", async () => {
+    const b = await new DeterministicLessonBlueprintProvider().generate(
+      confirmPeriods(periodAnalysis(), ["p1", "p3"], 2, 35),
+    );
+    const keys = b.warnings.map((w) => `${w.severity}|${w.code}|${w.message}`);
+    expect(keys.length).toBeGreaterThan(0);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
