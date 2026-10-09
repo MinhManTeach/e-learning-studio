@@ -1,6 +1,7 @@
 import type { Slide } from "../model/schema";
 import { useEffect, useRef, useState } from "react";
 import { wordCount } from "../quality/analyzer";
+import { ChoicePicture } from "./ChoicePicture";
 import { useLessonSession } from "../player/SessionContext";
 import {
   canRetry,
@@ -28,6 +29,7 @@ export function WarmupRenderer({ slide }: { slide: Slide }) {
               }
               aria-pressed={selected.includes(item.id)}
             >
+              <ChoicePicture assetId={item.imageAssetId} />
               {item.icon && <span aria-hidden="true">{item.icon}</span>}
               {item.label}
             </button>
@@ -98,6 +100,7 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
                     rt?.act({ type: "scenario", id: slide.id, choiceId: c.id })
                   }
                 >
+                  <ChoicePicture assetId={c.imageAssetId} />
                   <strong>{c.label}.</strong>
                   {c.text}
                 </button>
@@ -182,6 +185,7 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
                     })
                   }
                 />
+                <ChoicePicture assetId={o.imageAssetId} />
                 <span>{o.text}</span>
               </label>
             ))}

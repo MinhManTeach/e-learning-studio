@@ -515,3 +515,34 @@
   white-space: nowrap;
   border: 0;
 }
+/* Answer cards with a picture: picture on top, text below, cards side by side. */
+.phase1 .choice-picture {
+  width: 100%;
+  height: 13cqw;
+  max-height: none;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--lesson-button);
+}
+.activity-grid:has(.choice-picture) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16cqw), 1fr));
+}
+.activity-grid button:has(.choice-picture) {
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+.quiz-options:has(.choice-picture) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16cqw), 1fr));
+}
+.quiz-options label:has(.choice-picture) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "picture picture"
+    "radio text";
+  align-items: center;
+}
+.quiz-options label:has(.choice-picture) .choice-picture {
+  grid-area: picture;
+}

@@ -40,3 +40,20 @@ export function packagedImageResolver(
     return { url: asset.url, error: "", loading: false };
   };
 }
+
+/**
+ * Teacher-typed addresses must be web URLs. `local` URLs come from the app itself:
+ * blob: for files stored on this device, file: for an unzipped package.
+ */
+export function isDisplayableUrl(url: string, local: boolean) {
+  try {
+    const protocol = new URL(url).protocol;
+    return (
+      protocol === "http:" ||
+      protocol === "https:" ||
+      (local && (protocol === "blob:" || protocol === "file:"))
+    );
+  } catch {
+    return false;
+  }
+}

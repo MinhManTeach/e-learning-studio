@@ -52,9 +52,20 @@ const pageName = (p: LessonProject, slideId: string) => {
 /** Images and videos students will actually see, with the first page showing each. */
 function shownMedia(p: LessonProject) {
   const used = new Map<string, string>(); // assetId -> first slide id
-  for (const s of p.slides)
-    if (s.media.enabled && s.media.assetId && !used.has(s.media.assetId))
-      used.set(s.media.assetId, s.id);
+  const use = (id: string | null | undefined, slideId: string) => {
+    if (id && !used.has(id)) used.set(id, slideId);
+  };
+  for (const s of p.slides) {
+    if (s.media.enabled) use(s.media.assetId, s.id);
+    // Pictures on answer cards.
+    if (s.type === "warmup")
+      for (const item of s.data.items) use(item.imageAssetId, s.id);
+    if (s.type === "scenario")
+      for (const choice of s.data.choices) use(choice.imageAssetId, s.id);
+    if (s.type === "quiz")
+      for (const q of s.data.questions)
+        for (const o of q.options) use(o.imageAssetId, s.id);
+  }
   return [...used].flatMap(([id, slideId]) => {
     const asset = p.assets.find(
       (a) => a.id === id && (a.kind === "IMAGE" || a.kind === "VIDEO"),

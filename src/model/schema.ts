@@ -95,10 +95,13 @@ export const basicDataSchema = z.object({
   keywords: lines,
   keyTakeaway: text,
 });
+// Optional picture shown on an answer card (an IMAGE asset of the lesson).
+const choicePicture = z.string().min(1).optional();
 export const warmupItemSchema = z.object({
   id: z.string().min(1),
   label: text,
   icon: text,
+  imageAssetId: choicePicture,
   isValid: z.boolean().default(true),
   feedback: text,
 });
@@ -106,6 +109,7 @@ export const scenarioChoiceSchema = z.object({
   id: z.string().min(1),
   label: text,
   text: text,
+  imageAssetId: choicePicture,
   isRecommended: z.boolean(),
   feedback: text,
   consequence: text,
@@ -117,7 +121,13 @@ export const questionSchema = z
     level: z.enum(levels),
     prompt: text,
     options: z
-      .array(z.object({ id: z.string().min(1), text: text }))
+      .array(
+        z.object({
+          id: z.string().min(1),
+          text: text,
+          imageAssetId: choicePicture,
+        }),
+      )
       .min(2)
       .max(6),
     correctAnswerIndex: z.number().int().nonnegative(),

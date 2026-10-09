@@ -3,7 +3,8 @@ import { BookOpen, ImageOff } from "lucide-react";
 import type { LessonProject, Slide } from "../model/schema";
 import { effectiveLayout, stageLabels } from "../model/analysis";
 import { slideRegistry } from "../slides/registry";
-import { useImageResolver } from "../media/imageResolver";
+import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
+import { LessonProjectContext } from "./lessonContext";
 export { slideRegistry } from "../slides/registry";
 export function LessonImage({
   url,
@@ -17,16 +18,7 @@ export function LessonImage({
   local?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
-  let allowed = false;
-  try {
-    // Teacher-typed URLs must be web URLs. `local` URLs come from the app itself:
-    // blob: for images stored on this device, file: for an unzipped package.
-    allowed =
-      ["http:", "https:"].includes(new URL(url).protocol) ||
-      (local && ["blob:", "file:"].includes(new URL(url).protocol));
-  } catch {
-    /* Invalid URLs render safe fallback. */
-  }
+  const allowed = isDisplayableUrl(url, local);
   return (
     <figure>
       {allowed && !failed ? (
@@ -70,14 +62,7 @@ export function LessonVideo({
   local?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
-  let allowed = false;
-  try {
-    allowed =
-      ["http:", "https:"].includes(new URL(url).protocol) ||
-      (local && ["blob:", "file:"].includes(new URL(url).protocol));
-  } catch {
-    /* Invalid URLs render safe fallback. */
-  }
+  const allowed = isDisplayableUrl(url, local);
   return (
     <figure className="lesson-video">
       {allowed && !failed ? (
@@ -147,64 +132,69 @@ export function SlideCanvas({
       )
     ) : null;
   return (
-    <div
-      className="canvas"
-      data-theme={project.settings.theme}
-      data-contrast={slide?.accessibility.highContrast ? "high" : undefined}
-      aria-label="Nội dung trang bài giảng"
-    >
-      {slide && Renderer && layout === "MEDIA_COVER" && image ? (
-        // The teacher's own slide picture (or a video) fills the 16:9 page; the
-        // text stays in the page for screen readers, read-aloud and search.
-        <article
-          className={"lesson phase1 cover " + slide.type}
-          style={
-            {
-              "--font-scale": slide.accessibility.fontScale * fontBoost,
-            } as React.CSSProperties
-          }
-        >
-          <h1 className="visually-hidden">{slide.title}</h1>
-          <div className="cover-media">{image}</div>
-          <div className="visually-hidden">
-            <Renderer key={slide.id} slide={slide} />
-          </div>
-        </article>
-      ) : slide && Renderer ? (
-        <article
-          className={"lesson phase1 " + slide.type}
-          style={
-            {
-              "--font-scale": slide.accessibility.fontScale * fontBoost,
-            } as React.CSSProperties
-          }
-        >
-          <div className="lesson-tag">
-            {slide.pedagogicalStage
-              ? stageLabels[slide.pedagogicalStage]
-              : slide.stepName}
-          </div>
-          <h1>{slide.title}</h1>
-          {slide.subtitle && (
-            <p className="lesson-subtitle">{slide.subtitle}</p>
-          )}
-          {resolved.error && <p role="alert">{resolved.error}</p>}
-          <div className={"slide-layout layout-" + layout} data-layout={layout}>
-            {layout !== "TEXT_ONLY" && image && (
-              <div className="layout-media">{image}</div>
-            )}
-            <div className="layout-text">
+    <LessonProjectContext.Provider value={project}>
+      <div
+        className="canvas"
+        data-theme={project.settings.theme}
+        data-contrast={slide?.accessibility.highContrast ? "high" : undefined}
+        aria-label="Nội dung trang bài giảng"
+      >
+        {slide && Renderer && layout === "MEDIA_COVER" && image ? (
+          // The teacher's own slide picture (or a video) fills the 16:9 page; the
+          // text stays in the page for screen readers, read-aloud and search.
+          <article
+            className={"lesson phase1 cover " + slide.type}
+            style={
+              {
+                "--font-scale": slide.accessibility.fontScale * fontBoost,
+              } as React.CSSProperties
+            }
+          >
+            <h1 className="visually-hidden">{slide.title}</h1>
+            <div className="cover-media">{image}</div>
+            <div className="visually-hidden">
               <Renderer key={slide.id} slide={slide} />
             </div>
+          </article>
+        ) : slide && Renderer ? (
+          <article
+            className={"lesson phase1 " + slide.type}
+            style={
+              {
+                "--font-scale": slide.accessibility.fontScale * fontBoost,
+              } as React.CSSProperties
+            }
+          >
+            <div className="lesson-tag">
+              {slide.pedagogicalStage
+                ? stageLabels[slide.pedagogicalStage]
+                : slide.stepName}
+            </div>
+            <h1>{slide.title}</h1>
+            {slide.subtitle && (
+              <p className="lesson-subtitle">{slide.subtitle}</p>
+            )}
+            {resolved.error && <p role="alert">{resolved.error}</p>}
+            <div
+              className={"slide-layout layout-" + layout}
+              data-layout={layout}
+            >
+              {layout !== "TEXT_ONLY" && image && (
+                <div className="layout-media">{image}</div>
+              )}
+              <div className="layout-text">
+                <Renderer key={slide.id} slide={slide} />
+              </div>
+            </div>
+          </article>
+        ) : (
+          <div className="empty-canvas">
+            <BookOpen size={42} />
+            <h2>Không gian cho bài học của bạn</h2>
+            <p>Chọn một trang hoặc thêm trang mới để bắt đầu.</p>
           </div>
-        </article>
-      ) : (
-        <div className="empty-canvas">
-          <BookOpen size={42} />
-          <h2>Không gian cho bài học của bạn</h2>
-          <p>Chọn một trang hoặc thêm trang mới để bắt đầu.</p>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </LessonProjectContext.Provider>
   );
 }
