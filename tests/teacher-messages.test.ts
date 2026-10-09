@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { periodAnalysis } from "./support/phase2g4Fixture";
 import { generationFixture } from "./support/phase2cFixture";
 import { confirmPeriods } from "../src/blueprint/periods";
+import { validateLessonBlueprint } from "../src/blueprint/validation";
 import { DeterministicLessonBlueprintProvider } from "../src/blueprint/generator";
 import { DeterministicLessonGenerationProvider } from "../src/generation/provider";
 import { LessonGenerationService } from "../src/generation/service";
@@ -73,5 +74,26 @@ describe("generation warnings", () => {
     expect(slideLevel.length).toBeGreaterThan(0);
     for (const w of slideLevel)
       expect(titles.some((t) => w.message.includes(`“${t}”`))).toBe(true);
+  });
+});
+
+describe("blueprint outcome coverage", () => {
+  it("names each requirement that no activity slide covers", async () => {
+    const a = periodAnalysis();
+    a.learningOutcomes = [
+      "Thực hiện thao tác nháy chuột",
+      "Khởi động được máy tính",
+    ];
+    const b = await new DeterministicLessonBlueprintProvider().generate(
+      confirmPeriods(a, ["p1"], 1, 35),
+    );
+    for (const s of b.proposedSlides) s.sourceOutcomeIds = [];
+    const uncovered = validateLessonBlueprint(b, a).filter(
+      (w) => w.code === "UNCOVERED_OUTCOME",
+    );
+    expect(uncovered.map((w) => w.message)).toEqual([
+      expect.stringContaining("Thực hiện thao tác nháy chuột"),
+      expect.stringContaining("Khởi động được máy tính"),
+    ]);
   });
 });

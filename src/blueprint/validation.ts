@@ -246,7 +246,7 @@ export function validateLessonBlueprint(
       add(
         "UNCOVERED_OUTCOME",
         "WARNING",
-        "Có yêu cầu cần đạt chưa được thể hiện trong kịch bản.",
+        `Yêu cầu cần đạt chưa có trang hoạt động: “${shorten(o.text)}”.`,
       );
     if (experiences.length > 4)
       add(
@@ -373,4 +373,8 @@ export function initialCoverage(a: PedagogicalAnalysis) {
     slideIds: [] as string[],
     level: outcomeLevel(o.text),
   }));
+}
+function shorten(text: string, max = 90) {
+  const t = text.trim().replace(/^[-•*–]\s*/, "");
+  return t.length > max ? t.slice(0, max - 1).trimEnd() + "…" : t;
 }
