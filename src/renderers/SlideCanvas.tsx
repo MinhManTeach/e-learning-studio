@@ -60,9 +60,12 @@ export function LessonImage({
 export function SlideCanvas({
   slide,
   project,
+  fontBoost = 1,
 }: {
   slide: Slide | undefined;
   project: LessonProject;
+  /** Extra text size chosen by the student in the exported player. */
+  fontBoost?: number;
 }) {
   const Renderer = slide ? slideRegistry[slide.type].Renderer : null;
   const asset = slide?.media.enabled
@@ -103,7 +106,7 @@ export function SlideCanvas({
           className={"lesson phase1 " + slide.type}
           style={
             {
-              "--font-scale": slide.accessibility.fontScale,
+              "--font-scale": slide.accessibility.fontScale * fontBoost,
             } as React.CSSProperties
           }
         >
