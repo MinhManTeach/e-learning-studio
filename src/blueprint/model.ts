@@ -176,13 +176,34 @@ export interface BlueprintSettings {
 // Analysis 1.0 stores outcomes as strings. IDs retain the original field/index in the
 // confirmed snapshot; blueprint edits never mutate or re-index that snapshot.
 export function outcomeCatalog(a: PedagogicalAnalysis) {
-  const field = a.learningOutcomes.some((x) => x.trim())
-    ? "learningOutcomes"
-    : "knowledgeObjectives";
-  return a[field]
-    .map((text, i) => ({ id: `${a.id}:${field}:${i + 1}`, text }))
-    .filter((o) => o.text.trim());
+  const entries = (field: OutcomeField, keep = (_: number) => true) =>
+    a[field]
+      .map((text, i) => ({ id: `${a.id}:${field}:${i + 1}`, text, i }))
+      .filter((o) => o.text.trim() && keep(o.i))
+      .map(({ id, text }) => ({ id, text }));
+  if (a.learningOutcomes.some((x) => x.trim()))
+    return entries("learningOutcomes");
+  if (a.knowledgeObjectives.some((x) => x.trim()))
+    return entries("knowledgeObjectives");
+  // GDPT 2018 plans often state the measurable requirements only under
+  // "Năng lực đặc thù / Năng lực <môn>" inside "Yêu cầu cần đạt". Use those,
+  // never general competencies (tự chủ, giao tiếp…) or unreviewed lines.
+  const subjectSpecific = new Set(
+    a.classifications
+      .filter(
+        (c) =>
+          !c.isHeading &&
+          !c.needsReview &&
+          c.isRequiredOutcome &&
+          c.category === "COMPETENCY" &&
+          c.competencyKind === "SUBJECT_SPECIFIC",
+      )
+      .map((c) => Number(/^competencies\[(\d+)\]$/.exec(c.field)?.[1]))
+      .filter(Number.isInteger),
+  );
+  return entries("competencies", (i) => subjectSpecific.has(i));
 }
+type OutcomeField = "learningOutcomes" | "knowledgeObjectives" | "competencies";
 export function outcomeLevel(
   text: string,
 ): AssessmentPlan["coverage"][number]["level"] {
