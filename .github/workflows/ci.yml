@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**", "feature/**", "fix/**", "refactor/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # README: Node.js 22.12+ or 24 LTS.
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check formatting of changed sources
+        run: npx prettier --check "src/**/*.{ts,tsx,css}" "tests/**/*.{ts,tsx}" "server/**/*.ts"
+      - run: npm test
+      - run: npm run build
