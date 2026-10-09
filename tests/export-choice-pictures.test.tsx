@@ -125,3 +125,19 @@ it("keeps answer pictures when the lesson is saved and reopened", () => {
     "pose-b",
   );
 });
+
+it("does not draw an empty situation box when a scenario has no situation text", () => {
+  const p = lesson();
+  const scenario = createSlide("scenario");
+  scenario.data.situation = "";
+  p.slides = [scenario];
+  const { container, rerender } = render(
+    <SlideCanvas slide={p.slides[0]} project={p} />,
+  );
+  expect(container.querySelector(".scenario-situation")).toBeNull();
+  scenario.data.situation = "Ba bạn đang ngồi trong phòng máy.";
+  rerender(<SlideCanvas slide={scenario} project={p} />);
+  expect(container.querySelector(".scenario-situation")?.textContent).toBe(
+    "Ba bạn đang ngồi trong phòng máy.",
+  );
+});

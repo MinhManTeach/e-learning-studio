@@ -72,7 +72,7 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
       <p className="scenario-context">
         {slide.data.character} · {slide.data.context}
       </p>
-      {(!showDecision || !stepped) && (
+      {(!showDecision || !stepped) && slide.data.situation.trim() && (
         <p className="scenario-situation">{slide.data.situation}</p>
       )}
       {stepped && !showDecision && (
