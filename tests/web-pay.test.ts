@@ -31,7 +31,12 @@ it("signs a payment request like the official PayOS library", () => {
 });
 
 it("signs webhook data with sorted keys and empty strings for nulls", () => {
-  const data = { orderCode: 5, amount: 49000, code: "00", counterAccountName: null };
+  const data = {
+    orderCode: 5,
+    amount: 49000,
+    code: "00",
+    counterAccountName: null,
+  };
   expect(signObject(data, checksumKey)).toBe(
     createHmac("sha256", checksumKey)
       .update("amount=49000&code=00&counterAccountName=&orderCode=5")
@@ -43,8 +48,12 @@ it("accepts only webhooks signed with our checksum key", () => {
   const data = { orderCode: 5, amount: 49000, code: "00", desc: "success" };
   const signature = signObject(data, checksumKey);
   expect(verifyWebhook({ data, signature }, checksumKey)?.orderCode).toBe(5);
-  expect(verifyWebhook({ data: { ...data, amount: 1 }, signature }, checksumKey)).toBeNull();
-  expect(verifyWebhook({ data, signature: signObject(data, "other") }, checksumKey)).toBeNull();
+  expect(
+    verifyWebhook({ data: { ...data, amount: 1 }, signature }, checksumKey),
+  ).toBeNull();
+  expect(
+    verifyWebhook({ data, signature: signObject(data, "other") }, checksumKey),
+  ).toBeNull();
   expect(verifyWebhook({ data }, checksumKey)).toBeNull();
   expect(verifyWebhook("junk", checksumKey)).toBeNull();
 });
@@ -53,7 +62,11 @@ it("accepts only webhooks signed with our checksum key", () => {
 let store: Store;
 let server: Server;
 let base = "";
-let payosCalls: { url: string; headers: Record<string, string>; body: Record<string, unknown> }[] = [];
+let payosCalls: {
+  url: string;
+  headers: Record<string, string>;
+  body: Record<string, unknown>;
+}[] = [];
 let handler: ReturnType<typeof createWebHandler> = () => Promise.resolve();
 beforeAll(async () => {
   server = createServer((req, res) => void handler(req, res));
@@ -79,7 +92,10 @@ function setup(payos = true) {
       JSON.stringify({
         code: "00",
         desc: "success",
-        data: { checkoutUrl: "https://pay.payos.vn/web/abc", qrCode: "000201..." },
+        data: {
+          checkoutUrl: "https://pay.payos.vn/web/abc",
+          qrCode: "000201...",
+        },
       }),
     );
   }) as unknown as typeof fetch;
@@ -104,7 +120,11 @@ function setup(payos = true) {
   const session = `gv_session=${store.createSession(user.id, 86_400_000)}`;
   return { user, session };
 }
-const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
+const post = (
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+) =>
   fetch(`${base}${path}`, {
     method: "POST",
     headers: { origin: base, "content-type": "application/json", ...headers },
@@ -113,14 +133,20 @@ const post = (path: string, body: unknown, headers: Record<string, string> = {})
 
 it("lists the plans only when payments are set up", async () => {
   setup();
-  expect((await (await fetch(`${base}/api/plans`)).json()).plans).toEqual(plans);
+  expect((await (await fetch(`${base}/api/plans`)).json()).plans).toEqual(
+    plans,
+  );
   setup(false);
   expect((await (await fetch(`${base}/api/plans`)).json()).plans).toEqual([]);
 });
 
 it("creates a signed PayOS link for a signed-in teacher's chosen plan", async () => {
   const { user, session } = setup();
-  const res = await post("/api/pay/create", { plan: "TEACHER_MONTH" }, { cookie: session });
+  const res = await post(
+    "/api/pay/create",
+    { plan: "TEACHER_MONTH" },
+    { cookie: session },
+  );
   expect(res.status).toBe(200);
   const out = await res.json();
   expect(out.checkoutUrl).toBe("https://pay.payos.vn/web/abc");
@@ -135,7 +161,10 @@ it("creates a signed PayOS link for a signed-in teacher's chosen plan", async ()
   });
   expect(String(call.body.description).length).toBeLessThanOrEqual(25);
   expect(call.body.signature).toBe(
-    signPaymentRequest(call.body as Parameters<typeof signPaymentRequest>[0], checksumKey),
+    signPaymentRequest(
+      call.body as Parameters<typeof signPaymentRequest>[0],
+      checksumKey,
+    ),
   );
   expect(store.payment(out.orderCode)).toMatchObject({
     userId: user.id,
@@ -146,26 +175,68 @@ it("creates a signed PayOS link for a signed-in teacher's chosen plan", async ()
 
 it("refuses to sell without sign-in, from another site, or an unknown plan", async () => {
   const { session } = setup();
-  expect((await post("/api/pay/create", { plan: "TEACHER_MONTH" })).status).toBe(401);
   expect(
-    (await post("/api/pay/create", { plan: "TEACHER_MONTH" }, { cookie: session, origin: "https://evil.example" })).status,
+    (await post("/api/pay/create", { plan: "TEACHER_MONTH" })).status,
+  ).toBe(401);
+  expect(
+    (
+      await post(
+        "/api/pay/create",
+        { plan: "TEACHER_MONTH" },
+        { cookie: session, origin: "https://evil.example" },
+      )
+    ).status,
   ).toBe(403);
-  expect((await post("/api/pay/create", { plan: "FREE_FOREVER" }, { cookie: session })).status).toBe(400);
+  expect(
+    (
+      await post(
+        "/api/pay/create",
+        { plan: "FREE_FOREVER" },
+        { cookie: session },
+      )
+    ).status,
+  ).toBe(400);
 });
 
 it("adds credits when PayOS confirms the transfer, once, and ignores forged webhooks", async () => {
   const { user, session } = setup();
   const { orderCode } = await (
-    await post("/api/pay/create", { plan: "TEACHER_MONTH" }, { cookie: session })
+    await post(
+      "/api/pay/create",
+      { plan: "TEACHER_MONTH" },
+      { cookie: session },
+    )
   ).json();
-  const data = { orderCode, amount: 49000, code: "00", desc: "success", reference: "FT1" };
-  const forged = await post("/api/pay/webhook", { data, signature: "0".repeat(64) }, { origin: "https://payos.vn" });
+  const data = {
+    orderCode,
+    amount: 49000,
+    code: "00",
+    desc: "success",
+    reference: "FT1",
+  };
+  const forged = await post(
+    "/api/pay/webhook",
+    { data, signature: "0".repeat(64) },
+    { origin: "https://payos.vn" },
+  );
   expect(forged.status).toBe(400);
   expect(store.balance(user.id)).toBe(0);
-  const real = { code: "00", desc: "success", success: true, data, signature: signObject(data, checksumKey) };
+  const real = {
+    code: "00",
+    desc: "success",
+    success: true,
+    data,
+    signature: signObject(data, checksumKey),
+  };
   // PayOS posts from its own servers: no Origin of ours, yet it is accepted.
-  expect((await post("/api/pay/webhook", real, { origin: "https://payos.vn" })).status).toBe(200);
-  expect((await post("/api/pay/webhook", real, { origin: "https://payos.vn" })).status).toBe(200);
+  expect(
+    (await post("/api/pay/webhook", real, { origin: "https://payos.vn" }))
+      .status,
+  ).toBe(200);
+  expect(
+    (await post("/api/pay/webhook", real, { origin: "https://payos.vn" }))
+      .status,
+  ).toBe(200);
   expect(store.balance(user.id)).toBe(50);
   expect(store.payment(orderCode)?.status).toBe("PAID");
 });
@@ -176,9 +247,20 @@ it("does not add credits for a short payment, and answers PayOS's webhook test",
     await post("/api/pay/create", { plan: "TEACHER_YEAR" }, { cookie: session })
   ).json();
   const short = { orderCode, amount: 49000, code: "00" };
-  await post("/api/pay/webhook", { data: short, signature: signObject(short, checksumKey) });
+  await post("/api/pay/webhook", {
+    data: short,
+    signature: signObject(short, checksumKey),
+  });
   expect(store.balance(user.id)).toBe(0);
-  const test = { orderCode: 123, amount: 3000, code: "00", description: "VQRIO123" };
-  const res = await post("/api/pay/webhook", { data: test, signature: signObject(test, checksumKey) });
+  const test = {
+    orderCode: 123,
+    amount: 3000,
+    code: "00",
+    description: "VQRIO123",
+  };
+  const res = await post("/api/pay/webhook", {
+    data: test,
+    signature: signObject(test, checksumKey),
+  });
   expect(res.status).toBe(200);
 });

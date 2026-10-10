@@ -43,7 +43,11 @@ export function signPaymentRequest(
 /** Signature of a data object: keys sorted, null as "", arrays as JSON. */
 export function signObject(data: Record<string, unknown>, key: string) {
   const sortKeys = (o: Record<string, unknown>) =>
-    Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]]));
+    Object.fromEntries(
+      Object.keys(o)
+        .sort()
+        .map((k) => [k, o[k]]),
+    );
   const text = Object.keys(data)
     .sort()
     .filter((k) => data[k] !== undefined)

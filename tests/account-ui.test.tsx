@@ -126,10 +126,20 @@ it("lets a signed-in teacher pick a plan and go on to the PayOS QR page", async 
   const fetcher = (async (url: string, init?: RequestInit) => {
     calls.push(url + (init?.body ? " " + String(init.body) : ""));
     if (url === "/api/me")
-      return json({ user: { name: "Cô Lan", email: "a@b.c", picture: "" }, credits: 0 });
+      return json({
+        user: { name: "Cô Lan", email: "a@b.c", picture: "" },
+        credits: 0,
+      });
     if (url === "/api/plans")
       return json({
-        plans: [{ id: "TEACHER_MONTH", name: "Gói tháng", amount: 49000, credits: 50 }],
+        plans: [
+          {
+            id: "TEACHER_MONTH",
+            name: "Gói tháng",
+            amount: 49000,
+            credits: 50,
+          },
+        ],
       });
     return json({ orderCode: 1, checkoutUrl: "https://pay.payos.vn/web/abc" });
   }) as unknown as typeof fetch;
@@ -138,8 +148,16 @@ it("lets a signed-in teacher pick a plan and go on to the PayOS QR page", async 
   fireEvent.click(await screen.findByRole("button", { name: "Mua thêm lượt" }));
   expect(await screen.findByText(/50 lượt · 49\.000đ/)).toBeTruthy();
   cleanup();
-  render(<BuyCredits fetcher={fetcher} onClose={() => {}} go={(u) => went.push(u)} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Thanh toán bằng QR" }));
+  render(
+    <BuyCredits
+      fetcher={fetcher}
+      onClose={() => {}}
+      go={(u) => went.push(u)}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Thanh toán bằng QR" }),
+  );
   await screen.findByRole("button", { name: /Đang tạo mã|Thanh toán bằng QR/ });
   await new Promise((r) => setTimeout(r, 0));
   expect(calls).toContain('/api/pay/create {"plan":"TEACHER_MONTH"}');

@@ -11,7 +11,8 @@ export function returnNotice(search: string) {
   if (q.get("login") === "failed")
     return "Đăng nhập chưa thành công. Hãy thử lại.";
   const paid = q.get("paid");
-  if (paid === "cancelled") return "Đã huỷ thanh toán. Chưa có khoản nào bị trừ.";
+  if (paid === "cancelled")
+    return "Đã huỷ thanh toán. Chưa có khoản nào bị trừ.";
   if (paid && /^\d+$/.test(paid))
     return "Cảm ơn thầy cô! Lượt AI được cộng ngay khi ngân hàng báo đã nhận tiền (thường vài giây). Tải lại trang nếu chưa thấy.";
   return "";
@@ -58,7 +59,9 @@ export function AccountBar({
           {notice}
         </span>
       )}
-      {buying && <BuyCredits fetcher={fetcher} onClose={() => setBuying(false)} />}
+      {buying && (
+        <BuyCredits fetcher={fetcher} onClose={() => setBuying(false)} />
+      )}
       <span className="account-credits" title="Lượt dùng AI thiết kế bài giảng">
         <Sparkles size={15} /> {account.credits} lượt AI
       </span>

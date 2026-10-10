@@ -54,7 +54,12 @@ export function BuyCredits({
   }
   return (
     <div className="modal-overlay">
-      <div className="modal buy-credits" role="dialog" aria-modal="true" aria-label="Mua thêm lượt AI">
+      <div
+        className="modal buy-credits"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mua thêm lượt AI"
+      >
         <div className="ai-head">
           <h2>Mua thêm lượt AI</h2>
           <button aria-label="Đóng" onClick={onClose}>
@@ -77,7 +82,11 @@ export function BuyCredits({
                 <span>
                   {p.credits} lượt · {money(p.amount)}
                 </span>
-                <button className="primary" disabled={!!busy} onClick={() => void buy(p)}>
+                <button
+                  className="primary"
+                  disabled={!!busy}
+                  onClick={() => void buy(p)}
+                >
                   {busy === p.id ? "Đang tạo mã…" : "Thanh toán bằng QR"}
                 </button>
               </li>
