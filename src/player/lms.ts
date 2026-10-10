@@ -48,11 +48,12 @@ function searchParents<K extends "API" | "API_1484_11">(
   key: K,
   start: ApiWindow | null | undefined,
   maxHops: number,
-): ApiWindow[K] | null {
+): NonNullable<ApiWindow[K]> | null {
   let win = start;
   for (let hop = 0; win && hop <= maxHops; hop++) {
     try {
-      if (win[key]) return win[key];
+      const api = win[key];
+      if (api) return api as NonNullable<ApiWindow[K]>;
       if (!win.parent || win.parent === win) return null;
       win = win.parent;
     } catch {
