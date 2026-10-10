@@ -2,6 +2,8 @@ import type { Slide } from "../model/schema";
 import { useEffect, useRef, useState } from "react";
 import { wordCount } from "../quality/analyzer";
 import { ChoicePicture } from "./ChoicePicture";
+import { certificateStatus } from "../player/certificate";
+import { CertificateDialog } from "../player/CertificateDialog";
 import { useLessonSession } from "../player/SessionContext";
 import {
   canRetry,
@@ -240,7 +242,9 @@ const stateLabels = {
 };
 export function CompletionRenderer({ slide }: { slide: Slide }) {
   const rt = useLessonSession();
+  const [certificateOpen, setCertificateOpen] = useState(false);
   if (slide.type !== "completion") return null;
+  const certificate = rt ? certificateStatus(rt.project, rt.session) : null;
   const result = rt ? aggregateQuiz(rt.project, rt.session) : null;
   const completion = rt
     ? deriveCompletionState(rt.project, rt.session)
@@ -275,8 +279,25 @@ export function CompletionRenderer({ slide }: { slide: Slide }) {
         {retryAvailable && (
           <button onClick={() => rt?.retry()}>{slide.data.retryLabel}</button>
         )}
-        <button disabled>Nhận giấy chứng nhận · Sắp có</button>
+        <button
+          disabled={!certificate?.eligible}
+          onClick={() => setCertificateOpen(true)}
+        >
+          Nhận giấy chứng nhận
+        </button>
       </div>
+      {certificate && !certificate.eligible && (
+        <p className="hint">{certificate.reason}</p>
+      )}
+      {rt && certificate?.eligible && certificateOpen && (
+        <CertificateDialog
+          project={rt.project}
+          score={certificate.score}
+          hasQuiz={certificate.hasQuiz}
+          defaultName={rt.studentName ?? ""}
+          onClose={() => setCertificateOpen(false)}
+        />
+      )}
     </div>
   );
 }

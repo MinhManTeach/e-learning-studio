@@ -546,3 +546,99 @@
 .quiz-options label:has(.choice-picture) .choice-picture {
   grid-area: picture;
 }
+/* Certificate of completion: a dialog over the lesson, printable on its own. */
+.certificate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #102a2466;
+  overflow: auto;
+}
+.certificate-panel {
+  width: min(760px, 100%);
+  background: #fff;
+  color: #16332c;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 20px 60px #0f2a2340;
+  text-align: left;
+  font-size: 15px;
+}
+.certificate-name {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.certificate-name input {
+  font-size: 17px;
+}
+.certificate {
+  text-align: center;
+  background: #fffdf6;
+  border: 6px solid #1d705b;
+  outline: 2px solid #c9a227;
+  outline-offset: -14px;
+  border-radius: 6px;
+  padding: 28px 24px;
+  line-height: 1.5;
+}
+.certificate p {
+  margin: 4px 0;
+  white-space: normal;
+}
+.certificate-icon {
+  width: 40px;
+  height: 40px;
+  color: #c9a227;
+}
+.certificate-kicker {
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #1d705b;
+  font-size: 20px;
+}
+.certificate-student {
+  font-size: 30px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.certificate-lesson {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1d705b;
+}
+.certificate-score {
+  font-weight: 700;
+  font-size: 18px;
+}
+.certificate-footer {
+  color: #4b5e58;
+  font-size: 13px;
+}
+.certificate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+@media print {
+  body.printing-certificate * {
+    visibility: hidden;
+  }
+  body.printing-certificate .certificate,
+  body.printing-certificate .certificate * {
+    visibility: visible;
+  }
+  body.printing-certificate .certificate {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    display: grid;
+    align-content: center;
+  }
+}

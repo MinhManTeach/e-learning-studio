@@ -53,6 +53,7 @@ export function LessonPlayer({
   lms: LmsAdapter;
 }) {
   const [initial] = useState(() => restore(project, lms));
+  const [studentName] = useState(() => lms.studentName());
   const [session, setSession] = useState<LessonSessionState>(initial.state);
   const [resumedAt, setResumedAt] = useState(initial.resumedAt);
   const [tocOpen, setTocOpen] = useState(wideScreen);
@@ -146,7 +147,7 @@ export function LessonPlayer({
 
   return (
     <SessionContext.Provider
-      value={{ project: shown, session, act, review, retry }}
+      value={{ project: shown, session, act, review, retry, studentName }}
     >
       <main className="student-preview lesson-player" ref={root}>
         <header className="player-bar">

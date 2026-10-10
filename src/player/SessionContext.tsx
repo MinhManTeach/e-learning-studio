@@ -7,5 +7,7 @@ export const SessionContext = createContext<{
   act: (a: SessionAction) => void;
   review: () => void;
   retry: () => void;
+  /** The learner's name from the LMS, used to fill in the certificate. */
+  studentName?: string;
 } | null>(null);
 export const useLessonSession = () => useContext(SessionContext);
