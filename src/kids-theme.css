@@ -551,3 +551,14 @@
     opacity: 0;
   }
 }
+/* Cards already placed right stay bright (they are locked, not unavailable). */
+.canvas[data-theme="KIDS"] .phase1 .activity-card.right:disabled,
+.canvas[data-theme="KIDS"]
+  .phase1
+  .order-slots
+  li.right
+  .activity-card:disabled {
+  opacity: 1;
+  color: var(--kid-ink);
+  background: color-mix(in srgb, var(--right) 12%, white);
+}
