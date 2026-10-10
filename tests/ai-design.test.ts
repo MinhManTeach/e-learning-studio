@@ -227,3 +227,31 @@ it("puts the Nên column first when the AI listed Không nên first", () => {
     ["Shut down", 0],
   ]);
 });
+
+it("tidies the titles of pages it does not redesign, when the teacher agrees", () => {
+  const project = aiLesson();
+  const plan = designPlanSchema.parse({
+    pages: [
+      { id: "s-cover", title: "Khám phá", design: "KEEP" },
+      { id: "s-quiz", title: "Luyện tập", design: "KEEP" },
+      { id: "s-steps", title: "Trang 9", design: "KEEP" },
+    ],
+  });
+  const keep = applyDesign(project, plan, {
+    pages: new Set(),
+    activities: new Set(),
+  });
+  expect(keep.slides[0].title).toBe("Trang 12");
+  const next = applyDesign(project, plan, {
+    pages: new Set(),
+    activities: new Set(),
+    titles: true,
+  });
+  // Quiz titles and "Trang N" answers are left alone.
+  expect(next.slides.map((s) => s.title).slice(0, 4)).toEqual([
+    "Khám phá",
+    "HOẠT ĐỘNG 1: KHỞI ĐỘNG",
+    "5 THAO TÁC CƠ BẢN VỚI CHUỘT",
+    "Câu hỏi",
+  ]);
+});

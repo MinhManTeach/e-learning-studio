@@ -83,6 +83,7 @@ it("proposes page designs and activities in one call, lets the teacher choose, t
   expect(screen.getByText("Hai cột so sánh")).toBeTruthy();
   expect(screen.getByText("1. Nháy Start")).toBeTruthy();
   expect(screen.getByText(/đáp án: Đúng/)).toBeTruthy();
+  expect(screen.getByText(/Sửa tiêu đề 1 trang khác/)).toBeTruthy();
   // The teacher drops the scenario.
   fireEvent.click(
     screen.getByRole("checkbox", { name: "Thêm hoạt động Bạn An ngồi học" }),

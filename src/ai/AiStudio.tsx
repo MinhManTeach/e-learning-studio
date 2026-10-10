@@ -8,6 +8,7 @@ import {
   designLabels,
   designPlanSchema,
   redesigns,
+  retitles,
   usableActivities,
   type DesignPlan,
 } from "./design";
@@ -125,6 +126,7 @@ export function AiStudio({
   const [error, setError] = useState("");
   const [pages, setPages] = useState<Set<string>>(new Set());
   const [activities, setActivities] = useState<Set<number>>(new Set());
+  const [titles, setTitles] = useState(true);
   useEffect(() => {
     let live = true;
     fetcher("/api/lesson-ai/studio/status", { cache: "no-store" })
@@ -180,7 +182,7 @@ export function AiStudio({
   }
   function confirm(plan: DesignPlan) {
     try {
-      apply(applyDesign(project, plan, { pages, activities }));
+      apply(applyDesign(project, plan, { pages, activities, titles }));
       setPhase({
         step: "done",
         pages: pages.size,
@@ -277,6 +279,8 @@ export function AiStudio({
             setPages={setPages}
             activities={activities}
             setActivities={setActivities}
+            titles={titles}
+            setTitles={setTitles}
             cancel={() => setPhase({ step: "intro" })}
             confirm={() => confirm(phase.plan)}
           />
@@ -314,6 +318,8 @@ function Review({
   setPages,
   activities,
   setActivities,
+  titles,
+  setTitles,
   cancel,
   confirm,
 }: {
@@ -323,11 +329,14 @@ function Review({
   setPages: (s: Set<string>) => void;
   activities: Set<number>;
   setActivities: (s: Set<number>) => void;
+  titles: boolean;
+  setTitles: (on: boolean) => void;
   cancel: () => void;
   confirm: () => void;
 }) {
   const designed = redesigns(project, plan);
   const usable = usableActivities(project, plan);
+  const renamed = retitles(project, plan);
   const titleOf = (id: string) =>
     project.slides.find((s) => s.id === id)?.title ?? "";
   return (
@@ -435,7 +444,20 @@ function Review({
           </ol>
         </>
       )}
-      {!designed.length && !usable.length && (
+      {renamed.length > 0 && (
+        <label className="ai-page-head ai-titles">
+          <input
+            type="checkbox"
+            checked={titles}
+            onChange={(e) => setTitles(e.target.checked)}
+          />
+          <span>
+            Sửa tiêu đề {renamed.length} trang khác (ví dụ “
+            {titleOf(renamed[0].id)}” → “{renamed[0].title}”)
+          </span>
+        </label>
+      )}
+      {!designed.length && !usable.length && !renamed.length && (
         <p>AI chưa đề xuất được thay đổi nào cho bài này.</p>
       )}
       {plan.explanations.length > 0 && (

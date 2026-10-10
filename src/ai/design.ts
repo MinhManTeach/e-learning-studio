@@ -280,6 +280,21 @@ export function redesigns(project: LessonProject, plan: DesignPlan) {
     return s?.type === "content" && p.design !== "KEEP" && p.items.length >= 2;
   });
 }
+/** Other pages whose title the AI tidied ("TIN HỌC LỚP 3" → "Tin học lớp 3", "Trang 12" → "Khám phá"). */
+export function retitles(project: LessonProject, plan: DesignPlan) {
+  const redesigned = new Set(redesigns(project, plan).map((p) => p.id));
+  return plan.pages.filter((p) => {
+    const s = project.slides.find((x) => x.id === p.id);
+    return (
+      !!s &&
+      !redesigned.has(p.id) &&
+      s.type !== "quiz" &&
+      !!p.title &&
+      p.title !== s.title &&
+      !/^Trang \d+$/i.test(p.title)
+    );
+  });
+}
 /** Activities that can be built (enough content for their type). */
 export function usableActivities(project: LessonProject, plan: DesignPlan) {
   const ids = new Set(project.slides.map((s) => s.id));
@@ -398,9 +413,12 @@ export function activitySlides(planned: PlannedActivity): Slide[] {
 export function applyDesign(
   project: LessonProject,
   plan: DesignPlan,
-  chosen: { pages: Set<string>; activities: Set<number> },
+  chosen: { pages: Set<string>; activities: Set<number>; titles?: boolean },
 ): LessonProject {
   const pages = new Map(redesigns(project, plan).map((p) => [p.id, p]));
+  const retitled = new Map(
+    chosen.titles ? retitles(project, plan).map((p) => [p.id, p.title]) : [],
+  );
   const why = new Map(
     plan.explanations.map((e) => [e.questionId, e.explanation]),
   );
@@ -416,6 +434,8 @@ export function applyDesign(
     let next = slide;
     const page = pages.get(slide.id);
     if (page && chosen.pages.has(slide.id)) next = cardsSlide(slide, page);
+    else if (retitled.has(slide.id))
+      next = { ...slide, title: retitled.get(slide.id)! };
     if (next.type === "quiz")
       next = {
         ...next,
