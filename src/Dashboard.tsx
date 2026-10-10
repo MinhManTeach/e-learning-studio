@@ -5,6 +5,7 @@ import {
   Clock3,
   FileUp,
   GraduationCap,
+  Presentation,
   Plus,
   Trash2,
   Sparkles,
@@ -17,17 +18,21 @@ import { findProject, type ProjectStore } from "./storage/projects";
 import { localMediaStore, type LocalMediaAssetStore } from "./media/storage";
 import { Field } from "./editor/Fields";
 import { RestoreControl } from "./backup/RestoreControl";
+import { PptxImport, type MediaWriter } from "./import/pptx/PptxImport";
 export function Dashboard({
   store,
   open,
   startImport,
   media = localMediaStore,
+  mediaWriter = localMediaStore,
 }: {
   store: ProjectStore;
   open: (project: LessonProject) => void;
   startImport: (mode: "paste" | "file") => void;
   media?: Pick<LocalMediaAssetStore, "removeProject">;
+  mediaWriter?: MediaWriter;
 }) {
+  const [pptxOpen, setPptxOpen] = useState(false);
   const [projects, setProjects] = useState<LessonProject[]>([]);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
@@ -92,6 +97,17 @@ export function Dashboard({
   }
   return (
     <div className="dashboard">
+      {pptxOpen && (
+        <PptxImport
+          store={store}
+          media={mediaWriter}
+          open={(project) => {
+            setPptxOpen(false);
+            open(project);
+          }}
+          onClose={() => setPptxOpen(false)}
+        />
+      )}
       <header className="dashboard-header">
         <div className="brand">
           <span className="brand-icon">
@@ -130,6 +146,10 @@ export function Dashboard({
               <button className="large" onClick={() => startImport("file")}>
                 <FileUp size={18} />
                 Nhập tệp kế hoạch
+              </button>
+              <button className="large" onClick={() => setPptxOpen(true)}>
+                <Presentation size={18} />
+                Nhập PowerPoint
               </button>
             </div>
             <p className="plan-local-note">
