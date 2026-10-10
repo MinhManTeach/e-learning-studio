@@ -41,6 +41,8 @@ const messages: Record<string, string> = {
   AI_RATE_LIMIT:
     "Khoá API đã hết lượt dùng tạm thời (giới hạn tốc độ hoặc hạn mức). Đợi một lúc rồi thử lại.",
   AI_TIMEOUT: "AI trả lời quá lâu. Hãy thử lại.",
+  AI_BILLING:
+    "Tài khoản AI chưa có tín dụng. Claude: nạp tín dụng tại console.anthropic.com → Plans & Billing. Gemini: bật Billing cho dự án của khoá trong Google AI Studio.",
   AI_BUSY:
     "Gemini đang quá tải (nhiều người dùng cùng lúc). Hãy thử lại sau ít phút.",
   AI_NETWORK: "Không kết nối được tới Gemini. Kiểm tra mạng rồi thử lại.",
@@ -245,7 +247,11 @@ export function AiStudio({
         drawn++;
       } catch (e) {
         const code = e instanceof AiError ? e.message : "AI_NO_IMAGE";
-        if (code === "AI_RATE_LIMIT" || code === "AI_CONFIGURATION") {
+        if (
+          code === "AI_RATE_LIMIT" ||
+          code === "AI_BILLING" ||
+          code === "AI_CONFIGURATION"
+        ) {
           // The key cannot draw at all; do not try every page.
           failed.push(pictureBilling);
           break;

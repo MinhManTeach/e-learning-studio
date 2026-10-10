@@ -142,6 +142,15 @@ it("proposes changes, lets the teacher choose, then applies them with a new pict
   expect(steps.layout).toBe("TEXT_LEFT_MEDIA_RIGHT");
 });
 
+it("says the AI account needs credit when it has none", async () => {
+  const { applied } = setup(() => json({ error: "AI_BILLING" }, 502));
+  fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
+  expect((await screen.findByRole("alert")).textContent).toMatch(
+    /chưa có tín dụng/,
+  );
+  expect(applied).toEqual([]);
+});
+
 it("keeps the lesson unchanged and says why when the AI cannot help", async () => {
   const { applied } = setup(() => json({ error: "AI_RATE_LIMIT" }, 502));
   fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));

@@ -142,6 +142,20 @@ it("turns Claude failures into codes and retries when overloaded", async () => {
     await expect(ask(fake({ error: {} }, status).transport)).rejects.toThrow(
       code,
     );
+  await expect(
+    ask(
+      fake(
+        {
+          type: "error",
+          error: {
+            message:
+              "Your credit balance is too low to access the Anthropic API.",
+          },
+        },
+        400,
+      ).transport,
+    ),
+  ).rejects.toThrow("AI_BILLING");
   await expect(ask(fake(reply({}, "max_tokens")).transport)).rejects.toThrow(
     "AI_TOO_LONG",
   );

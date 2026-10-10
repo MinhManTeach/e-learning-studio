@@ -82,6 +82,9 @@ async function callOnce(
   if (!response.ok) {
     // Google answers 400 (not 401) for a wrong key.
     const detail = await response.text().catch(() => "");
+    // "limit: 0" on a free-tier quota: this model needs billing on the key.
+    if (response.status === 429 && /free_tier[\s\S]*limit: 0/.test(detail))
+      throw new Error("AI_BILLING");
     throw failure(
       response.status === 400 && /API_KEY_INVALID/.test(detail)
         ? 401

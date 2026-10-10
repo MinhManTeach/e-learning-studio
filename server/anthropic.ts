@@ -80,7 +80,12 @@ async function once(
     signal?.throwIfAborted();
     throw new Error(timeout.aborted ? "AI_TIMEOUT" : "AI_NETWORK");
   }
-  if (!response.ok) throw failure(response.status);
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    // An account without credits answers 400 "credit balance is too low".
+    if (/credit balance/i.test(detail)) throw new Error("AI_BILLING");
+    throw failure(response.status);
+  }
   const message = (await response.json()) as {
     stop_reason?: string;
     content?: { type: string; text?: string }[];

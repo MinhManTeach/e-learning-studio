@@ -107,6 +107,24 @@ describe("Gemini REST", () => {
         wrongKey.transport,
       ),
     ).rejects.toThrow("AI_CONFIGURATION");
+    const noBilling = fakeGemini(
+      {
+        error: {
+          code: 429,
+          message:
+            "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: x",
+        },
+      },
+      429,
+    );
+    await expect(
+      geminiJson(
+        ready,
+        { system: "", parts: [], schema: {} },
+        undefined,
+        noBilling.transport,
+      ),
+    ).rejects.toThrow("AI_BILLING");
     const cut = fakeGemini(textAnswer({}, "MAX_TOKENS"));
     await expect(
       geminiJson(
