@@ -5,10 +5,14 @@
 - Nhánh `claude/import-cleanup-ai` (chưa merge, CI xanh trên máy người dùng; máy đang ở nhánh này):
   - Nhập PowerPoint sạch hơn: bỏ panel/khung/hình phẳng (bytes/pixel từ header ảnh), nối dòng bị cắt,
     đọc theo hàng, bỏ nhãn lặp, slide chỉ có tranh → trang phủ kín + nhắc "Đặt tên trang".
-  - "AI làm đẹp bài giảng" (src/ai/, server/studio.ts, gemini.ts, anthropic.ts): khoá của người dùng trong
-    `.env.local`. Chữ: Gemini (mặc định gemini-3.8-flash, thinking low) hoặc Claude (sonnet-5-5;
-    khoá `sk-ant-` tự nhận). Tranh: chỉ Gemini (nano-banana-2.1, LESSON_AI_GEMINI_KEY khi chữ dùng Claude).
-    Không đổi đáp án/điểm/thứ tự; hoàn tác bằng "Hoàn tác cải thiện". Xem AI_SETUP.md.
+  - Trang mới: `cards` (STEPS/COMPARE/TIMELINE/MINDMAP/FLIP) và `activity` (ORDER/SORT/MATCH, bấm hoặc kéo,
+    Kiểm tra/Làm lại, không tính điểm). src/renderers/CardsRenderer.tsx, ActivityRenderer.tsx, player/activity.ts.
+  - "AI thiết kế bài giảng" (src/ai/design.ts, request.ts, AiStudio.tsx; server/studio.ts designLesson,
+    gemini.ts, anthropic.ts): MỘT lần gọi cho cả bài → mẫu trang cho trang kiến thức + 3–6 hoạt động
+    (sắp xếp, phân loại, nối, Đúng/Sai, trắc nghiệm, tình huống) chèn sau trang liên quan + sửa tiêu đề.
+    Giáo viên chọn; không xoá trang, không đổi đáp án; hoàn tác bằng "Hoàn tác cải thiện". Xem AI_SETUP.md.
+    Bản "AI làm đẹp" (chỉ viết lại chữ) đã bị bỏ vì người dùng thấy không đáng trả tiền.
+  - Chạy thật (Claude sonnet-5-5) trên tiết 2: 10 trang thiết kế lại, 6 hoạt động, ~76 s. Gói xem thử đã gửi.
   - Đã chạy thật 2026-10-10: Gemini chữ OK (tiết 3, 19 trang ~25 s). Tranh Gemini: 429 free tier limit 0
     → cần bật Billing. Claude (sonnet-5-5) chạy thật OK sau khi nạp tín dụng: tiết 3, 19 trang ~41 s, giữ sát lời giáo viên.
   - Người dùng muốn: hạn chế gọi API cho phần chữ (một lần/bài khi bấm nút, không gọi tự động);
@@ -33,7 +37,7 @@
 - Demo Bài 4 – Tiết 1 bản 2 đã gửi (9,8 MB). Chờ: thử video trên Chrome/Edge, thử tải lên LMS360.
 
 ## Việc tiếp theo
-1. Người dùng bật Billing Gemini để vẽ tranh, thử nút AI trong app; rồi merge nhánh.
+1. Người dùng thử nút "AI thiết kế bài giảng" trong app (nhập lại PowerPoint trước); ổn thì merge nhánh.
 2. Có thể tự chụp ảnh slide bằng PowerPoint trên máy (COM, đã dò: PowerPoint 16 có sẵn) thay cho xuất PNG tay.
 3. Module người dùng (sau): máy chủ giữ khoá, tài khoản, đếm lượt, thanh toán (VNPay/MoMo/PayOS); thay
    endpoint /api/lesson-ai/studio/* bằng máy chủ thật, phần trình duyệt giữ nguyên.
