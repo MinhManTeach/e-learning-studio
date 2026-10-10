@@ -22,10 +22,11 @@ export interface VoiceProgress {
 export async function voiceCoverage(project: LessonProject, store: VoiceStore) {
   const pieces = lessonSpeechPieces(project);
   const present = await Promise.all(
-    pieces.map(async (p) =>
-      !!(await store.get(voiceAssetId(p.key), project.projectId).catch(
-        () => undefined,
-      )),
+    pieces.map(
+      async (p) =>
+        !!(await store
+          .get(voiceAssetId(p.key), project.projectId)
+          .catch(() => undefined)),
     ),
   );
   return {
@@ -61,7 +62,8 @@ export async function recordMissing(
   for (let start = 0; start < missing.length; start += batchSize) {
     const batch = missing.slice(start, start + batchSize);
     const groups = new Map<string, SpeechPiece[]>();
-    for (const p of batch) groups.set(p.lang, [...(groups.get(p.lang) ?? []), p]);
+    for (const p of batch)
+      groups.set(p.lang, [...(groups.get(p.lang) ?? []), p]);
     for (const [lang, pieces] of groups) {
       let response: Response;
       try {

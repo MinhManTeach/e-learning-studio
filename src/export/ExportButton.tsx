@@ -146,8 +146,8 @@ export function ExportButton({
       {download && download.voiceMissing > 0 && (
         <span className="hint export-warning">
           {download.voiceMissing} đoạn đọc chưa có giọng thu sẵn; trên Chrome,
-          Cốc Cốc, Brave học sinh sẽ không nghe được các đoạn này. Bấm “Tạo giọng
-          đọc” rồi xuất lại gói.
+          Cốc Cốc, Brave học sinh sẽ không nghe được các đoạn này. Bấm “Tạo
+          giọng đọc” rồi xuất lại gói.
         </span>
       )}
       {warnings.map((w) => (

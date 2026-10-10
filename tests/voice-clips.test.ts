@@ -260,7 +260,9 @@ it("packs the recordings into the SCORM package for any browser", async () => {
   );
   const text = strFromU8(files["lesson-data.js"]);
   const data = readPlayerData(
-    JSON.parse(text.replace(/^window\.__LESSON_PACKAGE__ = /, "").replace(/;\s*$/, "")),
+    JSON.parse(
+      text.replace(/^window\.__LESSON_PACKAGE__ = /, "").replace(/;\s*$/, ""),
+    ),
   );
   expect(Object.values(data.voice ?? {})).toContain("voice/0001.m4a");
   expect(Object.keys(data.voice ?? {})).toContain(missing[1].key);
@@ -276,7 +278,7 @@ it("ignores voice entries in a package that are not ours", () => {
     voice: {
       "0123456789abcdef": "voice/0001.m4a",
       "../evil": "voice/0002.m4a",
-      "fedcba9876543210": "https://evil.example/x.m4a",
+      fedcba9876543210: "https://evil.example/x.m4a",
     },
   });
   expect(data.voice).toEqual({ "0123456789abcdef": "voice/0001.m4a" });

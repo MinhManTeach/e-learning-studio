@@ -125,8 +125,7 @@ export function localAiMiddleware(
         } catch (error) {
           // Only our own error codes reach the browser, never provider text.
           const code =
-            error instanceof Error &&
-            /^(AI|VOICE)_[A-Z_]+$/.test(error.message)
+            error instanceof Error && /^(AI|VOICE)_[A-Z_]+$/.test(error.message)
               ? error.message
               : "AI_UNAVAILABLE";
           send(code === "AI_INPUT" || code === "VOICE_INPUT" ? 400 : 502, {

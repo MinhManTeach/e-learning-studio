@@ -152,8 +152,8 @@ export function VoiceDialog({
         ) : (
           <>
             <p>
-              Cần thu <strong>{phase.missing.length}</strong> /{" "}
-              {phase.total} đoạn bằng giọng{" "}
+              Cần thu <strong>{phase.missing.length}</strong> / {phase.total}{" "}
+              đoạn bằng giọng{" "}
               <strong>{status.voice || "tiếng Việt của Windows"}</strong>. Miễn
               phí, chạy ngay trên máy này.
             </p>

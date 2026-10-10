@@ -91,11 +91,7 @@ export function pageSpeech(slide: Slide): string {
     case "warmup":
       return joinSpeech([title, warmupSpeech(slide)]);
     case "scenario":
-      return joinSpeech([
-        title,
-        slide.data.situation,
-        decisionSpeech(slide),
-      ]);
+      return joinSpeech([title, slide.data.situation, decisionSpeech(slide)]);
     case "quiz":
       return joinSpeech([
         title,

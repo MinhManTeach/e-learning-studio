@@ -25,11 +25,25 @@ function memoryStore() {
   };
 }
 const m4a = btoa(
-  String.fromCharCode(0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32),
+  String.fromCharCode(
+    0,
+    0,
+    0,
+    24,
+    0x66,
+    0x74,
+    0x79,
+    0x70,
+    0x6d,
+    0x70,
+    0x34,
+    0x32,
+  ),
 );
 function server(status: object) {
   return (async (url: string, init?: RequestInit) => {
-    if (url.endsWith("/voice/status")) return new Response(JSON.stringify(status));
+    if (url.endsWith("/voice/status"))
+      return new Response(JSON.stringify(status));
     const { texts } = JSON.parse(String(init?.body));
     return new Response(JSON.stringify({ clips: texts.map(() => m4a) }));
   }) as unknown as typeof fetch;

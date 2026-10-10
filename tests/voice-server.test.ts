@@ -24,7 +24,11 @@ function fakeWindows(code = 0) {
   const seen: { texts: string[]; dir: string }[] = [];
   const run: PowerShell = async (script) => {
     const dir = dirOf(script);
-    if (!dir) return { code, stdout: code === 3 ? "NO_VOICE" : "VOICE=Microsoft An\r\n" };
+    if (!dir)
+      return {
+        code,
+        stdout: code === 3 ? "NO_VOICE" : "VOICE=Microsoft An\r\n",
+      };
     const { texts } = JSON.parse(await readFile(join(dir, "in.json"), "utf8"));
     seen.push({ texts, dir });
     if (code === 0)
@@ -51,14 +55,20 @@ it("says recording needs Windows on other systems", async () => {
     reason: "NOT_WINDOWS",
   });
   await expect(
-    recordVoice({ lang: "vi-VN", texts: ["a"] }, undefined, fakeWindows().run, "darwin"),
+    recordVoice(
+      { lang: "vi-VN", texts: ["a"] },
+      undefined,
+      fakeWindows().run,
+      "darwin",
+    ),
   ).rejects.toThrow("VOICE_NOT_WINDOWS");
 });
 
 it("finds the Windows Vietnamese voice, or says it is missing", async () => {
-  expect(
-    await voiceStatus("vi-VN", fakeWindows().run, "win32", true),
-  ).toEqual({ available: true, voice: "Microsoft An" });
+  expect(await voiceStatus("vi-VN", fakeWindows().run, "win32", true)).toEqual({
+    available: true,
+    voice: "Microsoft An",
+  });
   expect(
     await voiceStatus("vi-VN", fakeWindows(3).run, "win32", true),
   ).toMatchObject({ available: false, reason: "NO_VOICE" });
@@ -67,7 +77,12 @@ it("finds the Windows Vietnamese voice, or says it is missing", async () => {
 it("records each text to an M4A file, in order, and cleans up", async () => {
   const { run, seen } = fakeWindows();
   const texts = ["Xin chào các em.", "Câu 1.", "Bàn phím."];
-  const result = await recordVoice({ lang: "vi-VN", texts }, undefined, run, "win32");
+  const result = await recordVoice(
+    { lang: "vi-VN", texts },
+    undefined,
+    run,
+    "win32",
+  );
   expect(result.voice).toBe("Microsoft An");
   expect(result.clips).toHaveLength(3);
   expect(Buffer.from(result.clips[0], "base64")).toEqual(m4a);
@@ -91,10 +106,20 @@ it("rejects bad requests before starting Windows", async () => {
 
 it("reports a missing voice or a failed recording with a code", async () => {
   await expect(
-    recordVoice({ lang: "vi-VN", texts: ["a"] }, undefined, fakeWindows(3).run, "win32"),
+    recordVoice(
+      { lang: "vi-VN", texts: ["a"] },
+      undefined,
+      fakeWindows(3).run,
+      "win32",
+    ),
   ).rejects.toThrow("VOICE_MISSING");
   await expect(
-    recordVoice({ lang: "vi-VN", texts: ["a"] }, undefined, fakeWindows(1).run, "win32"),
+    recordVoice(
+      { lang: "vi-VN", texts: ["a"] },
+      undefined,
+      fakeWindows(1).run,
+      "win32",
+    ),
   ).rejects.toThrow("VOICE_FAILED");
 });
 
@@ -137,7 +162,9 @@ describe("voice endpoints", () => {
   });
   let url: string;
   beforeAll(async () => {
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterAll(async () => {
@@ -145,9 +172,9 @@ describe("voice endpoints", () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
   it("serve the voice status and recordings, and only error codes", async () => {
-    expect(await (await fetch(`${url}/api/lesson-ai/voice/status`)).json()).toEqual(
-      { available: true, voice: "Microsoft An" },
-    );
+    expect(
+      await (await fetch(`${url}/api/lesson-ai/voice/status`)).json(),
+    ).toEqual({ available: true, voice: "Microsoft An" });
     const post = (texts: string[]) =>
       fetch(`${url}/api/lesson-ai/voice/record`, {
         method: "POST",
