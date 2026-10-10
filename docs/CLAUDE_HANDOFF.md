@@ -1,4 +1,17 @@
-# Bàn giao giữa các phiên Claude (cập nhật 2026-10-10)
+# Bàn giao giữa các phiên Claude (cập nhật 2026-10-10, 23:40)
+
+## LÀM TIẾP TỪ ĐÂY (phiên 10/10 dừng lúc 23:40)
+- `main` = tất cả đã duyệt: SCORM 2004, giọng đọc + "Tạo giọng đọc", nhiều đáp án đúng, Haiku mặc định.
+- Nhánh `claude/web-accounts` (CHƯA gộp, CI 876/876 xanh): bản web có đăng nhập Google + lượt AI + PayOS.
+  Máy chủ thử đang chạy trên máy người dùng: runner `web-server` (http://localhost:8080).
+- Đang chờ người dùng: (1) khoá Google OAuth (GOOGLE_CLIENT_ID/SECRET vào .env.local, redirect
+  http://localhost:8080/auth/google/callback) → chạy `{"action":"web-server","args":{"restart":true}}` rồi cho
+  thử đăng nhập; ổn thì gộp nhánh vào main. (2) đăng ký PayOS (hộ kinh doanh). (3) tên miền .vn + VPS.
+- Gợi ý tên miền đã đưa: manteach.vn / minhmanteach.vn (thương hiệu chung), giangvui.vn (tên app soạn bài).
+- Người dùng còn 2 app: MinhManTeach/be-vui-hoc-cong (toán 4–6 tuổi, miễn phí + quảng cáo) và
+  MinhManTeach/English-Adventure (tiếng Anh A1–A2, Codex làm dở). Trang chủ sẽ giới thiệu cả 3 sản phẩm.
+- Việc sau: giọng đọc cho bản web (dịch vụ TTS tiếng Việt), đăng nhập Zalo, trang chủ thương hiệu.
+
 
 ## Trạng thái nhánh
 - `main` có: 6 sửa lỗi Bài 4, xuất SCORM 1.2 + HTML5, mục lục trái, giấy chứng nhận, nhập PowerPoint.
@@ -59,6 +72,17 @@
 - AI thiết kế: request gửi `correct: number[]` ([] = chưa rõ); plan có `answers` (gợi ý, mặc định KHÔNG tích,
   chỉ cho câu answerUnknown); không thêm lời giải thích cho đáp án chưa xác nhận. Prompt v2 chống lặp ý.
 - Model mặc định claude-haiku-5-5 (~0,01 USD/bài; Opus ~0,15 USD/bài 28 trang, chất lượng tương đương).
+
+## Bản web có đăng nhập và thanh toán (nhánh `claude/web-accounts`, 2026-10-10)
+- server/web/: store.ts (node:sqlite: users, sessions băm, credit_ledger chỉ thêm dòng, unique(reason,ref),
+  ai_calls, payments), google.ts (OIDC + PKCE, kiểm chữ ký RS256 bằng JWKS), payos.ts (ký như @payos/node;
+  webhook kiểm checksum, cộng lượt đúng một lần, đúng số tiền), app.ts (createWebHandler: /auth/google,
+  /api/me, /api/lesson-ai/studio/*, /api/plans, /api/pay/create, /api/pay/webhook, phục vụ dist + SPA), main.ts.
+- Trừ lượt chỉ khi AI trả kết quả; một yêu cầu AI/người; POST phải cùng origin (trừ webhook).
+- Client: src/account/ (AccountBar, BuyCredits, readAccount: /api/me trả HTML → chế độ máy cá nhân).
+- Gói: TEACHER_MONTH 49k/50 lượt, TEACHER_YEAR 399k/600 lượt; FREE_CREDITS=10 khi đăng ký.
+- Runner: build-server, web-server (cổng 8080, đọc LESSON_AI_/GOOGLE_/PAYOS_ từ .env.local, restart:true).
+- Hướng dẫn lấy khoá và triển khai: docs/TRIEN_KHAI.md. Chưa có: giọng đọc trên web, Zalo, vẽ tranh.
 
 ## Chạy test trên máy người dùng (Windows, F:\Codex\e-learning-studio)
 - `powershell -ExecutionPolicy Bypass -File .\claude-dev.ps1` (để cửa sổ mở). Không commit: claude-dev.ps1, claude-runner.mjs, claude-export.mjs, .claude-dev/.
