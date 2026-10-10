@@ -1,4 +1,17 @@
-# Bàn giao giữa các phiên Claude (cập nhật 2026-10-10)
+# Bàn giao giữa các phiên Claude (cập nhật 2026-10-10, 23:40)
+
+## LÀM TIẾP TỪ ĐÂY (phiên 10/10 dừng lúc 23:40)
+- `main` = tất cả đã duyệt: SCORM 2004, giọng đọc + "Tạo giọng đọc", nhiều đáp án đúng, Haiku mặc định.
+- Nhánh `claude/web-accounts` (CHƯA gộp, CI 876/876 xanh): bản web có đăng nhập Google + lượt AI + PayOS.
+  Máy chủ thử đang chạy trên máy người dùng: runner `web-server` (http://localhost:8080).
+- Đang chờ người dùng: (1) khoá Google OAuth (GOOGLE_CLIENT_ID/SECRET vào .env.local, redirect
+  http://localhost:8080/auth/google/callback) → chạy `{"action":"web-server","args":{"restart":true}}` rồi cho
+  thử đăng nhập; ổn thì gộp nhánh vào main. (2) đăng ký PayOS (hộ kinh doanh). (3) tên miền .vn + VPS.
+- Gợi ý tên miền đã đưa: manteach.vn / minhmanteach.vn (thương hiệu chung), giangvui.vn (tên app soạn bài).
+- Người dùng còn 2 app: MinhManTeach/be-vui-hoc-cong (toán 4–6 tuổi, miễn phí + quảng cáo) và
+  MinhManTeach/English-Adventure (tiếng Anh A1–A2, Codex làm dở). Trang chủ sẽ giới thiệu cả 3 sản phẩm.
+- Việc sau: giọng đọc cho bản web (dịch vụ TTS tiếng Việt), đăng nhập Zalo, trang chủ thương hiệu.
+
 
 ## Trạng thái nhánh
 - `main` có: 6 sửa lỗi Bài 4, xuất SCORM 1.2 + HTML5, mục lục trái, giấy chứng nhận, nhập PowerPoint.
