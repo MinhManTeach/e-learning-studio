@@ -22,6 +22,13 @@
 - Gói SCORM đã chạy thật trên LMS360.vn của trường (người dùng xác nhận 2026-10-10).
 - Codex không còn review. Quy tắc: mọi thay đổi có test, mỗi lỗi một commit. Người dùng cho phép merge vào main khi CI xanh.
 
+## Giao diện "Vui nhộn" (theme KIDS, 2026-10-10)
+- src/kids-theme.css: mỗi chặng một màu (data-stage trên .canvas và .lesson-player), font Baloo 2 + Nunito
+  (src/assets/fonts, OFL, chỉ subset latin + vietnamese; player.css nhúng base64 qua assetsInlineLimit).
+- Bài mới mặc định KIDS (createProject); bài cũ giữ theme đã lưu. Khen "Giỏi quá!" + pháo giấy + chuông
+  (src/player/celebrate.ts, Celebration.tsx; tắt bằng nút Âm thanh). Người dùng đã duyệt giao diện.
+- Font lấy bằng runner action `font-pack` (npm pack @fontsource/*), vì máy cloud không vào được npm.
+
 ## Chạy test trên máy người dùng (Windows, F:\Codex\e-learning-studio)
 - `powershell -ExecutionPolicy Bypass -File .\claude-dev.ps1` (để cửa sổ mở). Không commit: claude-dev.ps1, claude-runner.mjs, claude-export.mjs, .claude-dev/.
 - Gửi việc: ghi JSON vào `.claude-dev\inbox\`, đọc kết quả ở `.claude-dev\outbox\`.
