@@ -3,11 +3,12 @@ import { claudeJson, closedSchema } from "../server/anthropic";
 import { connectionStatus } from "../server/openai";
 import {
   drawIllustration,
-  polishLesson,
+  designLesson,
   studioConfig,
   studioStatus,
 } from "../server/studio";
-import { polishRequest, polishWireSchema } from "../src/ai/polish";
+import { designWireSchema } from "../src/ai/design";
+import { lessonRequest } from "../src/ai/request";
 import { aiLesson, aiPlan } from "./support/aiLesson";
 
 const claude = {
@@ -70,35 +71,36 @@ it("follows the key when LESSON_AI_PROVIDER names the other service", () => {
 });
 
 it("closes every object in the output schema", () => {
-  const schema = closedSchema(polishWireSchema()) as {
+  const schema = closedSchema(designWireSchema()) as {
     additionalProperties: boolean;
     properties: {
-      slides: {
+      pages: { items: { additionalProperties: boolean } };
+      activities: {
         items: {
           additionalProperties: boolean;
           properties: {
-            explanations: { items: { additionalProperties: boolean } };
+            questions: { items: { additionalProperties: boolean } };
           };
         };
       };
     };
   };
   expect(schema.additionalProperties).toBe(false);
-  expect(schema.properties.slides.items.additionalProperties).toBe(false);
+  expect(schema.properties.pages.items.additionalProperties).toBe(false);
   expect(
-    schema.properties.slides.items.properties.explanations.items
+    schema.properties.activities.items.properties.questions.items
       .additionalProperties,
   ).toBe(false);
 });
 
 it("sends the lesson and its pictures to the Messages API with structured output", async () => {
-  const request = polishRequest(
+  const request = lessonRequest(
     aiLesson(),
     new Map([["s-posture", { mimeType: "image/png", data: "iVBORw0K" }]]),
   );
   const { calls, transport } = fake(reply(aiPlan));
-  const plan = await polishLesson(claude, request, undefined, transport);
-  expect(plan.slides.map((s) => s.id)).toEqual([
+  const plan = await designLesson(claude, request, undefined, transport);
+  expect(plan.pages.map((s) => s.id)).toEqual([
     "s-cover",
     "s-posture",
     "s-steps",

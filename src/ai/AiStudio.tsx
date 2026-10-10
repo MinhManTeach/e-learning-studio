@@ -1,37 +1,32 @@
 import { useEffect, useState } from "react";
 import { Sparkles, X } from "lucide-react";
-import type { AssetReference, LessonProject } from "../model/schema";
+import type { LessonProject } from "../model/schema";
 import type { StoredMedia } from "../media/model";
-import { attachMedia } from "../media/service";
 import {
-  applyPolish,
-  illustrationPrompt,
-  illustrationsWanted,
-  pictureAssets,
-  polishPlanSchema,
-  polishRequest,
-  type PolishImage,
-  type PolishPlan,
-} from "./polish";
+  activityLabels,
+  applyDesign,
+  designLabels,
+  designPlanSchema,
+  redesigns,
+  usableActivities,
+  type DesignPlan,
+} from "./design";
+import { lessonRequest, pictureAssets, type LessonImage } from "./request";
 import "./ai-studio.css";
 
 export interface StudioMedia {
   get(assetId: string, projectId: string): Promise<StoredMedia | undefined>;
-  put(value: StoredMedia): Promise<void>;
 }
 interface Status {
   provider: string;
   configured: boolean;
   model: string;
   imageModel: string;
-  /** A Gemini key is available for drawing pictures. */
   images: boolean;
 }
 const providerName = (p: string) => (p === "anthropic" ? "Claude" : "Gemini");
 /** Pictures bigger than this are not sent to the AI (it still sees the page text). */
 const maxPictureBytes = 1_500_000;
-/** Approximate price of one 1K picture, for the teacher's information. */
-const pricePerPicture = "≈ 0,034 USD";
 
 const messages: Record<string, string> = {
   AI_CONFIGURATION:
@@ -44,10 +39,10 @@ const messages: Record<string, string> = {
   AI_BILLING:
     "Tài khoản AI chưa có tín dụng. Claude: nạp tín dụng tại console.anthropic.com → Plans & Billing. Gemini: bật Billing cho dự án của khoá trong Google AI Studio.",
   AI_BUSY:
-    "Gemini đang quá tải (nhiều người dùng cùng lúc). Hãy thử lại sau ít phút.",
-  AI_NETWORK: "Không kết nối được tới Gemini. Kiểm tra mạng rồi thử lại.",
+    "Dịch vụ AI đang quá tải (nhiều người dùng cùng lúc). Hãy thử lại sau ít phút.",
+  AI_NETWORK: "Không kết nối được tới dịch vụ AI. Kiểm tra mạng rồi thử lại.",
   AI_REQUEST:
-    "Gemini không nhận yêu cầu này. Nếu lỗi lặp lại, hãy thử đổi LESSON_AI_MODEL.",
+    "Dịch vụ AI không nhận yêu cầu này. Nếu lỗi lặp lại, hãy thử đổi LESSON_AI_MODEL.",
   AI_TOO_LONG: "Bài quá dài cho một lần làm. Hãy bỏ bớt trang rồi thử lại.",
   AI_REFUSED: "AI từ chối hoặc dừng giữa chừng. Hãy thử lại.",
   AI_INVALID_RESPONSE: "AI trả lời chưa đúng dạng. Hãy thử lại.",
@@ -55,8 +50,6 @@ const messages: Record<string, string> = {
   AI_NO_IMAGE_KEY:
     "Vẽ tranh cần khoá Gemini (dòng LESSON_AI_GEMINI_KEY trong .env.local).",
 };
-const pictureBilling =
-  "Chưa vẽ được tranh: vẽ tranh không có gói miễn phí. Hãy bật thanh toán (Billing) cho dự án của khoá trong Google AI Studio, hoặc đợi khi hạn mức được làm mới. Phần chữ vẫn đã được áp dụng.";
 const explain = (code: string) =>
   messages[code] ?? "Chưa dùng được AI lúc này. Bài giảng vẫn được giữ nguyên.";
 
@@ -85,14 +78,8 @@ async function toBase64(blob: Blob) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(binary);
 }
-function fromBase64(data: string) {
-  const binary = atob(data);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
 async function pagePictures(project: LessonProject, media: StudioMedia) {
-  const images = new Map<string, PolishImage>();
+  const images = new Map<string, LessonImage>();
   for (const { slideId, asset } of pictureAssets(project)) {
     const stored = await media
       .get(asset.id, project.projectId)
@@ -113,10 +100,13 @@ async function pagePictures(project: LessonProject, media: StudioMedia) {
 type Phase =
   | { step: "intro" }
   | { step: "working"; label: string }
-  | { step: "review"; plan: PolishPlan }
-  | { step: "done"; pages: number; pictures: number; failed: string[] };
+  | { step: "review"; plan: DesignPlan }
+  | { step: "done"; pages: number; activities: number };
 
-/** "AI làm đẹp bài giảng": the AI proposes, the teacher picks, nothing changes until "Áp dụng". */
+/**
+ * "AI thiết kế bài giảng": one AI call proposes card designs for knowledge pages
+ * and new practice activities; the teacher picks; nothing changes until "Áp dụng".
+ */
 export function AiStudio({
   project,
   media,
@@ -133,8 +123,8 @@ export function AiStudio({
   const [status, setStatus] = useState<Status | null>(null);
   const [phase, setPhase] = useState<Phase>({ step: "intro" });
   const [error, setError] = useState("");
-  const [accepted, setAccepted] = useState<Set<string>>(new Set());
-  const [draw, setDraw] = useState<Set<string>>(new Set());
+  const [pages, setPages] = useState<Set<string>>(new Set());
+  const [activities, setActivities] = useState<Set<number>>(new Set());
   useEffect(() => {
     let live = true;
     fetcher("/api/lesson-ai/studio/status", { cache: "no-store" })
@@ -167,25 +157,19 @@ export function AiStudio({
     setError("");
     setPhase({ step: "working", label: "Đang chuẩn bị ảnh các trang…" });
     try {
-      const request = polishRequest(
+      const request = lessonRequest(
         project,
         await pagePictures(project, media),
       );
       setPhase({
         step: "working",
-        label: `AI đang đọc ${request.slides.length} trang (thường mất 30–90 giây)…`,
+        label: `AI đang thiết kế ${request.slides.length} trang (thường mất 30–90 giây)…`,
       });
-      const plan = polishPlanSchema.parse(
-        await post(fetcher, "polish", request),
+      const plan = designPlanSchema.parse(
+        await post(fetcher, "design", request),
       );
-      setAccepted(new Set(plan.slides.map((s) => s.id)));
-      setDraw(
-        new Set(
-          status?.images
-            ? illustrationsWanted(project, plan).map((w) => w.slideId)
-            : [],
-        ),
-      );
+      setPages(new Set(redesigns(project, plan).map((p) => p.id)));
+      setActivities(new Set(usableActivities(project, plan).map((_, i) => i)));
       setPhase({ step: "review", plan });
     } catch (e) {
       setError(
@@ -194,73 +178,17 @@ export function AiStudio({
       setPhase({ step: "intro" });
     }
   }
-
-  async function confirm(plan: PolishPlan) {
-    setError("");
-    const wanted = illustrationsWanted(project, plan).filter(
-      (w) => status?.images && draw.has(w.slideId) && accepted.has(w.slideId),
-    );
-    let next = applyPolish(project, plan, accepted);
-    const failed: string[] = [];
-    let drawn = 0;
-    for (const [i, w] of wanted.entries()) {
+  function confirm(plan: DesignPlan) {
+    try {
+      apply(applyDesign(project, plan, { pages, activities }));
       setPhase({
-        step: "working",
-        label: `Đang vẽ tranh ${i + 1}/${wanted.length}: ${w.title}…`,
+        step: "done",
+        pages: pages.size,
+        activities: activities.size,
       });
-      try {
-        const image = (await post(fetcher, "illustrate", {
-          prompt: illustrationPrompt(plan.illustrationStyle, w.prompt),
-        })) as { mimeType: string; data: string };
-        const bytes = fromBase64(image.data);
-        const blob = new Blob([bytes], { type: image.mimeType });
-        const id = `ai-${crypto.randomUUID()}`;
-        await media.put({
-          assetId: id,
-          projectId: project.projectId,
-          blob,
-          mimeType: image.mimeType,
-          size: blob.size,
-          source: {
-            title: `Tranh AI vẽ: ${w.title}`,
-            provider: "UPLOAD",
-            sourceUrl: "",
-            creator: "Gemini (AI)",
-            license: "",
-            licenseUrl: "",
-            attribution: "Tranh do AI tạo",
-          },
-        });
-        const asset: AssetReference = {
-          id,
-          kind: "IMAGE",
-          sourceType: "GENERATED",
-          name: `Tranh AI: ${w.title}`,
-          fileName: `${id}.${image.mimeType.split("/")[1]}`,
-          mimeType: image.mimeType,
-          size: blob.size,
-          url: `local-media:${id}`,
-          altText: w.title,
-          status: "LOCAL",
-        };
-        next = attachMedia(next, w.slideId, asset, "");
-        drawn++;
-      } catch (e) {
-        const code = e instanceof AiError ? e.message : "AI_NO_IMAGE";
-        if (
-          code === "AI_RATE_LIMIT" ||
-          code === "AI_BILLING" ||
-          code === "AI_CONFIGURATION"
-        ) {
-          // The key cannot draw at all; do not try every page.
-          failed.push(pictureBilling);
-          break;
-        }
-        failed.push(`${w.title}: ${explain(code)}`);
-      }
+    } catch {
+      setError(explain("AI_INVALID_RESPONSE"));
     }
-    apply(next);
-    setPhase({ step: "done", pages: accepted.size, pictures: drawn, failed });
   }
 
   const busy = phase.step === "working";
@@ -270,11 +198,11 @@ export function AiStudio({
         className="modal ai-studio"
         role="dialog"
         aria-modal="true"
-        aria-label="AI làm đẹp bài giảng"
+        aria-label="AI thiết kế bài giảng"
       >
         <div className="ai-head">
           <h2>
-            <Sparkles size={22} /> AI làm đẹp bài giảng
+            <Sparkles size={22} /> AI thiết kế bài giảng
           </h2>
           <button aria-label="Đóng" disabled={busy} onClick={onClose}>
             <X size={18} />
@@ -288,15 +216,13 @@ export function AiStudio({
             <p>Chưa kết nối AI. Cách bật trên máy của thầy cô:</p>
             <ol>
               <li>
-                Lấy khoá API: Gemini tại aistudio.google.com (Get API key), hoặc
-                Claude tại console.anthropic.com (API keys).
+                Lấy khoá API: Claude tại console.anthropic.com (API keys), hoặc
+                Gemini tại aistudio.google.com (Get API key).
               </li>
               <li>
-                Trong thư mục dự án, tạo tệp <code>.env.local</code> với nội
-                dung (Gemini):
-                <pre>{`LESSON_AI_PROVIDER=gemini\nLESSON_AI_API_KEY=khoá-gemini`}</pre>
-                hoặc (Claude viết chữ, Gemini vẽ tranh nếu có):
-                <pre>{`LESSON_AI_PROVIDER=anthropic\nLESSON_AI_API_KEY=khoá-claude\nLESSON_AI_GEMINI_KEY=khoá-gemini`}</pre>
+                Trong thư mục dự án, tạo tệp <code>.env.local</code> với một
+                dòng:
+                <pre>{`LESSON_AI_API_KEY=khoá-của-thầy-cô`}</pre>
               </li>
               <li>
                 Tắt rồi chạy lại <code>npm run dev</code>, mở lại bài giảng.
@@ -310,18 +236,25 @@ export function AiStudio({
         ) : phase.step === "intro" || phase.step === "working" ? (
           <>
             <p>
-              AI đọc chữ và tranh của từng trang rồi đề xuất: tiêu đề rõ ràng,
-              nội dung ngắn gọn hợp lứa tuổi, lời đọc tự nhiên, mô tả tranh, lời
-              giải thích cho câu hỏi và tranh minh hoạ mới cho trang chưa có
-              hình. Kiến thức, đáp án và thứ tự trang được giữ nguyên. Thầy cô
-              xem và chọn trước khi áp dụng.
+              AI đọc toàn bộ bài (chữ và ảnh các trang) rồi đề xuất trong một
+              lần:
             </p>
+            <ul>
+              <li>
+                <strong>Trình bày lại trang kiến thức</strong>: các bước có số,
+                hai cột Nên / Không nên, dòng thời gian, sơ đồ tư duy, thẻ lật.
+              </li>
+              <li>
+                <strong>Hoạt động luyện tập mới</strong>: sắp xếp thứ tự, phân
+                loại, nối cặp, Đúng/Sai, trắc nghiệm, tình huống — đặt ngay sau
+                trang có nội dung đó.
+              </li>
+            </ul>
             <p className="hint">
-              Dùng khoá {providerName(status.provider)} của thầy cô (
-              {status.model}).{" "}
-              {status.images
-                ? `Mỗi tranh vẽ thêm ${pricePerPicture} (Gemini).`
-                : "Muốn AI vẽ thêm tranh, thêm khoá Gemini vào dòng LESSON_AI_GEMINI_KEY trong .env.local."}
+              Chỉ dùng kiến thức có trong bài. Thầy cô chọn từng mục trước khi
+              áp dụng; trang cũ và đáp án cũ được giữ nguyên. Dùng khoá{" "}
+              {providerName(status.provider)} ({status.model}), một lần gọi cho
+              cả bài.
             </p>
             <div className="modal-actions">
               <button disabled={busy} onClick={onClose}>
@@ -340,28 +273,20 @@ export function AiStudio({
           <Review
             project={project}
             plan={phase.plan}
-            accepted={accepted}
-            setAccepted={setAccepted}
-            draw={draw}
-            setDraw={setDraw}
-            images={status.images}
+            pages={pages}
+            setPages={setPages}
+            activities={activities}
+            setActivities={setActivities}
             cancel={() => setPhase({ step: "intro" })}
-            confirm={() => void confirm(phase.plan)}
+            confirm={() => confirm(phase.plan)}
           />
         ) : (
           <>
             <p role="status">
-              Đã làm đẹp {phase.pages} trang
-              {phase.pictures ? ` và vẽ ${phase.pictures} tranh` : ""}. Nếu chưa
-              ưng, bấm “Hoàn tác cải thiện” trên thanh công cụ.
+              Đã trình bày lại {phase.pages} trang và thêm {phase.activities}{" "}
+              hoạt động. Nếu chưa ưng, bấm “Hoàn tác cải thiện” trên thanh công
+              cụ.
             </p>
-            {phase.failed.length > 0 && (
-              <ul className="ai-failed">
-                {phase.failed.map((f) => (
-                  <li key={f}>{f}</li>
-                ))}
-              </ul>
-            )}
             <div className="modal-actions">
               <button className="primary" onClick={onClose}>
                 Xong
@@ -375,122 +300,159 @@ export function AiStudio({
   );
 }
 
+const toggle = <T,>(set: Set<T>, value: T, on: boolean) => {
+  const next = new Set(set);
+  if (on) next.add(value);
+  else next.delete(value);
+  return next;
+};
+
 function Review({
   project,
   plan,
-  accepted,
-  setAccepted,
-  draw,
-  setDraw,
-  images,
+  pages,
+  setPages,
+  activities,
+  setActivities,
   cancel,
   confirm,
 }: {
   project: LessonProject;
-  plan: PolishPlan;
-  accepted: Set<string>;
-  setAccepted: (s: Set<string>) => void;
-  draw: Set<string>;
-  setDraw: (s: Set<string>) => void;
-  images: boolean;
+  plan: DesignPlan;
+  pages: Set<string>;
+  setPages: (s: Set<string>) => void;
+  activities: Set<number>;
+  setActivities: (s: Set<number>) => void;
   cancel: () => void;
   confirm: () => void;
 }) {
-  const wanted = new Map(
-    images ? illustrationsWanted(project, plan).map((w) => [w.slideId, w]) : [],
-  );
-  const toggle = (set: Set<string>, id: string, on: boolean) => {
-    const next = new Set(set);
-    if (on) next.add(id);
-    else next.delete(id);
-    return next;
-  };
-  const pictures = [...draw].filter(
-    (id) => accepted.has(id) && wanted.has(id),
-  ).length;
+  const designed = redesigns(project, plan);
+  const usable = usableActivities(project, plan);
+  const titleOf = (id: string) =>
+    project.slides.find((s) => s.id === id)?.title ?? "";
   return (
     <>
-      <p>
-        AI đề xuất thay đổi cho {plan.slides.length} trang. Bỏ chọn trang không
-        muốn đổi.
-      </p>
-      <ol className="ai-pages">
-        {plan.slides.map((p) => {
-          const slide = project.slides.find((s) => s.id === p.id);
-          if (!slide) return null;
-          const on = accepted.has(p.id);
-          const w = wanted.get(p.id);
-          const cover = slide.layout === "MEDIA_COVER";
-          return (
-            <li key={p.id} className={on ? "" : "excluded"}>
-              <label className="ai-page-head">
-                <input
-                  type="checkbox"
-                  checked={on}
-                  aria-label={`Áp dụng cho trang ${slide.title}`}
-                  onChange={(e) =>
-                    setAccepted(toggle(accepted, p.id, e.target.checked))
-                  }
-                />
-                <span>
-                  {p.title && p.title !== slide.title ? (
-                    <>
-                      <s>{slide.title}</s> → <strong>{p.title}</strong>
-                    </>
-                  ) : (
-                    <strong>{slide.title}</strong>
-                  )}
-                </span>
-              </label>
-              {slide.type === "content" &&
-                !cover &&
-                p.bulletPoints.length > 0 && (
-                  <ul className="ai-bullets">
-                    {p.bulletPoints.map((b) => (
-                      <li key={b}>{b}</li>
-                    ))}
-                  </ul>
-                )}
-              {p.keyTakeaway && !cover && (
-                <p className="ai-note">Em cần nhớ: {p.keyTakeaway}</p>
-              )}
-              {p.explanations.length > 0 && (
-                <p className="ai-note">
-                  Thêm {p.explanations.length} lời giải thích cho câu hỏi.
-                </p>
-              )}
-              {p.teacherOnly.length > 0 && (
-                <p className="ai-note">
-                  Chuyển {p.teacherOnly.length} câu hướng dẫn sang ghi chú giáo
-                  viên.
-                </p>
-              )}
-              {w && (
-                <label className="ai-draw">
+      {designed.length > 0 && (
+        <>
+          <h3>Trình bày lại {designed.length} trang</h3>
+          <ol className="ai-pages">
+            {designed.map((p) => (
+              <li key={p.id} className={pages.has(p.id) ? "" : "excluded"}>
+                <label className="ai-page-head">
                   <input
                     type="checkbox"
-                    checked={draw.has(p.id)}
-                    disabled={!on}
+                    checked={pages.has(p.id)}
+                    aria-label={`Trình bày lại trang ${titleOf(p.id)}`}
                     onChange={(e) =>
-                      setDraw(toggle(draw, p.id, e.target.checked))
+                      setPages(toggle(pages, p.id, e.target.checked))
                     }
                   />
                   <span>
-                    Vẽ tranh minh hoạ: <em>{w.prompt}</em>
+                    <strong>{p.title || titleOf(p.id)}</strong>{" "}
+                    <span className="ai-kind">{designLabels[p.design]}</span>
                   </span>
                 </label>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+                <ul className="ai-bullets">
+                  {p.items.map((i, k) => (
+                    <li key={k}>
+                      {p.design === "COMPARE"
+                        ? `${p.groups[i.group] ?? ""}: `
+                        : ""}
+                      <strong>{i.title}</strong>
+                      {i.text ? ` — ${i.text}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      {usable.length > 0 && (
+        <>
+          <h3>Thêm {usable.length} hoạt động</h3>
+          <ol className="ai-pages">
+            {usable.map((a, i) => (
+              <li key={i} className={activities.has(i) ? "" : "excluded"}>
+                <label className="ai-page-head">
+                  <input
+                    type="checkbox"
+                    checked={activities.has(i)}
+                    aria-label={`Thêm hoạt động ${a.title}`}
+                    onChange={(e) =>
+                      setActivities(toggle(activities, i, e.target.checked))
+                    }
+                  />
+                  <span>
+                    <strong>{a.title}</strong>{" "}
+                    <span className="ai-kind">{activityLabels[a.type]}</span>
+                    <small className="ai-after">
+                      {" "}
+                      · sau trang “{titleOf(a.afterId)}”
+                    </small>
+                  </span>
+                </label>
+                {a.instruction && <p className="ai-note">{a.instruction}</p>}
+                <ul className="ai-bullets">
+                  {a.type === "SCENARIO" && a.scenario ? (
+                    <>
+                      <li>{a.scenario.situation}</li>
+                      {a.scenario.choices.map((c, k) => (
+                        <li key={k}>
+                          {c.isRecommended ? "✓ " : ""}
+                          {c.text}
+                        </li>
+                      ))}
+                    </>
+                  ) : a.type === "TRUE_FALSE" || a.type === "QUIZ" ? (
+                    a.questions.map((q, k) => (
+                      <li key={k}>
+                        {q.prompt}{" "}
+                        <em>
+                          (đáp án:{" "}
+                          {a.type === "TRUE_FALSE"
+                            ? (["Đúng", "Sai"][q.correct] ?? "Đúng")
+                            : q.options[q.correct]}
+                          )
+                        </em>
+                      </li>
+                    ))
+                  ) : (
+                    a.items.map((it, k) => (
+                      <li key={k}>
+                        {a.type === "ORDER" ? `${k + 1}. ` : ""}
+                        {it.text}
+                        {a.type === "MATCH" ? ` ↔ ${it.match}` : ""}
+                        {a.type === "SORT"
+                          ? ` → ${a.groups[it.group] ?? ""}`
+                          : ""}
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      {!designed.length && !usable.length && (
+        <p>AI chưa đề xuất được thay đổi nào cho bài này.</p>
+      )}
+      {plan.explanations.length > 0 && (
+        <p className="hint">
+          Kèm {plan.explanations.length} lời giải thích cho câu hỏi đã có.
+        </p>
+      )}
       <div className="modal-actions">
         <button onClick={cancel}>Quay lại</button>
-        <button className="primary" disabled={!accepted.size} onClick={confirm}>
-          Áp dụng {accepted.size} trang
-          {pictures
-            ? ` và vẽ ${pictures} tranh (${pricePerPicture}/tranh)`
-            : ""}
+        <button
+          className="primary"
+          disabled={
+            !pages.size && !activities.size && !plan.explanations.length
+          }
+          onClick={confirm}
+        >
+          Áp dụng ({pages.size} trang, {activities.size} hoạt động)
         </button>
       </div>
     </>

@@ -1,4 +1,4 @@
-// A small imported lesson for the "AI làm đẹp" tests: a cover page, a page with
+// A small imported lesson for the "AI thiết kế bài giảng" tests: a cover page, a page with
 // a picture, a page without one, a quiz and the completion page.
 import { createProject, createSlide } from "../../src/model/factories";
 import { parseProject, type LessonProject } from "../../src/model/schema";
@@ -74,60 +74,141 @@ export function aiLesson(): LessonProject {
 }
 
 export const aiPlan = {
-  illustrationStyle: "Bright flat illustration for children.",
-  slides: [
+  pages: [
     {
       id: "s-cover",
       title: "Khám phá",
-      bulletPoints: ["Không dùng"],
-      keyTakeaway: "Không dùng",
+      design: "KEEP",
+      intro: "",
+      center: "",
+      groups: [],
+      items: [],
+      keyTakeaway: "",
       voiceScript: "Các em cùng khám phá nhé!",
       teacherOnly: [],
-      pictureAlt: "Chữ Khám phá nhiều màu",
-      illustration: "",
-      explanations: [],
     },
     {
       id: "s-posture",
-      title: "Hoạt động 1: Khởi động",
-      bulletPoints: ["Ngồi lưng thẳng, vai thả lỏng."],
-      keyTakeaway: "Ngồi đúng tư thế giúp em khoẻ mạnh.",
-      voiceScript: "Các em hãy ngồi thẳng lưng nhé.",
-      teacherOnly: [
-        "Kiểm tra tư thế: HS ngồi vào vị trí máy tính",
-        "Nhắc HS ngồi ngay ngắn.",
+      title: "Ngồi đúng tư thế",
+      design: "COMPARE",
+      intro: "Em hãy so sánh.",
+      center: "",
+      groups: ["Nên", "Không nên"],
+      items: [
+        { title: "Lưng thẳng", text: "Vai thả lỏng", group: 0 },
+        { title: "Cúi sát màn hình", text: "Hại mắt", group: 1 },
       ],
-      pictureAlt: "Bạn nhỏ ngồi đúng tư thế trước máy tính",
-      illustration: "A boy sitting at a computer",
-      explanations: [],
+      keyTakeaway: "Ngồi thẳng lưng khi dùng máy tính.",
+      voiceScript: "Các em hãy ngồi thẳng lưng nhé.",
+      teacherOnly: ["Kiểm tra tư thế: HS ngồi vào vị trí máy tính"],
     },
     {
       id: "s-steps",
-      title: "5 thao tác cơ bản với chuột",
-      bulletPoints: ["Di chuyển chuột để thay đổi vị trí con trỏ."],
+      title: "5 thao tác với chuột",
+      design: "steps",
+      intro: "",
+      center: "",
+      groups: [],
+      items: [
+        { title: "Di chuyển", text: "Thay đổi vị trí con trỏ", group: 0 },
+        { title: "Nháy chuột", text: "Nhấn nút trái 1 lần", group: 0 },
+      ],
       keyTakeaway: "",
-      voiceScript: "Có năm thao tác với chuột.",
+      voiceScript: "",
       teacherOnly: [],
-      pictureAlt: "",
-      illustration: "A child's hand moving a computer mouse on a desk",
-      explanations: [],
     },
     {
       id: "s-quiz",
       title: "Luyện tập",
-      bulletPoints: [],
+      design: "STEPS",
+      intro: "",
+      center: "",
+      groups: [],
+      items: [
+        { title: "a", text: "", group: 0 },
+        { title: "b", text: "", group: 0 },
+      ],
       keyTakeaway: "",
       voiceScript: "",
       teacherOnly: [],
-      pictureAlt: "",
-      illustration: "",
-      explanations: [
+    },
+  ],
+  activities: [
+    {
+      afterId: "s-steps",
+      type: "ORDER",
+      title: "Sắp xếp các bước tắt máy",
+      instruction: "Kéo các bước theo đúng thứ tự.",
+      groups: [],
+      items: [
+        { text: "Nháy Start", match: "", group: 0 },
+        { text: "Chọn Power", match: "", group: 0 },
+        { text: "Chọn Shut down", match: "", group: 0 },
+      ],
+      questions: [],
+    },
+    {
+      afterId: "s-posture",
+      type: "TRUE_FALSE",
+      title: "Đúng hay sai?",
+      instruction: "",
+      groups: [],
+      items: [],
+      questions: [
         {
-          questionId: "q1",
-          explanation: "Tắt bằng Start giúp máy lưu dữ liệu.",
+          prompt: "Mắt nên cách màn hình 50–80 cm.",
+          options: ["Đúng", "Sai"],
+          correct: 0,
+          explanation: "Khoảng cách này bảo vệ mắt.",
         },
-        { questionId: "q2", explanation: "Không được ghi đè." },
       ],
     },
+    {
+      afterId: "s-posture",
+      type: "SCENARIO",
+      title: "Bạn An ngồi học",
+      instruction: "",
+      groups: [],
+      items: [],
+      questions: [],
+      scenario: {
+        character: "An",
+        situation: "An cúi sát màn hình.",
+        question: "An nên làm gì?",
+        choices: [
+          {
+            text: "Ngồi thẳng lưng",
+            isRecommended: true,
+            feedback: "Đúng rồi.",
+          },
+          { text: "Cúi sát hơn", isRecommended: false, feedback: "Hại mắt." },
+        ],
+      },
+    },
+    {
+      afterId: "invented-page",
+      type: "MATCH",
+      title: "Không có trang",
+      instruction: "",
+      groups: [],
+      items: [{ text: "a", match: "b", group: 0 }],
+      questions: [],
+    },
+    {
+      afterId: "s-steps",
+      type: "SORT",
+      title: "Thiếu nhóm",
+      instruction: "",
+      groups: ["Chỉ một"],
+      items: [
+        { text: "a", match: "", group: 0 },
+        { text: "b", match: "", group: 1 },
+      ],
+      questions: [],
+    },
+  ],
+  explanations: [
+    { questionId: "q1", explanation: "Tắt bằng Start giúp máy lưu dữ liệu." },
+    { questionId: "q2", explanation: "Không được ghi đè." },
   ],
 };

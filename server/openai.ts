@@ -9,7 +9,7 @@ export interface LocalAiConfig {
   provider?: string;
   model?: string;
   apiKey?: string;
-  /** Picture model, used by "AI làm đẹp bài giảng" (Gemini). */
+  /** Gemini picture model for the lesson studio. */
   imageModel?: string;
   /** Gemini key for pictures when the text provider is Claude. */
   geminiKey?: string;

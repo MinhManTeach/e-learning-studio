@@ -165,7 +165,7 @@ export function Editor({
           {!preview && <ExportButton project={state.project} />}
           {!preview && (
             <button className="ai-button" onClick={() => setShowAi(true)}>
-              AI làm đẹp bài giảng
+              AI thiết kế bài giảng
             </button>
           )}
           {!preview && (

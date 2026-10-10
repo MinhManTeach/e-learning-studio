@@ -4,7 +4,7 @@ import { z } from "zod";
 import { documentBlockSchema, semanticCategories } from "../src/import/model";
 import { projectSchema } from "../src/model/schema";
 import { enhanceWithOpenAi } from "./enhancement";
-import { drawIllustration, polishLesson, studioStatus } from "./studio";
+import { designLesson, drawIllustration, studioStatus } from "./studio";
 import {
   analyzeWithOpenAi,
   connectionStatus,
@@ -64,8 +64,8 @@ export function localAiMiddleware(config: LocalAiConfig) {
     }
     const enhancing = req.url === "/api/lesson-ai/enhance";
     const studio =
-      req.url === "/api/lesson-ai/studio/polish"
-        ? polishLesson
+      req.url === "/api/lesson-ai/studio/design"
+        ? designLesson
         : req.url === "/api/lesson-ai/studio/illustrate"
           ? drawIllustration
           : undefined;
@@ -91,8 +91,8 @@ export function localAiMiddleware(config: LocalAiConfig) {
       for await (const chunk of req) {
         const bytes = Buffer.from(chunk);
         size += bytes.length;
-        // Polishing sends the page pictures along with the text.
-        if (size > (studio === polishLesson ? 40_000_000 : 2_000_000)) {
+        // The lesson design request sends page pictures along with the text.
+        if (size > (studio === designLesson ? 40_000_000 : 2_000_000)) {
           send(413, { error: "AI_INPUT_TOO_LARGE" });
           return;
         }

@@ -1,11 +1,12 @@
-// "AI làm đẹp bài giảng" on the local server: page rewrites (Gemini or Claude)
-// and new pictures (Gemini) with the teacher's own keys from .env.local.
+// "AI thiết kế bài giảng" on the local server: page designs and practice
+// activities (Gemini or Claude) and pictures (Gemini) with the teacher's own
+// keys from .env.local.
 import {
-  polishInstruction,
-  polishPlanSchema,
-  polishRequestSchema,
-  polishWireSchema,
-} from "../src/ai/polish";
+  designInstruction,
+  designPlanSchema,
+  designWireSchema,
+} from "../src/ai/design";
+import { lessonRequestSchema } from "../src/ai/request";
 import { detectImageMime } from "../src/media/storage";
 import { claudeJson } from "./anthropic";
 import { geminiImage, geminiJson, type GeminiPart } from "./gemini";
@@ -64,7 +65,7 @@ export function studioStatus(config: LocalAiConfig) {
   };
 }
 
-export async function polishLesson(
+export async function designLesson(
   config: LocalAiConfig,
   body: unknown,
   signal?: AbortSignal,
@@ -72,7 +73,7 @@ export async function polishLesson(
 ) {
   const ready = studioConfig(config);
   if (!ready) throw new Error("AI_CONFIGURATION");
-  const parsed = polishRequestSchema.safeParse(body);
+  const parsed = lessonRequestSchema.safeParse(body);
   if (!parsed.success) throw new Error("AI_INPUT");
   const { images, ...lesson } = parsed.data;
   const parts: GeminiPart[] = [
@@ -84,9 +85,9 @@ export async function polishLesson(
     parts.push({ inlineData: image });
   });
   const prompt = {
-    system: polishInstruction,
+    system: designInstruction,
     parts,
-    schema: polishWireSchema(),
+    schema: designWireSchema(),
   };
   const answer =
     ready.provider === "anthropic"
@@ -97,16 +98,17 @@ export async function polishLesson(
           signal,
           transport,
         );
-  const plan = polishPlanSchema.safeParse(answer);
+  const plan = designPlanSchema.safeParse(answer);
   if (!plan.success) throw new Error("AI_INVALID_RESPONSE");
-  // Keep only pages that were sent, once each.
+  // Keep only pages that were sent (once each) and activities placed after one.
   const ids = new Set(lesson.slides.map((s) => s.id));
   const seen = new Set<string>();
   return {
     ...plan.data,
-    slides: plan.data.slides.filter(
+    pages: plan.data.pages.filter(
       (s) => ids.has(s.id) && !seen.has(s.id) && seen.add(s.id),
     ),
+    activities: plan.data.activities.filter((a) => ids.has(a.afterId)),
   };
 }
 

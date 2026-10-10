@@ -13,34 +13,13 @@ import type { StoredMedia } from "../src/media/model";
 import { aiLesson, aiPlan } from "./support/aiLesson";
 
 afterEach(cleanup);
-const png = btoa(
-  String.fromCharCode(
-    137,
-    80,
-    78,
-    71,
-    13,
-    10,
-    26,
-    10,
-    0,
-    0,
-    0,
-    13,
-    73,
-    72,
-    68,
-    82,
-  ),
-);
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status });
 
 function setup(
   answer: (path: string, body: unknown) => Response,
   configured = true,
-  provider = "gemini",
-  images = true,
+  provider = "anthropic",
 ) {
   const calls: { path: string; body: unknown }[] = [];
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
@@ -50,14 +29,13 @@ function setup(
         provider,
         configured,
         model: `${provider}-test`,
-        imageModel: images ? "img" : "",
-        images,
+        imageModel: "",
+        images: false,
       });
     const body = JSON.parse(String(init?.body));
     calls.push({ path, body });
     return answer(path, body);
   }) as unknown as typeof fetch;
-  const stored: StoredMedia[] = [];
   const media = {
     get: async (assetId: string, projectId: string) =>
       assetId === "pic-boy"
@@ -71,7 +49,6 @@ function setup(
             size: 4,
           } as StoredMedia)
         : undefined,
-    put: async (m: StoredMedia) => void stored.push(m),
   };
   const applied: LessonProject[] = [];
   render(
@@ -83,66 +60,51 @@ function setup(
       fetcher={fetcher}
     />,
   );
-  return { calls, stored, applied };
+  return { calls, applied };
 }
 
 it("explains how to connect a key when none is set up", async () => {
   setup(() => json({}), false);
   expect(await screen.findByText(/Chưa kết nối AI/)).toBeTruthy();
-  expect(screen.getByText(/LESSON_AI_PROVIDER=gemini/)).toBeTruthy();
+  expect(screen.getByText(/LESSON_AI_API_KEY=/)).toBeTruthy();
 });
 
-it("proposes changes, lets the teacher choose, then applies them with a new picture", async () => {
-  const { calls, stored, applied } = setup((path) =>
-    path === "polish"
-      ? json(aiPlan)
-      : json({ mimeType: "image/png", data: png }),
-  );
-  fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
-  expect(await screen.findByText("Hoạt động 1: Khởi động")).toBeTruthy();
+it("proposes page designs and activities in one call, lets the teacher choose, then applies them", async () => {
+  const { calls, applied } = setup(() => json(aiPlan));
+  expect(await screen.findByText(/Dùng khoá Claude/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Bắt đầu" }));
+  expect(await screen.findByText("Trình bày lại 2 trang")).toBeTruthy();
+  expect(screen.getByText("Thêm 3 hoạt động")).toBeTruthy();
+  expect(calls).toHaveLength(1);
+  expect(calls[0].path).toBe("design");
   // The page picture went along with the text.
-  const sent = calls[0].body as { images: unknown[]; slides: unknown[] };
-  expect(sent.images).toHaveLength(1);
-  expect(sent.slides).toHaveLength(4);
-  expect(
-    screen.getByText("A child's hand moving a computer mouse on a desk"),
-  ).toBeTruthy();
-  // The teacher keeps the cover page as it was.
+  expect((calls[0].body as { images: unknown[] }).images).toHaveLength(1);
+  // Previews the teacher can judge: designs, activity items and answers.
+  expect(screen.getByText("Hai cột so sánh")).toBeTruthy();
+  expect(screen.getByText("1. Nháy Start")).toBeTruthy();
+  expect(screen.getByText(/đáp án: Đúng/)).toBeTruthy();
+  // The teacher drops the scenario.
   fireEvent.click(
-    screen.getByRole("checkbox", { name: "Áp dụng cho trang Trang 12" }),
+    screen.getByRole("checkbox", { name: "Thêm hoạt động Bạn An ngồi học" }),
   );
   fireEvent.click(
-    screen.getByRole("button", { name: /Áp dụng 3 trang và vẽ 1 tranh/ }),
+    screen.getByRole("button", { name: "Áp dụng (2 trang, 2 hoạt động)" }),
   );
   expect(
-    await screen.findByText(/Đã làm đẹp 3 trang và vẽ 1 tranh/),
+    await screen.findByText(/Đã trình bày lại 2 trang và thêm 2 hoạt động/),
   ).toBeTruthy();
-  expect(calls[1].path).toBe("illustrate");
-  expect((calls[1].body as { prompt: string }).prompt).toContain(
-    "computer mouse",
-  );
-  expect(stored).toHaveLength(1);
-  const project = applied[0];
-  expect(project.slides.map((s) => s.title)).toEqual([
-    "Trang 12",
-    "Hoạt động 1: Khởi động",
-    "5 thao tác cơ bản với chuột",
-    "Luyện tập",
-    project.slides[4].title,
+  expect(applied[0].slides.map((s) => s.type)).toEqual([
+    "content",
+    "cards",
+    "quiz",
+    "cards",
+    "activity",
+    "quiz",
+    "completion",
   ]);
-  const steps = project.slides[2];
-  const asset = project.assets.find((a) => a.id === steps.media.assetId);
-  expect(asset).toMatchObject({
-    kind: "IMAGE",
-    sourceType: "GENERATED",
-    status: "LOCAL",
-    id: stored[0].assetId,
-  });
-  expect(steps.media.enabled).toBe(true);
-  expect(steps.layout).toBe("TEXT_LEFT_MEDIA_RIGHT");
 });
 
-it("says the AI account needs credit when it has none", async () => {
+it("keeps the lesson unchanged and says why when the AI cannot help", async () => {
   const { applied } = setup(() => json({ error: "AI_BILLING" }, 502));
   fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
   expect((await screen.findByRole("alert")).textContent).toMatch(
@@ -151,59 +113,15 @@ it("says the AI account needs credit when it has none", async () => {
   expect(applied).toEqual([]);
 });
 
-it("keeps the lesson unchanged and says why when the AI cannot help", async () => {
-  const { applied } = setup(() => json({ error: "AI_RATE_LIMIT" }, 502));
+it("says so when the AI proposes nothing usable", async () => {
+  setup(() => json({ pages: [], activities: [], explanations: [] }));
   fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
-  expect(await screen.findByRole("alert")).toBeTruthy();
-  expect(screen.getByRole("alert").textContent).toMatch(/hết lượt dùng/);
-  expect(applied).toEqual([]);
-});
-
-it("still applies the text when a picture cannot be drawn", async () => {
-  const { applied } = setup((path) =>
-    path === "polish" ? json(aiPlan) : json({ error: "AI_NO_IMAGE" }, 502),
-  );
-  fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
-  fireEvent.click(
-    await screen.findByRole("button", {
-      name: /Áp dụng 4 trang và vẽ 1 tranh/,
-    }),
-  );
-  await waitFor(() => expect(applied).toHaveLength(1));
   expect(
-    screen.getByText(/5 thao tác cơ bản với chuột: AI không vẽ được/),
+    await screen.findByText(/chưa đề xuất được thay đổi nào/),
   ).toBeTruthy();
-  expect(applied[0].slides[2].media.enabled).toBe(false);
-});
-
-it("explains billing when the key cannot draw pictures", async () => {
-  const { calls, applied } = setup((path) =>
-    path === "polish" ? json(aiPlan) : json({ error: "AI_RATE_LIMIT" }, 502),
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: /Áp dụng/ }).hasAttribute("disabled"),
+    ).toBe(true),
   );
-  fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
-  fireEvent.click(
-    await screen.findByRole("button", { name: /Áp dụng 4 trang/ }),
-  );
-  await waitFor(() => expect(applied).toHaveLength(1));
-  expect(screen.getByText(/bật thanh toán \(Billing\)/)).toBeTruthy();
-  expect(calls.filter((c) => c.path === "illustrate")).toHaveLength(1);
-});
-
-it("writes with Claude and offers no pictures without a Gemini key", async () => {
-  const { calls, applied } = setup(
-    () => json(aiPlan),
-    true,
-    "anthropic",
-    false,
-  );
-  expect(await screen.findByText(/Dùng khoá Claude/)).toBeTruthy();
-  expect(screen.getByText(/LESSON_AI_GEMINI_KEY/)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Bắt đầu" }));
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Áp dụng 4 trang" }),
-  );
-  await waitFor(() => expect(applied).toHaveLength(1));
-  expect(screen.queryByText(/Vẽ tranh minh hoạ/)).toBeNull();
-  expect(calls.map((c) => c.path)).toEqual(["polish"]);
-  expect(applied[0].slides[2].title).toBe("5 thao tác cơ bản với chuột");
 });

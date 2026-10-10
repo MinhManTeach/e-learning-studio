@@ -1,60 +1,29 @@
 # Personal local AI setup
 
-## AI làm đẹp bài giảng (Gemini or Claude)
+## AI thiết kế bài giảng (Claude or Gemini)
 
-The editor button **AI làm đẹp bài giảng** uses the teacher's own key. The text can come
-from Gemini or Claude; pictures are always drawn by Gemini (Claude does not draw).
+The editor button **AI thiết kế bài giảng** makes one call for the whole lesson with the
+teacher's own key. The AI proposes (1) a card design for knowledge pages — numbered steps,
+two columns (Nên / Không nên), timeline, mind map, flip cards — and (2) 3–6 practice
+activities placed after the page they practise: ordering, sorting into two groups,
+matching, true/false, multiple choice and a branching scenario. It also fills missing
+explanations of existing questions. The teacher ticks what to keep; nothing is removed,
+existing answers never change, and **Hoàn tác cải thiện** undoes the whole change.
 
-To write with Claude instead of Gemini (a key starting with `sk-ant-` is recognised as
-Claude, and one starting with `AIza` as Gemini, whatever LESSON_AI_PROVIDER says):
+`.env.local` (one key is enough; `sk-ant-` keys are Claude, `AIza` keys are Gemini):
 
 ```
-LESSON_AI_PROVIDER=anthropic
-LESSON_AI_API_KEY=your-anthropic-key
-# optional: LESSON_AI_MODEL=claude-haiku-5-5 (default claude-sonnet-5-5)
-# optional, to draw pictures: LESSON_AI_GEMINI_KEY=your-gemini-key
+LESSON_AI_API_KEY=your-key
+# optional: LESSON_AI_PROVIDER=anthropic|gemini, LESSON_AI_MODEL=claude-sonnet-5-5 (default)
+#           or gemini-3.8-flash (default for Gemini), LESSON_AI_THINKING=low (Gemini only)
+# optional, pictures (Gemini only, needs Billing): LESSON_AI_GEMINI_KEY=your-gemini-key
 ```
 
-Claude is called with structured outputs (`output_config.format`, every object closed)
-on `POST https://api.anthropic.com/v1/messages`; 529/503 "overloaded" answers are retried
-twice. Without `LESSON_AI_GEMINI_KEY` the dialog offers no pictures.
-
-With Gemini:
-
-1. Get a key at https://aistudio.google.com/apikey.
-2. Create `.env.local` in the repository root:
-
-   ```
-   LESSON_AI_PROVIDER=gemini
-   LESSON_AI_API_KEY=your-key
-   # optional, these are the defaults:
-   LESSON_AI_MODEL=gemini-3.8-flash
-   LESSON_AI_IMAGE_MODEL=gemini-nano-banana-2.1
-   LESSON_AI_THINKING=low
-   ```
-
-   `LESSON_AI_THINKING=low` answers several times faster than the model default; use
-   `medium` or `high` for more careful rewrites, `off` for models without thinking levels.
-
-3. Restart `npm run dev`, open a lesson and press **AI làm đẹp bài giảng**.
-
-The AI reads every page (text plus page pictures up to 1.5 MB) and proposes titles,
-child-friendly wording, narration, picture descriptions, missing quiz explanations and
-new illustrations for pages without a picture. Nothing changes until the teacher
-applies the accepted pages; **Hoàn tác cải thiện** undoes the whole change. Answers,
-scores, questions and page order are never changed.
-
-When Gemini answers 503 (model overloaded, request not processed) the server tries
-twice more after 3 s and 6 s; other failures are never retried automatically.
-
-Text uses the free tier when available. Picture generation has no free tier: it needs
-billing enabled on the key (about 0.034 USD per 1K picture at the time of writing).
-
-Endpoints (dev server only, local callers only): `GET /api/lesson-ai/studio/status`,
-`POST /api/lesson-ai/studio/polish`, `POST /api/lesson-ai/studio/illustrate`. The key
-stays in the Node process and is sent to Google in the `x-goog-api-key` header; only
-error codes (never provider messages) reach the browser. A hosted version will replace
-these endpoints with an authenticated server that meters usage per account.
+Restart `npm run dev` after editing. Endpoints (dev server only, local callers only):
+`GET /api/lesson-ai/studio/status`, `POST /api/lesson-ai/studio/design`,
+`POST /api/lesson-ai/studio/illustrate`. Keys stay in the Node process; only error codes
+reach the browser. Overloaded answers (503/529) are retried twice; nothing else is retried
+automatically. Videos are never generated: lessons use the videos in the PowerPoint.
 
 ## Lesson-plan analysis (OpenAI) — Phase 2A.3
 

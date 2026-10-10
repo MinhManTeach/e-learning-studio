@@ -37,14 +37,12 @@
 .ai-pages > li.excluded {
   opacity: 0.5;
 }
-.ai-page-head,
-.ai-draw {
+.ai-page-head {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
-.ai-page-head input,
-.ai-draw input {
+.ai-page-head input {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
@@ -63,15 +61,19 @@
   font-size: 13px;
   color: #52675f;
 }
-.ai-draw {
-  margin: 6px 0 0 26px;
-  font-size: 13px;
-  color: #2b5f4c;
+.ai-studio h3 {
+  margin: 14px 0 4px;
+  font-size: 15px;
 }
-.ai-draw em {
+.ai-kind {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #e9f3ee;
+  color: #1d705b;
+}
+.ai-after {
   color: #6e8c80;
-}
-.ai-failed {
-  font-size: 13px;
-  color: #79612b;
 }

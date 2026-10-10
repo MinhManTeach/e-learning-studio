@@ -6,11 +6,11 @@ import { localAiMiddleware } from "../server/localAiPlugin";
 import { connectionStatus } from "../server/openai";
 import {
   drawIllustration,
-  polishLesson,
+  designLesson,
   studioConfig,
   studioStatus,
 } from "../server/studio";
-import { polishRequest } from "../src/ai/polish";
+import { lessonRequest } from "../src/ai/request";
 import { aiLesson, aiPlan } from "./support/aiLesson";
 
 const config = {
@@ -234,28 +234,32 @@ describe("lesson studio", () => {
     expect(connectionStatus(config).status).toBe("NOT_CONNECTED");
   });
   it("sends the lesson as data with its pictures and keeps only pages it sent", async () => {
-    const request = polishRequest(
+    const request = lessonRequest(
       aiLesson(),
       new Map([["s-posture", { mimeType: "image/png", data: png }]]),
     );
     const { calls, transport } = fakeGemini(
       textAnswer({
         ...aiPlan,
-        slides: [
-          ...aiPlan.slides,
-          { ...aiPlan.slides[0], title: "Trùng" },
-          { ...aiPlan.slides[0], id: "invented" },
+        pages: [
+          ...aiPlan.pages,
+          { ...aiPlan.pages[0], title: "Trùng" },
+          { ...aiPlan.pages[0], id: "invented" },
         ],
       }),
     );
-    const plan = await polishLesson(config, request, undefined, transport);
-    expect(plan.slides.map((s) => s.id)).toEqual([
+    const plan = await designLesson(config, request, undefined, transport);
+    expect(plan.pages.map((s) => s.id)).toEqual([
       "s-cover",
       "s-posture",
       "s-steps",
       "s-quiz",
     ]);
-    expect(plan.slides[0].title).toBe("Khám phá");
+    expect(plan.pages[0].title).toBe("Khám phá");
+    // The activity placed after a page that does not exist is dropped.
+    expect(plan.activities.map((a) => a.afterId)).not.toContain(
+      "invented-page",
+    );
     const body = JSON.parse(String(calls[0].init.body));
     const parts = body.contents[0].parts;
     expect(JSON.parse(parts[0].text).UNTRUSTED_LESSON.slides).toHaveLength(4);
@@ -269,8 +273,8 @@ describe("lesson studio", () => {
     );
   });
   it("refuses to work without a key or with malformed input", async () => {
-    await expect(polishLesson({}, {})).rejects.toThrow("AI_CONFIGURATION");
-    await expect(polishLesson(config, { slides: [] })).rejects.toThrow(
+    await expect(designLesson({}, {})).rejects.toThrow("AI_CONFIGURATION");
+    await expect(designLesson(config, { slides: [] })).rejects.toThrow(
       "AI_INPUT",
     );
     await expect(drawIllustration(config, { prompt: "" })).rejects.toThrow(
@@ -338,10 +342,10 @@ describe("local endpoints", () => {
   it("serve the studio status and explain a missing key with a code", async () => {
     const status = await fetch(`${url}/api/lesson-ai/studio/status`);
     expect((await status.json()).configured).toBe(false);
-    const res = await fetch(`${url}/api/lesson-ai/studio/polish`, {
+    const res = await fetch(`${url}/api/lesson-ai/studio/design`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(polishRequest(aiLesson())),
+      body: JSON.stringify(lessonRequest(aiLesson())),
     });
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: "AI_CONFIGURATION" });
