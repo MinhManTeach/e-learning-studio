@@ -1110,17 +1110,6 @@
   font-weight: 600;
   line-height: 1.35;
 }
-.canvas .quiz-renderer fieldset {
-  position: relative;
-}
-.canvas .quiz-renderer fieldset > legend {
-  padding-inline-end: 4.5cqw;
-}
-.canvas .quiz-renderer fieldset > .speak-wrap {
-  position: absolute;
-  top: 0.6cqw;
-  right: 0.8cqw;
-}
 @media (prefers-reduced-motion: reduce) {
   .canvas .speak-button[aria-pressed="true"] {
     animation: none;

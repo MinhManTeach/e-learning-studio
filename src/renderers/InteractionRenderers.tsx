@@ -207,25 +207,25 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
         <fieldset key={q.id}>
           <legend>
             Câu {i + 1}. {q.prompt} <small>({q.points} điểm)</small>
+            {canReadAloud(slide) && (
+              <SpeakButton
+                id={"question:" + q.id}
+                label={`câu ${i + 1}`}
+                lang={slide.narration.lang}
+                text={questionSpeech(
+                  {
+                    ...q,
+                    options: orderedOptions(
+                      q,
+                      slide.data.shuffleAnswers,
+                      state.submitted ? Math.max(0, attempt - 1) : attempt,
+                    ),
+                  },
+                  i,
+                )}
+              />
+            )}
           </legend>
-          {canReadAloud(slide) && (
-            <SpeakButton
-              id={"question:" + q.id}
-              label={`câu ${i + 1}`}
-              lang={slide.narration.lang}
-              text={questionSpeech(
-                {
-                  ...q,
-                  options: orderedOptions(
-                    q,
-                    slide.data.shuffleAnswers,
-                    state.submitted ? Math.max(0, attempt - 1) : attempt,
-                  ),
-                },
-                i,
-              )}
-            />
-          )}
           <div className="quiz-options">
             {orderedOptions(
               q,
