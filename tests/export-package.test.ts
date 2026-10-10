@@ -200,9 +200,7 @@ it("writes a well-formed SCORM 2004 4th Edition manifest", async () => {
   p.metadata.projectTitle = 'Chuột & bàn phím <Tiết 2> "ôn tập"';
   const manifest = scormManifest(p, ["index.html", "media/0001.png"], "2004");
   expect(XMLValidator.validate(manifest)).toBe(true);
-  expect(manifest).toContain(
-    "<schemaversion>2004 4th Edition</schemaversion>",
-  );
+  expect(manifest).toContain("<schemaversion>2004 4th Edition</schemaversion>");
   expect(manifest).toContain('xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"');
   expect(manifest).toContain('adlcp:scormType="sco" href="index.html"');
   expect(manifest).toContain('<file href="media/0001.png"/>');

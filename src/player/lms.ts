@@ -66,8 +66,7 @@ function searchParents<K extends "API" | "API_1484_11">(
 export function findScormApi(win: Window, maxHops = 500): Scorm12Api | null {
   const w = win as unknown as ApiWindow;
   return (
-    searchParents("API", w, maxHops) ??
-    searchParents("API", w.opener, maxHops)
+    searchParents("API", w, maxHops) ?? searchParents("API", w.opener, maxHops)
   );
 }
 /** The same discovery for SCORM 2004's `API_1484_11`. */

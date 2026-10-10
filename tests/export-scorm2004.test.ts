@@ -180,4 +180,3 @@ it("does nothing when the LMS refuses to start the attempt", () => {
   lms.report({ status: "passed", score: 90, suspendData: "", location: "1" });
   expect(values["cmi.success_status"]).toBe("unknown");
 });
-
