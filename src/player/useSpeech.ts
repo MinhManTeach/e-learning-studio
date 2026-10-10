@@ -17,9 +17,7 @@ export function useSpeech(slide: Slide | undefined) {
   function toggle() {
     if (!slide) return;
     const r = speak(id, pageSpeech(slide), slide.narration.lang);
-    setNotice(
-      r === "NO_VOICE" || r === "UNSUPPORTED" ? speechNotices[r] : "",
-    );
+    setNotice(r === "NO_VOICE" || r === "UNSUPPORTED" ? speechNotices[r] : "");
   }
   return {
     speaking,

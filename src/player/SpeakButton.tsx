@@ -32,7 +32,9 @@ export function SpeakButton({
         onClick={(e) => {
           e.stopPropagation();
           const r = speak(id, text, lang);
-          setNotice(r === "NO_VOICE" || r === "UNSUPPORTED" ? speechNotices[r] : "");
+          setNotice(
+            r === "NO_VOICE" || r === "UNSUPPORTED" ? speechNotices[r] : "",
+          );
         }}
       >
         {speaking ? <Square size={14} /> : <Volume2 size={16} />}

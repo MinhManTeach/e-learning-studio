@@ -7,11 +7,7 @@ import { CertificateDialog } from "../player/CertificateDialog";
 import { useLessonSession } from "../player/SessionContext";
 import { celebrate } from "../player/celebrate";
 import { SpeakButton } from "../player/SpeakButton";
-import {
-  canReadAloud,
-  joinSpeech,
-  questionSpeech,
-} from "../player/readAloud";
+import { canReadAloud, joinSpeech, questionSpeech } from "../player/readAloud";
 import {
   calculateQuizScore,
   canRetry,

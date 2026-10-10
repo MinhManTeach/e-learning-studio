@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { createProject, createSlide } from "../src/model/factories";
 import { LessonPlayer } from "../src/player/LessonPlayer";
 import { StandaloneAdapter } from "../src/player/lms";

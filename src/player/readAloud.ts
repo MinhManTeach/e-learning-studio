@@ -15,7 +15,8 @@ export function joinSpeech(parts: (string | undefined | null | false)[]) {
     .join(" ");
 }
 // "Trang 3" is a placeholder name from a PowerPoint import, not worth reading.
-const titleOf = (s: Slide) => (/^Trang \d+$/.test(s.title.trim()) ? "" : s.title);
+const titleOf = (s: Slide) =>
+  /^Trang \d+$/.test(s.title.trim()) ? "" : s.title;
 
 /** A quiz question with its choices, the way a teacher would read it out. */
 export function questionSpeech(q: Question, index: number) {
