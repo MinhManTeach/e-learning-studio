@@ -158,3 +158,16 @@ it("still applies the text when a picture cannot be drawn", async () => {
   ).toBeTruthy();
   expect(applied[0].slides[2].media.enabled).toBe(false);
 });
+
+it("explains billing when the key cannot draw pictures", async () => {
+  const { calls, applied } = setup((path) =>
+    path === "polish" ? json(aiPlan) : json({ error: "AI_RATE_LIMIT" }, 502),
+  );
+  fireEvent.click(await screen.findByRole("button", { name: "Bắt đầu" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Áp dụng 4 trang/ }),
+  );
+  await waitFor(() => expect(applied).toHaveLength(1));
+  expect(screen.getByText(/bật thanh toán \(Billing\)/)).toBeTruthy();
+  expect(calls.filter((c) => c.path === "illustrate")).toHaveLength(1);
+});

@@ -45,6 +45,8 @@ const messages: Record<string, string> = {
   AI_INVALID_RESPONSE: "AI trả lời chưa đúng dạng. Hãy thử lại.",
   AI_NO_IMAGE: "AI không vẽ được tranh cho trang này.",
 };
+const pictureBilling =
+  "Chưa vẽ được tranh: vẽ tranh không có gói miễn phí. Hãy bật thanh toán (Billing) cho dự án của khoá trong Google AI Studio, hoặc đợi khi hạn mức được làm mới. Phần chữ vẫn đã được áp dụng.";
 const explain = (code: string) =>
   messages[code] ?? "Chưa dùng được AI lúc này. Bài giảng vẫn được giữ nguyên.";
 
@@ -223,9 +225,13 @@ export function AiStudio({
         next = attachMedia(next, w.slideId, asset, "");
         drawn++;
       } catch (e) {
-        failed.push(
-          `${w.title}: ${explain(e instanceof AiError ? e.message : "AI_NO_IMAGE")}`,
-        );
+        const code = e instanceof AiError ? e.message : "AI_NO_IMAGE";
+        if (code === "AI_RATE_LIMIT" || code === "AI_CONFIGURATION") {
+          // The key cannot draw at all; do not try every page.
+          failed.push(pictureBilling);
+          break;
+        }
+        failed.push(`${w.title}: ${explain(code)}`);
       }
     }
     apply(next);
