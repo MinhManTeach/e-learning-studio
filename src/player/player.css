@@ -1,22 +1,31 @@
 /* Exported lesson player: one 16:9 page that fits the window, toolbar above. */
+/* Exported lesson player: fills the window or LMS frame exactly; the 16:9 page
+   takes the height left between the toolbar and the navigation buttons. */
 .lesson-player {
-  --player-bar: 132px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   max-width: 1600px;
   margin: 0 auto;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #f7f8f7;
 }
 .lesson-player:fullscreen {
   max-width: none;
   background: #f7f8f7;
-  overflow: auto;
 }
-.lesson-player .canvas {
-  width: min(100%, calc((100vh - var(--player-bar)) * 16 / 9));
-  margin: 0 auto;
+.player-stage {
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+.lesson-player .player-stage .canvas {
+  width: min(100cqw, 100cqh * 16 / 9);
+  margin: 0;
 }
 .player-bar {
   display: flex;
@@ -115,9 +124,6 @@
 @media (max-width: 640px) {
   .lesson-player {
     padding: 8px;
-  }
-  .lesson-player .canvas {
-    width: 100%;
   }
   .theme-tool span {
     display: none;

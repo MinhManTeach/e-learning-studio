@@ -243,11 +243,15 @@ export function LessonPlayer({
             </button>
           </p>
         )}
-        <SlideCanvas
-          slide={slide}
-          project={shown}
-          fontBoost={fontSteps[fontStep]}
-        />
+        {/* The stage takes whatever height is left, so the page and the
+            navigation buttons fit inside an LMS frame of any size. */}
+        <div className="player-stage">
+          <SlideCanvas
+            slide={slide}
+            project={shown}
+            fontBoost={fontSteps[fontStep]}
+          />
+        </div>
         <div className="player-nav">
           <button onClick={() => go(index - 1)} disabled={index <= 0}>
             <ArrowLeft size={17} /> Trang trước

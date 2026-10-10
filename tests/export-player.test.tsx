@@ -119,3 +119,17 @@ it("closes the LMS attempt when the page is left", () => {
   window.dispatchEvent(new Event("pagehide"));
   expect(lms.finished()).toBe(1);
 });
+
+it("puts the page in a stage between the toolbar and the page buttons", () => {
+  const p = lesson();
+  const { container } = render(
+    <LessonPlayer project={p} lms={fakeLms().lms} />,
+  );
+  const main = container.querySelector("main.lesson-player")!;
+  const order = [...main.children].map((c) => c.className.split(" ")[0]);
+  expect(order.indexOf("player-stage")).toBeGreaterThan(
+    order.indexOf("player-bar"),
+  );
+  expect(order.indexOf("player-nav")).toBe(order.indexOf("player-stage") + 1);
+  expect(main.querySelector(".player-stage > .canvas")).toBeTruthy();
+});
