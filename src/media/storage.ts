@@ -7,7 +7,29 @@ export function detectImageMime(bytes: Uint8Array) {
     String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
   return png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : "";
 }
+export function detectVideoMime(bytes: Uint8Array) {
+  if (String.fromCharCode(...bytes.slice(4, 8)) === "ftyp") return "video/mp4";
+  if (
+    bytes[0] === 0x1a &&
+    bytes[1] === 0x45 &&
+    bytes[2] === 0xdf &&
+    bytes[3] === 0xa3
+  )
+    return "video/webm";
+  return "";
+}
 export const maxImageBytes = 8 * 1024 * 1024;
+export const maxVideoBytes = 200 * 1024 * 1024;
+export async function validateVideoBlob(blob: Blob) {
+  if (!blob.size || blob.size > maxVideoBytes)
+    throw new Error("Video phải lớn hơn 0 và không quá 200 MB.");
+  const detected = detectVideoMime(
+    new Uint8Array(await blob.slice(0, 16).arrayBuffer()),
+  );
+  if (!detected || blob.type !== detected)
+    throw new Error("Chỉ nhận video MP4 hoặc WebM có nội dung hợp lệ.");
+  return detected;
+}
 export async function validateImageBlob(blob: Blob) {
   if (!blob.size || blob.size > maxImageBytes)
     throw new Error("Ảnh phải lớn hơn 0 và không quá 8 MB.");
@@ -69,14 +91,16 @@ export class LocalMediaAssetStore {
     });
   }
   private async write(value: StoredMedia, insertOnly: boolean) {
-    const mime = await validateImageBlob(value.blob);
+    const mime = value.mimeType.startsWith("video/")
+      ? await validateVideoBlob(value.blob)
+      : await validateImageBlob(value.blob);
     if (
       mime !== value.mimeType ||
       value.size !== value.blob.size ||
       !value.projectId ||
       !value.assetId
     )
-      throw new Error("Dữ liệu ảnh không hợp lệ.");
+      throw new Error("Dữ liệu ảnh hoặc video không hợp lệ.");
     await this.request("readwrite", (store) =>
       insertOnly ? store.add(value) : store.put(value),
     );

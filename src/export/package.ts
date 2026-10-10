@@ -1,7 +1,7 @@
 import { strToU8, zipSync, type Zippable } from "fflate";
 import { parseProject, type LessonProject } from "../model/schema";
 import type { StoredMedia } from "../media/model";
-import { detectImageMime } from "../media/storage";
+import { detectImageMime, detectVideoMime } from "../media/storage";
 import type { PlayerPackageData } from "./playerData";
 import { playerDataGlobal } from "./playerData";
 
@@ -32,17 +32,7 @@ const extensions: Record<string, string> = {
 };
 /** Recognises the file by its bytes, not by its name or claimed type. */
 export function detectMediaMime(bytes: Uint8Array) {
-  const image = detectImageMime(bytes);
-  if (image) return image;
-  if (String.fromCharCode(...bytes.slice(4, 8)) === "ftyp") return "video/mp4";
-  if (
-    bytes[0] === 0x1a &&
-    bytes[1] === 0x45 &&
-    bytes[2] === 0xdf &&
-    bytes[3] === 0xa3
-  )
-    return "video/webm";
-  return "";
+  return detectImageMime(bytes) || detectVideoMime(bytes);
 }
 const pageName = (p: LessonProject, slideId: string) => {
   const i = p.slides.findIndex((s) => s.id === slideId);
