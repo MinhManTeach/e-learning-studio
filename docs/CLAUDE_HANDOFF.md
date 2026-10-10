@@ -10,7 +10,9 @@
     khoá `sk-ant-` tự nhận). Tranh: chỉ Gemini (nano-banana-2.1, LESSON_AI_GEMINI_KEY khi chữ dùng Claude).
     Không đổi đáp án/điểm/thứ tự; hoàn tác bằng "Hoàn tác cải thiện". Xem AI_SETUP.md.
   - Đã chạy thật 2026-10-10: Gemini chữ OK (tiết 3, 19 trang ~25 s). Tranh Gemini: 429 free tier limit 0
-    → cần bật Billing. Claude: khoá hợp lệ nhưng tài khoản chưa có tín dụng (AI_BILLING).
+    → cần bật Billing. Claude (sonnet-5-5) chạy thật OK sau khi nạp tín dụng: tiết 3, 19 trang ~41 s, giữ sát lời giáo viên.
+  - Người dùng muốn: hạn chế gọi API cho phần chữ (một lần/bài khi bấm nút, không gọi tự động);
+    KHÔNG tạo video bằng AI, chỉ dùng video có sẵn trong PowerPoint.
   - Kiểm tra thật bằng runner: `{"action":"ai-smoke","args":{"image":true,"polish":"bai4-tiet3"}}`
     (claude-ai-smoke.mjs, in mã lỗi/nội dung lỗi của nhà cung cấp, không in khoá).
 - Gói SCORM đã chạy thật trên LMS360.vn của trường (người dùng xác nhận 2026-10-10).
@@ -31,7 +33,7 @@
 - Demo Bài 4 – Tiết 1 bản 2 đã gửi (9,8 MB). Chờ: thử video trên Chrome/Edge, thử tải lên LMS360.
 
 ## Việc tiếp theo
-1. Người dùng nạp tín dụng Claude / bật Billing Gemini, chạy lại ai-smoke, thử nút AI trong app; rồi merge nhánh.
+1. Người dùng bật Billing Gemini để vẽ tranh, thử nút AI trong app; rồi merge nhánh.
 2. Có thể tự chụp ảnh slide bằng PowerPoint trên máy (COM, đã dò: PowerPoint 16 có sẵn) thay cho xuất PNG tay.
 3. Module người dùng (sau): máy chủ giữ khoá, tài khoản, đếm lượt, thanh toán (VNPay/MoMo/PayOS); thay
    endpoint /api/lesson-ai/studio/* bằng máy chủ thật, phần trình duyệt giữ nguyên.
