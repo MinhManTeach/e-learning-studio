@@ -16,8 +16,17 @@
   max-width: none;
   background: #f7f8f7;
 }
+/* Table of contents on the left, page on the right. */
+.player-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
 .player-stage {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   container-type: size;
   display: grid;
@@ -82,11 +91,10 @@
   accent-color: #217b64;
 }
 .player-toc {
+  flex: 0 0 240px;
   border: 1px solid #dfe5db;
   border-radius: 8px;
   background: #fff;
-  margin-bottom: 10px;
-  max-height: 40vh;
   overflow: auto;
 }
 .player-toc ol {
@@ -120,6 +128,16 @@
 }
 .lesson-player .player-nav {
   margin: 12px 0 0;
+}
+/* Narrow screens: the list slides over the page from the left. */
+@media (max-width: 1099px) {
+  .player-toc {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: min(300px, 85%);
+    z-index: 2;
+    box-shadow: 6px 0 24px #1a302922;
+  }
 }
 @media (max-width: 640px) {
   .lesson-player {

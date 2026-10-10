@@ -30,6 +30,9 @@ export const themeLabels: Record<(typeof themes)[number], string> = {
   FOCUS_DARK: "Tối tập trung",
 };
 const fontSteps = [1, 1.15, 1.3, 1.5];
+/** Wide screens keep the table of contents open beside the page. */
+const wideScreen = () =>
+  typeof window !== "undefined" && window.innerWidth >= 1100;
 
 function restore(project: LessonProject, lms: LmsAdapter) {
   const saved = lms.readSuspendData();
@@ -52,7 +55,7 @@ export function LessonPlayer({
   const [initial] = useState(() => restore(project, lms));
   const [session, setSession] = useState<LessonSessionState>(initial.state);
   const [resumedAt, setResumedAt] = useState(initial.resumedAt);
-  const [tocOpen, setTocOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(wideScreen);
   const [fontStep, setFontStep] = useState(0);
   const [theme, setTheme] = useState(project.settings.theme);
   const [fullscreen, setFullscreen] = useState(false);
@@ -71,7 +74,8 @@ export function LessonPlayer({
   const go = (i: number) => {
     const target = project.slides[i];
     if (target) act({ type: "visit", id: target.id });
-    setTocOpen(false);
+    // On narrow screens the list covers the page, so close it after choosing.
+    if (!wideScreen()) setTocOpen(false);
   };
 
   useEffect(() => {
@@ -209,27 +213,6 @@ export function LessonPlayer({
           <progress aria-label="Tiến độ học" value={percent} max={100} />
           <span>{percent}%</span>
         </div>
-        {tocOpen && (
-          <nav id="player-toc" className="player-toc" aria-label="Mục lục">
-            <ol>
-              {project.slides.map((s, i) => (
-                <li key={s.id}>
-                  <button
-                    onClick={() => go(i)}
-                    aria-current={i === index ? "page" : undefined}
-                  >
-                    <span>{i + 1}.</span> {s.title}
-                    {session.visitedSlideIds.includes(s.id) && (
-                      <span className="visited" aria-label="đã xem">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-        )}
         {resumedAt > 0 && (
           <p className="resume-notice" role="status">
             Đang học tiếp từ trang {resumedAt}.{" "}
@@ -245,12 +228,35 @@ export function LessonPlayer({
         )}
         {/* The stage takes whatever height is left, so the page and the
             navigation buttons fit inside an LMS frame of any size. */}
-        <div className="player-stage">
-          <SlideCanvas
-            slide={slide}
-            project={shown}
-            fontBoost={fontSteps[fontStep]}
-          />
+        <div className="player-body">
+          {tocOpen && (
+            <nav id="player-toc" className="player-toc" aria-label="Mục lục">
+              <ol>
+                {project.slides.map((s, i) => (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => go(i)}
+                      aria-current={i === index ? "page" : undefined}
+                    >
+                      <span>{i + 1}.</span> {s.title}
+                      {session.visitedSlideIds.includes(s.id) && (
+                        <span className="visited" aria-label="đã xem">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
+          <div className="player-stage">
+            <SlideCanvas
+              slide={slide}
+              project={shown}
+              fontBoost={fontSteps[fontStep]}
+            />
+          </div>
         </div>
         <div className="player-nav">
           <button onClick={() => go(index - 1)} disabled={index <= 0}>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createProject, createSlide } from "../src/model/factories";
 import { LessonPlayer } from "../src/player/LessonPlayer";
@@ -127,9 +127,48 @@ it("puts the page in a stage between the toolbar and the page buttons", () => {
   );
   const main = container.querySelector("main.lesson-player")!;
   const order = [...main.children].map((c) => c.className.split(" ")[0]);
-  expect(order.indexOf("player-stage")).toBeGreaterThan(
+  expect(order.indexOf("player-body")).toBeGreaterThan(
     order.indexOf("player-bar"),
   );
-  expect(order.indexOf("player-nav")).toBe(order.indexOf("player-stage") + 1);
-  expect(main.querySelector(".player-stage > .canvas")).toBeTruthy();
+  expect(order.indexOf("player-nav")).toBe(order.indexOf("player-body") + 1);
+  expect(
+    main.querySelector(".player-body > .player-stage > .canvas"),
+  ).toBeTruthy();
+});
+
+describe("on a wide screen", () => {
+  let width: number;
+  beforeEach(() => {
+    width = window.innerWidth;
+    window.innerWidth = 1280;
+  });
+  afterEach(() => {
+    window.innerWidth = width;
+  });
+  it("shows the table of contents open on the left of the page", () => {
+    const p = lesson();
+    const { container } = render(
+      <LessonPlayer project={p} lms={fakeLms().lms} />,
+    );
+    const body = container.querySelector(".player-body")!;
+    expect(body.children[0].getAttribute("aria-label")).toBe("Mục lục");
+    expect(body.children[1].className).toBe("player-stage");
+    expect(
+      screen
+        .getByRole("button", { name: "Mục lục" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+  });
+  it("keeps the table of contents open after choosing a page", () => {
+    const p = lesson();
+    render(<LessonPlayer project={p} lms={fakeLms().lms} />);
+    const toc = screen.getByRole("navigation", { name: "Mục lục" });
+    fireEvent.click(
+      [...toc.querySelectorAll("button")].find((b) =>
+        b.textContent?.includes("Tư thế ngồi"),
+      )!,
+    );
+    expect(screen.getByText("Trang 2 / 3")).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Mục lục" })).toBeTruthy();
+  });
 });
