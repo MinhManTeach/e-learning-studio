@@ -29,6 +29,20 @@
   (src/player/celebrate.ts, Celebration.tsx; tắt bằng nút Âm thanh). Người dùng đã duyệt giao diện.
 - Font lấy bằng runner action `font-pack` (npm pack @fontsource/*), vì máy cloud không vào được npm.
 
+## SCORM 2004, giọng đọc, đo token (nhánh `claude/scorm-2004`, 2026-10-10, chờ người dùng duyệt)
+- LMS360 nhận cả SCORM 1.2 và 2004. Nút xuất có ô "Chuẩn" (nhớ trong localStorage); gói 2004 tên `*-scorm2004.zip`,
+  manifest 2004 4th Ed (completionSetByContent/objectiveSetByContent). Một trình phát chạy cả hai:
+  connectLms tìm API_1484_11 trước, rồi API (src/player/lms.ts Scorm2004Adapter). Đã chạy gói thật với LMS giả.
+- Giọng đọc: src/player/speech.ts (một bộ đọc chung, chỉ giọng vi, ưu tiên Natural/Online, cắt đoạn ≤180 ký tự,
+  không regex lookbehind vì iPad cũ), readAloud.ts (pageSpeech: lời thuyết minh, nếu không có thì đọc chữ trên trang),
+  SpeakButton.tsx (nút loa cạnh câu hỏi, yêu cầu hoạt động, tình huống, khởi động, "Em cần nhớ"; ẩn khi trang tắt đọc
+  hoặc trình duyệt không đọc được). Máy không có giọng vi → thông báo, không đọc bằng giọng Anh.
+- Đo chi phí: server/usage.ts; designLesson in một dòng "[AI thiết kế bài giảng] model: N token vào, M token ra, s giây"
+  ra cửa sổ chạy app (không in nội dung bài). Kế hoạch bản web trả phí: docs/KE_HOACH_BAN_WEB.md (chờ quyết định).
+- Runner: export-lesson nhận `"scorm":"2004"`.
+- Ý tưởng chưa làm: giáo viên tự ghi âm giọng mình cho từng trang (AUDIO_ASSET, đóng gói vào SCORM) — chắc chắn
+  có tiếng trên mọi máy, không tốn API.
+
 ## Chạy test trên máy người dùng (Windows, F:\Codex\e-learning-studio)
 - `powershell -ExecutionPolicy Bypass -File .\claude-dev.ps1` (để cửa sổ mở). Không commit: claude-dev.ps1, claude-runner.mjs, claude-export.mjs, .claude-dev/.
 - Gửi việc: ghi JSON vào `.claude-dev\inbox\`, đọc kết quả ở `.claude-dev\outbox\`.
@@ -46,8 +60,7 @@
 ## Việc tiếp theo
 1. Người dùng thử nút "AI thiết kế bài giảng" trong app (nhập lại PowerPoint trước); ổn thì merge nhánh.
 2. Có thể tự chụp ảnh slide bằng PowerPoint trên máy (COM, đã dò: PowerPoint 16 có sẵn) thay cho xuất PNG tay.
-3. Module người dùng (sau): máy chủ giữ khoá, tài khoản, đếm lượt, thanh toán (VNPay/MoMo/PayOS); thay
-   endpoint /api/lesson-ai/studio/* bằng máy chủ thật, phần trình duyệt giữ nguyên.
+3. Module người dùng: xem docs/KE_HOACH_BAN_WEB.md (chờ người dùng quyết ngân sách, tên miền, pháp nhân, giá).
 4. Trang câu hỏi còn trơn so với ảnh slide: cân nhắc dùng ảnh slide làm nền/tranh cho trang câu hỏi.
 4. Nén video khi xuất (video gốc tiết 1 tới 25 MB); sao lưu (backup) chưa hỗ trợ video.
 5. Trình phát trên điện thoại dọc (khung 16:9 thấp).
