@@ -54,6 +54,21 @@ it("uses Claude for text and Gemini only for pictures", () => {
   expect(connectionStatus(claude).status).toBe("NOT_CONNECTED");
 });
 
+it("follows the key when LESSON_AI_PROVIDER names the other service", () => {
+  expect(
+    studioConfig({ provider: "gemini", apiKey: "sk-ant-api03-x" })?.provider,
+  ).toBe("anthropic");
+  expect(
+    studioConfig({ provider: "anthropic", apiKey: "AIzaSy-x" })?.provider,
+  ).toBe("gemini");
+  expect(studioConfig({ provider: "", apiKey: "sk-ant-x" })?.provider).toBe(
+    "anthropic",
+  );
+  expect(studioConfig({ provider: "gemini", apiKey: "other" })?.provider).toBe(
+    "gemini",
+  );
+});
+
 it("closes every object in the output schema", () => {
   const schema = closedSchema(polishWireSchema()) as {
     additionalProperties: boolean;

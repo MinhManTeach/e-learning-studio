@@ -79,7 +79,15 @@ async function callOnce(
     signal?.throwIfAborted();
     throw new Error(timeout.aborted ? "AI_TIMEOUT" : "AI_NETWORK");
   }
-  if (!response.ok) throw failure(response.status);
+  if (!response.ok) {
+    // Google answers 400 (not 401) for a wrong key.
+    const detail = await response.text().catch(() => "");
+    throw failure(
+      response.status === 400 && /API_KEY_INVALID/.test(detail)
+        ? 401
+        : response.status,
+    );
+  }
   const envelope = (await response.json()) as {
     promptFeedback?: { blockReason?: string };
     candidates?: {

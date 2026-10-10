@@ -5,7 +5,8 @@
 The editor button **AI làm đẹp bài giảng** uses the teacher's own key. The text can come
 from Gemini or Claude; pictures are always drawn by Gemini (Claude does not draw).
 
-To write with Claude instead of Gemini:
+To write with Claude instead of Gemini (a key starting with `sk-ant-` is recognised as
+Claude, and one starting with `AIza` as Gemini, whatever LESSON_AI_PROVIDER says):
 
 ```
 LESSON_AI_PROVIDER=anthropic

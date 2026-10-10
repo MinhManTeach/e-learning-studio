@@ -95,6 +95,18 @@ describe("Gemini REST", () => {
         ),
       ).rejects.toThrow(code);
     }
+    const wrongKey = fakeGemini(
+      { error: { code: 400, details: [{ reason: "API_KEY_INVALID" }] } },
+      400,
+    );
+    await expect(
+      geminiJson(
+        ready,
+        { system: "", parts: [], schema: {} },
+        undefined,
+        wrongKey.transport,
+      ),
+    ).rejects.toThrow("AI_CONFIGURATION");
     const cut = fakeGemini(textAnswer({}, "MAX_TOKENS"));
     await expect(
       geminiJson(

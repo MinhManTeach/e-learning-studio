@@ -20,9 +20,17 @@ export const defaultClaudeModel = "claude-sonnet-5-5";
  * Text comes from Gemini or Claude (LESSON_AI_PROVIDER). Pictures always come
  * from Gemini: its own key, or LESSON_AI_GEMINI_KEY next to a Claude key.
  */
+/** Which service a key belongs to, from its well-known prefix. */
+export function keyProvider(key: string | undefined) {
+  if (key?.startsWith("sk-ant-")) return "anthropic";
+  if (key?.startsWith("AIza")) return "gemini";
+  return undefined;
+}
 export function studioConfig(config: LocalAiConfig) {
   const key = config.apiKey?.trim();
-  const provider = config.provider?.trim().toLowerCase();
+  // A recognisable key decides the service, so a pasted Claude key works even
+  // if LESSON_AI_PROVIDER still says gemini (and the other way round).
+  const provider = keyProvider(key) ?? config.provider?.trim().toLowerCase();
   if (!key || (provider !== "gemini" && provider !== "anthropic"))
     return undefined;
   const claude = provider === "anthropic";
