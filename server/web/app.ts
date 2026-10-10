@@ -29,7 +29,14 @@ export interface WebDeps {
   store: Store;
   transport?: typeof fetch;
   now?: () => number;
-  design?: typeof designLesson;
+  /** The AI call; tests pass a stand-in. */
+  design?: (
+    ai: LocalAiConfig,
+    body: unknown,
+    signal?: AbortSignal,
+    transport?: typeof fetch,
+    report?: Parameters<typeof designLesson>[4],
+  ) => Promise<unknown>;
 }
 
 const sessionCookie = "gv_session";

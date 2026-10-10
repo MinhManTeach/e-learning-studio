@@ -6,7 +6,6 @@ import {
   createPublicKey,
   createVerify,
   randomBytes,
-  type JsonWebKey,
 } from "node:crypto";
 
 export interface GoogleConfig {
