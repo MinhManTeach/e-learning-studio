@@ -1,0 +1,53 @@
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.account-signin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #c9d6cf;
+  background: #fff;
+  color: #1f3b2f;
+  font-weight: 600;
+  text-decoration: none;
+}
+.account-signin:hover {
+  border-color: #2f7d5b;
+}
+.account-credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef7f1;
+  color: #1f6b48;
+  font-weight: 700;
+}
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+.account-name {
+  font-weight: 600;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 640px) {
+  .account-name {
+    display: none;
+  }
+}

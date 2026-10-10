@@ -25,6 +25,10 @@ interface Status {
   model: string;
   imageModel: string;
   images: boolean;
+  /** On the hosted app: AI runs on the site's key and costs one credit. */
+  hosted?: boolean;
+  signedIn?: boolean;
+  credits?: number;
 }
 const providerName = (p: string) => (p === "anthropic" ? "Claude" : "Gemini");
 /** Pictures bigger than this are not sent to the AI (it still sees the page text). */
@@ -49,6 +53,14 @@ const messages: Record<string, string> = {
   AI_REFUSED: "AI từ chối hoặc dừng giữa chừng. Hãy thử lại.",
   AI_INVALID_RESPONSE: "AI trả lời chưa đúng dạng. Hãy thử lại.",
   AI_NO_IMAGE: "AI không vẽ được tranh cho trang này.",
+  AUTH_REQUIRED:
+    "Phiên đăng nhập đã hết. Hãy đăng nhập lại bằng Google rồi thử lại.",
+  AI_NO_CREDITS:
+    "Bạn đã dùng hết lượt AI. Hãy mua thêm lượt ở trang chủ (mục tài khoản) rồi thử lại.",
+  AI_ONE_AT_A_TIME:
+    "AI đang thiết kế một bài khác của bạn. Đợi bài đó xong rồi thử lại.",
+  AI_INPUT_TOO_LARGE:
+    "Bài có quá nhiều ảnh lớn để gửi một lần. Hãy bớt ảnh hoặc chia bài rồi thử lại.",
   AI_NO_IMAGE_KEY:
     "Vẽ tranh cần khoá Gemini (dòng LESSON_AI_GEMINI_KEY trong .env.local).",
 };
@@ -216,6 +228,20 @@ export function AiStudio({
 
         {!status ? (
           <p>Đang kiểm tra kết nối AI…</p>
+        ) : status.hosted && !status.signedIn ? (
+          <div className="ai-setup">
+            <p>Đăng nhập để dùng AI thiết kế bài giảng.</p>
+            <p>
+              <a className="account-signin" href="/auth/google">
+                Đăng nhập bằng Google
+              </a>
+            </p>
+            <p className="hint">
+              Bài giảng vẫn nằm trên máy này; đăng nhập chỉ để tính lượt dùng AI.
+            </p>
+          </div>
+        ) : status.hosted && !status.configured ? (
+          <p role="alert">AI đang bảo trì. Thầy cô vui lòng thử lại sau.</p>
         ) : !status.configured ? (
           <div className="ai-setup">
             <p>Chưa kết nối AI. Cách bật trên máy của thầy cô:</p>
@@ -257,9 +283,10 @@ export function AiStudio({
             </ul>
             <p className="hint">
               Chỉ dùng kiến thức có trong bài. Thầy cô chọn từng mục trước khi
-              áp dụng; trang cũ và đáp án cũ được giữ nguyên. Dùng khoá{" "}
-              {providerName(status.provider)} ({status.model}), một lần gọi cho
-              cả bài.
+              áp dụng; trang cũ và đáp án cũ được giữ nguyên.{" "}
+              {status.hosted
+                ? `Mỗi lần thiết kế dùng 1 lượt; bạn còn ${status.credits ?? 0} lượt.`
+                : `Dùng khoá ${providerName(status.provider)} (${status.model}), một lần gọi cho cả bài.`}
             </p>
             <div className="modal-actions">
               <button disabled={busy} onClick={onClose}>
@@ -267,7 +294,7 @@ export function AiStudio({
               </button>
               <button
                 className="primary"
-                disabled={busy}
+                disabled={busy || (status.hosted && !status.credits)}
                 onClick={() => void propose()}
               >
                 {phase.step === "working" ? phase.label : "Bắt đầu"}
