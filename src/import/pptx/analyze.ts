@@ -100,15 +100,76 @@ function slideTitle(slide: PptxSlide, deck: PptxDeck) {
   const top = [...texts].sort((a, b) => centerY(a.rect) - centerY(b.rect))[0];
   return top ? cleanText(top.text).join(" ").slice(0, 160) : "";
 }
-function slideText(slide: PptxSlide, deck: PptxDeck, title: string) {
-  return slide.elements
-    .filter((e) => onSlide(e.rect, deck) && !e.jump)
-    .sort(
-      (a, b) =>
-        centerY(a.rect) - centerY(b.rect) || centerX(a.rect) - centerX(b.rect),
+/** Continues a sentence PowerPoint wrapped onto the next line of the same box. */
+const continues = (prev: string, next: string, short: boolean) =>
+  !/^(\(?\d+[.)]|[-•*–]\s|[A-D][.)])/.test(next) &&
+  (/^[\p{Ll}\d+&]/u.test(next) ||
+    /[,–-]$/.test(prev) ||
+    (short && /:$/.test(prev) && !/:$/.test(next)));
+function joinWrapped(lines: string[]) {
+  const short = lines.length <= 3;
+  const out: string[] = [];
+  for (const line of lines) {
+    const prev = out.at(-1);
+    if (
+      prev !== undefined &&
+      !/[.!?]$/.test(prev) &&
+      continues(prev, line, short)
     )
-    .flatMap((e) => cleanText(e.text))
-    .filter((t) => t !== title);
+      out[out.length - 1] = `${prev} ${line}`;
+    else out.push(line);
+  }
+  return out;
+}
+const comparable = (t: string) =>
+  t
+    .toLowerCase()
+    .replace(/[^\p{L}\d]+/gu, " ")
+    .trim();
+/** Drops repeats and labels already said in a longer line ("50 – 80 cm"). */
+function withoutRepeats(lines: string[]) {
+  const keys = lines.map(comparable);
+  return lines.filter((_, i) => {
+    const k = keys[i];
+    if (!k) return false;
+    if (keys.indexOf(k) !== i) return false;
+    return !keys.some(
+      (other, j) =>
+        j !== i && other.length > k.length && ` ${other} `.includes(` ${k} `),
+    );
+  });
+}
+/** Reading order: rows from the top (boxes starting at about the same height), left to right in a row. */
+function readingOrder(elements: PptxElement[], deck: PptxDeck) {
+  const sorted = [...elements].sort(
+    (a, b) => (a.rect?.y ?? 0) - (b.rect?.y ?? 0),
+  );
+  const rows: PptxElement[][] = [];
+  let top = -Infinity;
+  for (const e of sorted) {
+    const y = e.rect?.y ?? 0;
+    if (y - top > deck.height * 0.05) {
+      rows.push([]);
+      top = y;
+    }
+    rows.at(-1)!.push(e);
+  }
+  return rows.flatMap((row) =>
+    row.sort((a, b) => (a.rect?.x ?? 0) - (b.rect?.x ?? 0)),
+  );
+}
+function slideText(slide: PptxSlide, deck: PptxDeck, title: string) {
+  const boxes = readingOrder(
+    slide.elements.filter(
+      (e) => onSlide(e.rect, deck) && !e.jump && e.text.length,
+    ),
+    deck,
+  );
+  return withoutRepeats(
+    boxes
+      .flatMap((e) => joinWrapped(cleanText(e.text)))
+      .filter((t) => t !== title),
+  );
 }
 /** Largest picture that is neither the background nor a small decoration. */
 function mainPicture(slide: PptxSlide, deck: PptxDeck) {
