@@ -4,6 +4,7 @@ import type { LessonProject } from "../src/model/schema";
 import {
   connectLms,
   findScormApi,
+  formatLmsName,
   Scorm12Adapter,
   scormTimespan,
   StandaloneAdapter,
@@ -232,4 +233,18 @@ it("shrinks resume data to fit SCORM 1.2's 4096 characters, keeping the page", (
   expect(full.length).toBeGreaterThan(600);
   expect(fitted.length).toBeLessThanOrEqual(600);
   expect(decodeResume(p, fitted)?.currentSlideId).toBe(p.slides[1].id);
+});
+
+it("reads the learner's name from the LMS in Vietnamese order", () => {
+  const { api } = fakeLms({ "cmi.core.student_name": "Nguyễn Văn, An" });
+  const lms = new Scorm12Adapter(api);
+  expect(lms.studentName()).toBe("");
+  lms.initialize();
+  expect(lms.studentName()).toBe("Nguyễn Văn An");
+});
+
+it("tidies LMS names that are not in Last, First form", () => {
+  expect(formatLmsName("  Trần   Thị Bình ")).toBe("Trần Thị Bình");
+  expect(formatLmsName("Lê,")).toBe("Lê");
+  expect(formatLmsName("")).toBe("");
 });

@@ -28,6 +28,7 @@ function fakeLms(saved = "") {
     kind: "SCORM_1_2",
     initialize: () => true,
     readSuspendData: () => saved,
+    studentName: () => "",
     report: (r) => reports.push(r),
     finish: () => finished++,
   };

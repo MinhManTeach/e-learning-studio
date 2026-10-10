@@ -13,6 +13,8 @@ export interface LmsAdapter {
   readonly kind: "SCORM_1_2" | "STANDALONE";
   initialize(): boolean;
   readSuspendData(): string;
+  /** The learner's name as the LMS knows it ("" when unknown). */
+  studentName(): string;
   report(update: LmsReport): void;
   finish(): void;
 }
@@ -52,6 +54,20 @@ export function findScormApi(win: Window, maxHops = 500): Scorm12Api | null {
 export const scorm12SuspendLimit = 4096;
 const truthy = (v: unknown) => v === true || v === "true";
 
+/**
+ * SCORM 1.2 gives the name as "Last, First". Vietnamese names are written family
+ * name first, so "Nguyễn Văn, An" becomes "Nguyễn Văn An".
+ */
+export function formatLmsName(raw: string) {
+  const [last, ...rest] = raw.split(",");
+  return [last, rest.join(",")]
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .slice(0, 120);
+}
+
 export function scormTimespan(ms: number) {
   const total = Math.max(0, Math.round(ms / 1000));
   const h = Math.min(9999, Math.floor(total / 3600));
@@ -88,6 +104,11 @@ export class Scorm12Adapter implements LmsAdapter {
   }
   readSuspendData() {
     return this.active ? this.api.LMSGetValue("cmi.suspend_data") || "" : "";
+  }
+  studentName() {
+    return this.active
+      ? formatLmsName(this.api.LMSGetValue("cmi.core.student_name") || "")
+      : "";
   }
   report(update: LmsReport) {
     if (!this.active) return;
@@ -141,6 +162,9 @@ export class StandaloneAdapter implements LmsAdapter {
   ) {}
   initialize() {
     return true;
+  }
+  studentName() {
+    return "";
   }
   readSuspendData() {
     try {
