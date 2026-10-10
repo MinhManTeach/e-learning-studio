@@ -65,7 +65,6 @@ const find = (list: XmlNode[], name: string) => list.find((n) => name in n);
 const attr = (node: XmlNode | undefined, name: string) =>
   node ? (node[":@"] as Record<string, string> | undefined)?.[name] : undefined;
 const tagOf = (node: XmlNode) => Object.keys(node).find((k) => k !== ":@")!;
-const childList = (node: XmlNode) => kids(node, tagOf(node));
 function path(list: XmlNode[], ...names: string[]): XmlNode | undefined {
   let current: XmlNode | undefined;
   let level = list;

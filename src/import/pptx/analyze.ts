@@ -56,7 +56,7 @@ export function isWatermark(text: string) {
     .replace(/[İı]/g, "i")
     .toLowerCase()
     .replace(/[^a-z]/g, "");
-  return /^notebook[a-z]{0,3}m$/.test(letters);
+  return /^notebook[li]{0,2}m$/.test(letters);
 }
 /** Blanks for the teacher to fill in by hand ("Giáo viên: ........"). */
 const isBlank = (t: string) => /(\.{4,}|…{2,})/.test(t);
@@ -125,7 +125,8 @@ interface Choice {
 }
 /** Text of an answer: its own text, or the text on the same row when it is only "A". */
 function answerText(choice: PptxElement, slide: PptxSlide, deck: PptxDeck) {
-  const own = cleanText(choice.text).join(" ");
+  // A bare "A" is too short for cleanText but is still the answer's label.
+  const own = cleanText(choice.text).join(" ") || choice.text.join(" ").trim();
   if (own && !onlyLetter.test(own)) return stripLetter(own);
   const row = slide.elements
     .filter(
