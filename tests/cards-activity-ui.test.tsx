@@ -35,8 +35,8 @@ it("shows numbered steps, two columns and a mind map", () => {
   ]);
   cleanup();
   show(cards("COMPARE"));
-  expect(screen.getByRole("heading", { name: "✓ Nên" })).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "✗ Không nên" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Nên" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Không nên" })).toBeTruthy();
   cleanup();
   show(cards("MINDMAP"));
   expect(
