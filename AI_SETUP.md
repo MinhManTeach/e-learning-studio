@@ -27,6 +27,9 @@ new illustrations for pages without a picture. Nothing changes until the teacher
 applies the accepted pages; **Hoàn tác cải thiện** undoes the whole change. Answers,
 scores, questions and page order are never changed.
 
+When Gemini answers 503 (model overloaded, request not processed) the server tries
+twice more after 3 s and 6 s; other failures are never retried automatically.
+
 Text uses the free tier when available. Picture generation has no free tier: it needs
 billing enabled on the key (about 0.034 USD per 1K picture at the time of writing).
 

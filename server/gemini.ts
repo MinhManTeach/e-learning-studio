@@ -24,10 +24,37 @@ function failure(status: number) {
           ? "AI_CONFIGURATION"
           : status === 404
             ? "AI_MODEL"
-            : "AI_PROVIDER",
+            : status === 503
+              ? "AI_BUSY"
+              : "AI_PROVIDER",
   );
 }
 async function call(
+  config: GeminiConfig,
+  model: string,
+  body: unknown,
+  signal: AbortSignal | undefined,
+  transport: typeof fetch,
+  timeoutMs: number,
+  retryDelayMs = 3000,
+) {
+  // "Model overloaded" answers are not processed (nor billed): try twice more.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await callOnce(config, model, body, signal, transport, timeoutMs);
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        error.message !== "AI_BUSY" ||
+        attempt >= 2
+      )
+        throw error;
+      await new Promise((r) => setTimeout(r, retryDelayMs * (attempt + 1)));
+      signal?.throwIfAborted();
+    }
+  }
+}
+async function callOnce(
   config: GeminiConfig,
   model: string,
   body: unknown,
@@ -72,6 +99,7 @@ export async function geminiJson(
   signal?: AbortSignal,
   transport: typeof fetch = fetch,
   timeoutMs = 180_000,
+  retryDelayMs = 3000,
 ): Promise<unknown> {
   const candidate = await call(
     config,
@@ -91,6 +119,7 @@ export async function geminiJson(
     signal,
     transport,
     timeoutMs,
+    retryDelayMs,
   );
   if (candidate.finishReason && candidate.finishReason !== "STOP")
     throw new Error(
@@ -116,6 +145,7 @@ export async function geminiImage(
   signal?: AbortSignal,
   transport: typeof fetch = fetch,
   timeoutMs = 120_000,
+  retryDelayMs = 3000,
 ): Promise<{ mimeType: string; data: string }> {
   const candidate = await call(
     config,
@@ -130,6 +160,7 @@ export async function geminiImage(
     signal,
     transport,
     timeoutMs,
+    retryDelayMs,
   );
   const image = (candidate.content?.parts ?? []).find(
     (p): p is { inlineData: { mimeType: string; data: string } } =>

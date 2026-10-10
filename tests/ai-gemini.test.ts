@@ -114,6 +114,38 @@ describe("Gemini REST", () => {
       ),
     ).rejects.toThrow("AI_REFUSED");
   });
+  it("tries again when the model is overloaded, then gives up with a code", async () => {
+    let n = 0;
+    const flaky = (async () =>
+      ++n < 3
+        ? new Response("{}", { status: 503 })
+        : new Response(JSON.stringify(textAnswer({ ok: 2 })), {
+            status: 200,
+          })) as unknown as typeof fetch;
+    expect(
+      await geminiJson(
+        ready,
+        { system: "", parts: [], schema: {} },
+        undefined,
+        flaky,
+        1000,
+        1,
+      ),
+    ).toEqual({ ok: 2 });
+    expect(n).toBe(3);
+    const busy = fakeGemini({}, 503);
+    await expect(
+      geminiJson(
+        ready,
+        { system: "", parts: [], schema: {} },
+        undefined,
+        busy.transport,
+        1000,
+        1,
+      ),
+    ).rejects.toThrow("AI_BUSY");
+    expect(busy.calls).toHaveLength(3);
+  });
   it("reads the generated picture from the answer", async () => {
     const { calls, transport } = fakeGemini({
       candidates: [

@@ -37,6 +37,8 @@ const messages: Record<string, string> = {
   AI_RATE_LIMIT:
     "Khoá API đã hết lượt dùng tạm thời (giới hạn tốc độ hoặc hạn mức). Đợi một lúc rồi thử lại.",
   AI_TIMEOUT: "AI trả lời quá lâu. Hãy thử lại.",
+  AI_BUSY:
+    "Gemini đang quá tải (nhiều người dùng cùng lúc). Hãy thử lại sau ít phút.",
   AI_NETWORK: "Không kết nối được tới Gemini. Kiểm tra mạng rồi thử lại.",
   AI_REQUEST:
     "Gemini không nhận yêu cầu này. Nếu lỗi lặp lại, hãy thử đổi LESSON_AI_MODEL.",
