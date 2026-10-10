@@ -109,7 +109,8 @@ export function CardsRenderer({ slide }: { slide: Slide }) {
       )}
       {keyTakeaway && (
         <p className="key-takeaway">
-          <strong>Em cần nhớ:</strong> {keyTakeaway}
+          <strong>Em cần nhớ:</strong>{" "}
+          {keyTakeaway.replace(/^\s*em cần nhớ\s*:?\s*/i, "")}
         </p>
       )}
     </div>

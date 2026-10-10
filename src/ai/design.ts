@@ -343,7 +343,7 @@ function cardsSlide(slide: Slide, planned: PageDesign): Slide {
         text: i.text,
         group: i.group,
       })),
-      keyTakeaway: page.keyTakeaway,
+      keyTakeaway: page.keyTakeaway.replace(/^\s*em cần nhớ\s*:?\s*/i, ""),
     },
   } as Slide;
 }

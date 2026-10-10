@@ -323,7 +323,7 @@ function MatchActivity({ slide }: { slide: ActivitySlide }) {
                   className={
                     "activity-card match-target" + (left ? " paired" : "")
                   }
-                  disabled={!selected || (!!left && !!marks?.[left])}
+                  disabled={!!left && !!marks?.[left]}
                   aria-label={
                     left
                       ? `${target.match} (đã nối với ${number(left)})`
