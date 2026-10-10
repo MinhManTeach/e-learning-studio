@@ -500,8 +500,8 @@ function Review({
         !usable.length &&
         !renamed.length &&
         !suggested.length && (
-        <p>AI chưa đề xuất được thay đổi nào cho bài này.</p>
-      )}
+          <p>AI chưa đề xuất được thay đổi nào cho bài này.</p>
+        )}
       {plan.explanations.length > 0 && (
         <p className="hint">
           Kèm {plan.explanations.length} lời giải thích cho câu hỏi đã có.

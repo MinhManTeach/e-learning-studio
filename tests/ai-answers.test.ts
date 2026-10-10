@@ -49,9 +49,7 @@ it("offers the AI's answer only for questions without one, and applies only what
     ],
   });
   const offered = answerSuggestions(p, plan);
-  expect(offered.map((a) => [a.question.id, a.correct])).toEqual([
-    ["q1", [1]],
-  ]);
+  expect(offered.map((a) => [a.question.id, a.correct])).toEqual([["q1", [1]]]);
   const none = { pages: new Set<string>(), activities: new Set<number>() };
   const untouched = applyDesign(p, plan, none);
   const q1 = (untouched.slides.find((s) => s.id === "s-quiz") as Quiz).data

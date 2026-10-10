@@ -75,7 +75,9 @@ it("flags a question PowerPoint gave no answer for until the teacher chooses", (
   );
   // Nothing looks chosen yet.
   expect(
-    screen.getAllByRole("checkbox").every((c) => !(c as HTMLInputElement).checked),
+    screen
+      .getAllByRole("checkbox")
+      .every((c) => !(c as HTMLInputElement).checked),
   ).toBe(true);
   fireEvent.click(screen.getByRole("checkbox", { name: /Lựa chọn 2/ }));
   const q = seen.at(-1)!.questions[0];
@@ -96,7 +98,9 @@ it("shows tick boxes to the student and scores only a complete answer", () => {
       lms={new StandaloneAdapter("k", null)}
     />,
   );
-  expect(screen.getByText(/nhiều đáp án đúng: em hãy chọn tất cả/)).toBeTruthy();
+  expect(
+    screen.getByText(/nhiều đáp án đúng: em hãy chọn tất cả/),
+  ).toBeTruthy();
   const boxes = screen.getAllByRole("checkbox");
   expect(boxes).toHaveLength(3);
   fireEvent.click(boxes[0]);
@@ -109,4 +113,3 @@ it("shows tick boxes to the student and scores only a complete answer", () => {
     screen.getByText(/Đáp án đúng: Vị trí điểm tham quan; Dự báo thời tiết/),
   ).toBeTruthy();
 });
-

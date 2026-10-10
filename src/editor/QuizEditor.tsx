@@ -59,7 +59,10 @@ export function QuizEditor({
             <summary>
               Câu {index + 1}: {q.prompt}
               {q.answerUnknown && (
-                <span className="answer-unknown-badge"> · Chưa chọn đáp án</span>
+                <span className="answer-unknown-badge">
+                  {" "}
+                  · Chưa chọn đáp án
+                </span>
               )}
             </summary>
             <Field

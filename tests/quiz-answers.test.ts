@@ -76,9 +76,9 @@ it("gives points only when every right answer and nothing else is ticked", () =>
   expect(
     calculateQuizScore(data, { "q-multi": "a,b,d", "q-one": "e" }).score,
   ).toBe(100);
-  expect(calculateQuizScore(data, { "q-multi": "a,b", "q-one": "e" }).score).toBe(
-    50,
-  );
+  expect(
+    calculateQuizScore(data, { "q-multi": "a,b", "q-one": "e" }).score,
+  ).toBe(50);
 });
 
 it("lets the student tick and untick options of a several-answer question", () => {
@@ -98,8 +98,18 @@ it("lets the student tick and untick options of a several-answer question", () =
   s = tick(s, "d");
   expect(s.quizAttempts[id].answers["q-multi"]).toBe("a,b,d");
   // A one-answer question still replaces the choice.
-  s = sessionReducer(p, s, { type: "answer", id, questionId: "q-one", optionId: "e" });
-  s = sessionReducer(p, s, { type: "answer", id, questionId: "q-one", optionId: "f" });
+  s = sessionReducer(p, s, {
+    type: "answer",
+    id,
+    questionId: "q-one",
+    optionId: "e",
+  });
+  s = sessionReducer(p, s, {
+    type: "answer",
+    id,
+    questionId: "q-one",
+    optionId: "f",
+  });
   expect(s.quizAttempts[id].answers["q-one"]).toBe("f");
   s = sessionReducer(p, s, { type: "submit", id });
   expect(s.quizAttempts[id].history[0].result.score).toBe(50);
@@ -110,10 +120,23 @@ it("keeps ticked answers when the student comes back, and drops forged ones", ()
   const id = p.slides[0].id;
   let s = createSession(p);
   for (const o of ["a", "d"])
-    s = sessionReducer(p, s, { type: "answer", id, questionId: "q-multi", optionId: o });
-  s = sessionReducer(p, s, { type: "answer", id, questionId: "q-one", optionId: "e" });
+    s = sessionReducer(p, s, {
+      type: "answer",
+      id,
+      questionId: "q-multi",
+      optionId: o,
+    });
+  s = sessionReducer(p, s, {
+    type: "answer",
+    id,
+    questionId: "q-one",
+    optionId: "e",
+  });
   const back = decodeResume(p, encodeResume(p, s))!;
-  expect(back.quizAttempts[id].answers).toEqual({ "q-multi": "a,d", "q-one": "e" });
+  expect(back.quizAttempts[id].answers).toEqual({
+    "q-multi": "a,d",
+    "q-one": "e",
+  });
   const forged = JSON.stringify({
     v: 1,
     c: 0,
@@ -148,4 +171,3 @@ it("drops the .pptx ending from an imported lesson title", () => {
   expect(lessonTitle("Bài 3 (T1).pptx.PPTX ")).toBe("Bài 3 (T1)");
   expect(lessonTitle("Bài 3")).toBe("Bài 3");
 });
-
