@@ -1057,3 +1057,73 @@
 .phase1 .activity-result.retry strong {
   color: var(--wrong);
 }
+
+/* ---------- "Nghe đọc" buttons beside questions and instructions ---------- */
+.canvas .speak-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8cqw;
+}
+.canvas .speak-line > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.canvas .speak-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4cqw;
+  vertical-align: middle;
+  margin-inline-start: 0.6cqw;
+}
+.canvas .phase1 .speak-button,
+.canvas .speak-button {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 3.4cqw;
+  min-width: 34px;
+  height: 3.4cqw;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 99cqw;
+  border: 2px solid currentColor;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+.canvas .speak-button[aria-pressed="true"] {
+  animation: speak-pulse 1s ease-in-out infinite;
+}
+@keyframes speak-pulse {
+  50% {
+    transform: scale(1.12);
+  }
+}
+.canvas .speak-notice {
+  max-width: 28cqw;
+  padding: 0.5cqw 0.8cqw;
+  border-radius: 0.8cqw;
+  background: #fff7e6;
+  color: #6b4500;
+  font-size: max(12px, 1.1cqw);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.canvas .quiz-renderer fieldset {
+  position: relative;
+}
+.canvas .quiz-renderer fieldset > legend {
+  padding-inline-end: 4.5cqw;
+}
+.canvas .quiz-renderer fieldset > .speak-wrap {
+  position: absolute;
+  top: 0.6cqw;
+  right: 0.8cqw;
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas .speak-button[aria-pressed="true"] {
+    animation: none;
+    outline: 3px solid currentColor;
+  }
+}

@@ -2,6 +2,8 @@ import { useMemo, useState, type DragEvent } from "react";
 import type { Slide } from "../model/schema";
 import { ChoicePicture } from "./ChoicePicture";
 import { celebrate } from "../player/celebrate";
+import { SpeakButton } from "../player/SpeakButton";
+import { canReadAloud } from "../player/readAloud";
 import {
   allRight,
   checkMatch,
@@ -391,7 +393,19 @@ export function ActivityRenderer({ slide }: { slide: Slide }) {
     slide.id + slide.data.items.map((i) => i.id + i.group + i.match).join("|");
   return (
     <div className={"activity activity-" + kind}>
-      {slide.data.instruction && <h3>{slide.data.instruction}</h3>}
+      {slide.data.instruction && (
+        <div className="speak-line">
+          <h3>{slide.data.instruction}</h3>
+          {canReadAloud(slide) && (
+            <SpeakButton
+              id={"activity:" + slide.id}
+              label="yêu cầu"
+              lang={slide.narration.lang}
+              text={slide.data.instruction}
+            />
+          )}
+        </div>
+      )}
       <p className="hint">{hints[kind]}</p>
       {!slide.data.items.length ? (
         <p className="hint">Hoạt động chưa có thẻ nào.</p>

@@ -562,3 +562,27 @@
   color: var(--kid-ink);
   background: color-mix(in srgb, var(--right) 12%, white);
 }
+
+/* "Nghe đọc": a round, bright speaker toy children can find at once. */
+.canvas[data-theme="KIDS"] .phase1 .speak-button,
+.canvas[data-theme="KIDS"] .speak-button {
+  width: 4.2cqw;
+  height: 4.2cqw;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0.22cqw solid var(--world-deep);
+  border-radius: 99cqw;
+  background: var(--world);
+  color: #fff;
+  box-shadow: 0 0.4cqw 0 var(--world-deep);
+}
+.canvas[data-theme="KIDS"] .phase1 .speak-button:not(:disabled):active {
+  transform: translateY(0.3cqw);
+  box-shadow: 0 0.1cqw 0 var(--world-deep);
+}
+.canvas[data-theme="KIDS"] .phase1 .speak-button[aria-pressed="true"] {
+  background: var(--kid-star);
+  border-color: var(--world-deep);
+  color: var(--kid-ink);
+}

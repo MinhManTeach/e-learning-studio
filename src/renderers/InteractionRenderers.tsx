@@ -6,6 +6,12 @@ import { certificateStatus } from "../player/certificate";
 import { CertificateDialog } from "../player/CertificateDialog";
 import { useLessonSession } from "../player/SessionContext";
 import { celebrate } from "../player/celebrate";
+import { SpeakButton } from "../player/SpeakButton";
+import {
+  canReadAloud,
+  joinSpeech,
+  questionSpeech,
+} from "../player/readAloud";
 import {
   calculateQuizScore,
   canRetry,
@@ -21,7 +27,21 @@ export function WarmupRenderer({ slide }: { slide: Slide }) {
   const selected = runtime?.session.interactions[slide.id]?.selectedIds ?? [];
   return (
     <>
-      <h3>{slide.data.question}</h3>
+      <div className="speak-line">
+        <h3>{slide.data.question}</h3>
+        {canReadAloud(slide) && (
+          <SpeakButton
+            id={"warmup:" + slide.id}
+            label="câu hỏi"
+            lang={slide.narration.lang}
+            text={joinSpeech([
+              slide.data.question,
+              slide.data.instruction,
+              ...slide.data.items.map((i) => i.label),
+            ])}
+          />
+        )}
+      </div>
       <p>{slide.data.instruction}</p>
       <div className="activity-grid">
         {slide.data.items.map((item) => (
@@ -77,7 +97,17 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
         {slide.data.character} · {slide.data.context}
       </p>
       {(!showDecision || !stepped) && slide.data.situation.trim() && (
-        <p className="scenario-situation">{slide.data.situation}</p>
+        <div className="speak-line">
+          <p className="scenario-situation">{slide.data.situation}</p>
+          {canReadAloud(slide) && (
+            <SpeakButton
+              id={"situation:" + slide.id}
+              label="tình huống"
+              lang={slide.narration.lang}
+              text={slide.data.situation}
+            />
+          )}
+        </div>
       )}
       {stepped && !showDecision && (
         <button className="primary" onClick={() => setDecision(true)}>
@@ -92,7 +122,20 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
       )}
       {showDecision && (
         <>
-          <h3>{slide.data.question}</h3>
+          <div className="speak-line">
+            <h3>{slide.data.question}</h3>
+            {canReadAloud(slide) && (
+              <SpeakButton
+                id={"decision:" + slide.id}
+                label="câu hỏi và các cách xử lý"
+                lang={slide.narration.lang}
+                text={joinSpeech([
+                  slide.data.question,
+                  ...slide.data.choices.map((c) => `${c.label}. ${c.text}`),
+                ])}
+              />
+            )}
+          </div>
           {(!stepped || !choice) && (
             <div ref={decisions} className="activity-grid scenario-choices">
               {slide.data.choices.map((c) => (
@@ -169,6 +212,24 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
           <legend>
             Câu {i + 1}. {q.prompt} <small>({q.points} điểm)</small>
           </legend>
+          {canReadAloud(slide) && (
+            <SpeakButton
+              id={"question:" + q.id}
+              label={`câu ${i + 1}`}
+              lang={slide.narration.lang}
+              text={questionSpeech(
+                {
+                  ...q,
+                  options: orderedOptions(
+                    q,
+                    slide.data.shuffleAnswers,
+                    state.submitted ? Math.max(0, attempt - 1) : attempt,
+                  ),
+                },
+                i,
+              )}
+            />
+          )}
           <div className="quiz-options">
             {orderedOptions(
               q,
