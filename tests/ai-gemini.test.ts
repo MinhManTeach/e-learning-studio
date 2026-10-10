@@ -178,10 +178,11 @@ describe("Gemini REST", () => {
 describe("lesson studio", () => {
   it("reports whether Gemini is set up, never the key", () => {
     expect(studioStatus({})).toEqual({
-      provider: "gemini",
+      provider: "",
       configured: false,
       model: "",
       imageModel: "",
+      images: false,
     });
     // Fast answers by default; "off" (any unknown level) sends no thinking setting.
     expect(studioConfig({ provider: "gemini", apiKey: "abc" })?.thinking).toBe(

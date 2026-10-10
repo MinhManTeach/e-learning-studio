@@ -20,10 +20,14 @@ export interface StudioMedia {
   put(value: StoredMedia): Promise<void>;
 }
 interface Status {
+  provider: string;
   configured: boolean;
   model: string;
   imageModel: string;
+  /** A Gemini key is available for drawing pictures. */
+  images: boolean;
 }
+const providerName = (p: string) => (p === "anthropic" ? "Claude" : "Gemini");
 /** Pictures bigger than this are not sent to the AI (it still sees the page text). */
 const maxPictureBytes = 1_500_000;
 /** Approximate price of one 1K picture, for the teacher's information. */
@@ -46,6 +50,8 @@ const messages: Record<string, string> = {
   AI_REFUSED: "AI từ chối hoặc dừng giữa chừng. Hãy thử lại.",
   AI_INVALID_RESPONSE: "AI trả lời chưa đúng dạng. Hãy thử lại.",
   AI_NO_IMAGE: "AI không vẽ được tranh cho trang này.",
+  AI_NO_IMAGE_KEY:
+    "Vẽ tranh cần khoá Gemini (dòng LESSON_AI_GEMINI_KEY trong .env.local).",
 };
 const pictureBilling =
   "Chưa vẽ được tranh: vẽ tranh không có gói miễn phí. Hãy bật thanh toán (Billing) cho dự án của khoá trong Google AI Studio, hoặc đợi khi hạn mức được làm mới. Phần chữ vẫn đã được áp dụng.";
@@ -134,7 +140,14 @@ export function AiStudio({
       .then((s: Status) => live && setStatus(s))
       .catch(
         () =>
-          live && setStatus({ configured: false, model: "", imageModel: "" }),
+          live &&
+          setStatus({
+            provider: "",
+            configured: false,
+            model: "",
+            imageModel: "",
+            images: false,
+          }),
       );
     return () => {
       live = false;
@@ -165,7 +178,11 @@ export function AiStudio({
       );
       setAccepted(new Set(plan.slides.map((s) => s.id)));
       setDraw(
-        new Set(illustrationsWanted(project, plan).map((w) => w.slideId)),
+        new Set(
+          status?.images
+            ? illustrationsWanted(project, plan).map((w) => w.slideId)
+            : [],
+        ),
       );
       setPhase({ step: "review", plan });
     } catch (e) {
@@ -179,7 +196,7 @@ export function AiStudio({
   async function confirm(plan: PolishPlan) {
     setError("");
     const wanted = illustrationsWanted(project, plan).filter(
-      (w) => draw.has(w.slideId) && accepted.has(w.slideId),
+      (w) => status?.images && draw.has(w.slideId) && accepted.has(w.slideId),
     );
     let next = applyPolish(project, plan, accepted);
     const failed: string[] = [];
@@ -265,13 +282,15 @@ export function AiStudio({
             <p>Chưa kết nối AI. Cách bật trên máy của thầy cô:</p>
             <ol>
               <li>
-                Lấy khoá API tại Google AI Studio (aistudio.google.com → Get API
-                key).
+                Lấy khoá API: Gemini tại aistudio.google.com (Get API key), hoặc
+                Claude tại console.anthropic.com (API keys).
               </li>
               <li>
                 Trong thư mục dự án, tạo tệp <code>.env.local</code> với nội
-                dung:
-                <pre>{`LESSON_AI_PROVIDER=gemini\nLESSON_AI_API_KEY=khoá-của-thầy-cô`}</pre>
+                dung (Gemini):
+                <pre>{`LESSON_AI_PROVIDER=gemini\nLESSON_AI_API_KEY=khoá-gemini`}</pre>
+                hoặc (Claude viết chữ, Gemini vẽ tranh nếu có):
+                <pre>{`LESSON_AI_PROVIDER=anthropic\nLESSON_AI_API_KEY=khoá-claude\nLESSON_AI_GEMINI_KEY=khoá-gemini`}</pre>
               </li>
               <li>
                 Tắt rồi chạy lại <code>npm run dev</code>, mở lại bài giảng.
@@ -292,8 +311,11 @@ export function AiStudio({
               xem và chọn trước khi áp dụng.
             </p>
             <p className="hint">
-              Dùng khoá Gemini của thầy cô ({status.model}). Mỗi tranh vẽ thêm{" "}
-              {pricePerPicture}.
+              Dùng khoá {providerName(status.provider)} của thầy cô (
+              {status.model}).{" "}
+              {status.images
+                ? `Mỗi tranh vẽ thêm ${pricePerPicture} (Gemini).`
+                : "Muốn AI vẽ thêm tranh, thêm khoá Gemini vào dòng LESSON_AI_GEMINI_KEY trong .env.local."}
             </p>
             <div className="modal-actions">
               <button disabled={busy} onClick={onClose}>
@@ -316,6 +338,7 @@ export function AiStudio({
             setAccepted={setAccepted}
             draw={draw}
             setDraw={setDraw}
+            images={status.images}
             cancel={() => setPhase({ step: "intro" })}
             confirm={() => void confirm(phase.plan)}
           />
@@ -353,6 +376,7 @@ function Review({
   setAccepted,
   draw,
   setDraw,
+  images,
   cancel,
   confirm,
 }: {
@@ -362,11 +386,12 @@ function Review({
   setAccepted: (s: Set<string>) => void;
   draw: Set<string>;
   setDraw: (s: Set<string>) => void;
+  images: boolean;
   cancel: () => void;
   confirm: () => void;
 }) {
   const wanted = new Map(
-    illustrationsWanted(project, plan).map((w) => [w.slideId, w]),
+    images ? illustrationsWanted(project, plan).map((w) => [w.slideId, w]) : [],
   );
   const toggle = (set: Set<string>, id: string, on: boolean) => {
     const next = new Set(set);

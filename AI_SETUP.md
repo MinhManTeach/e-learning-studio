@@ -1,8 +1,24 @@
 # Personal local AI setup
 
-## AI làm đẹp bài giảng (Gemini)
+## AI làm đẹp bài giảng (Gemini or Claude)
 
-The editor button **AI làm đẹp bài giảng** uses the teacher's own Google AI Studio key.
+The editor button **AI làm đẹp bài giảng** uses the teacher's own key. The text can come
+from Gemini or Claude; pictures are always drawn by Gemini (Claude does not draw).
+
+To write with Claude instead of Gemini:
+
+```
+LESSON_AI_PROVIDER=anthropic
+LESSON_AI_API_KEY=your-anthropic-key
+# optional: LESSON_AI_MODEL=claude-haiku-5-5 (default claude-sonnet-5-5)
+# optional, to draw pictures: LESSON_AI_GEMINI_KEY=your-gemini-key
+```
+
+Claude is called with structured outputs (`output_config.format`, every object closed)
+on `POST https://api.anthropic.com/v1/messages`; 529/503 "overloaded" answers are retried
+twice. Without `LESSON_AI_GEMINI_KEY` the dialog offers no pictures.
+
+With Gemini:
 
 1. Get a key at https://aistudio.google.com/apikey.
 2. Create `.env.local` in the repository root:

@@ -11,6 +11,8 @@ export interface LocalAiConfig {
   apiKey?: string;
   /** Picture model, used by "AI làm đẹp bài giảng" (Gemini). */
   imageModel?: string;
+  /** Gemini key for pictures when the text provider is Claude. */
+  geminiKey?: string;
   /** Gemini thinking level for the lesson studio (default "low"; "off" sends none). */
   thinking?: string;
 }
@@ -18,6 +20,7 @@ export function connectionStatus(config: LocalAiConfig) {
   // Lesson-plan analysis uses OpenAI only; a Gemini key is for the lesson studio.
   const present =
     config.provider !== "gemini" &&
+    config.provider !== "anthropic" &&
     Boolean(config.provider || config.model || config.apiKey);
   const configured =
     config.provider === "openai" &&

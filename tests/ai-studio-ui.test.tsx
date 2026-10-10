@@ -39,12 +39,20 @@ const json = (value: unknown, status = 200) =>
 function setup(
   answer: (path: string, body: unknown) => Response,
   configured = true,
+  provider = "gemini",
+  images = true,
 ) {
   const calls: { path: string; body: unknown }[] = [];
   const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
     const path = url.replace("/api/lesson-ai/studio/", "");
     if (path === "status")
-      return json({ configured, model: "gemini-test", imageModel: "img" });
+      return json({
+        provider,
+        configured,
+        model: `${provider}-test`,
+        imageModel: images ? "img" : "",
+        images,
+      });
     const body = JSON.parse(String(init?.body));
     calls.push({ path, body });
     return answer(path, body);
@@ -170,4 +178,23 @@ it("explains billing when the key cannot draw pictures", async () => {
   await waitFor(() => expect(applied).toHaveLength(1));
   expect(screen.getByText(/bật thanh toán \(Billing\)/)).toBeTruthy();
   expect(calls.filter((c) => c.path === "illustrate")).toHaveLength(1);
+});
+
+it("writes with Claude and offers no pictures without a Gemini key", async () => {
+  const { calls, applied } = setup(
+    () => json(aiPlan),
+    true,
+    "anthropic",
+    false,
+  );
+  expect(await screen.findByText(/Dùng khoá Claude/)).toBeTruthy();
+  expect(screen.getByText(/LESSON_AI_GEMINI_KEY/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Bắt đầu" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Áp dụng 4 trang" }),
+  );
+  await waitFor(() => expect(applied).toHaveLength(1));
+  expect(screen.queryByText(/Vẽ tranh minh hoạ/)).toBeNull();
+  expect(calls.map((c) => c.path)).toEqual(["polish"]);
+  expect(applied[0].slides[2].title).toBe("5 thao tác cơ bản với chuột");
 });

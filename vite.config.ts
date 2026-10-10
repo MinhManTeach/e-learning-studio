@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
         apiKey: env.LESSON_AI_API_KEY,
         imageModel: env.LESSON_AI_IMAGE_MODEL,
         thinking: env.LESSON_AI_THINKING,
+        geminiKey: env.LESSON_AI_GEMINI_KEY,
       }),
     ],
   };
