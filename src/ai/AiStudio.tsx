@@ -237,7 +237,8 @@ export function AiStudio({
               </a>
             </p>
             <p className="hint">
-              Bài giảng vẫn nằm trên máy này; đăng nhập chỉ để tính lượt dùng AI.
+              Bài giảng vẫn nằm trên máy này; đăng nhập chỉ để tính lượt dùng
+              AI.
             </p>
           </div>
         ) : status.hosted && !status.configured ? (

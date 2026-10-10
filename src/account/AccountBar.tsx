@@ -37,7 +37,9 @@ export function AccountBar({ fetcher = fetch }: { fetcher?: typeof fetch }) {
           referrerPolicy="no-referrer"
         />
       )}
-      <span className="account-name">{account.user.name || account.user.email}</span>
+      <span className="account-name">
+        {account.user.name || account.user.email}
+      </span>
       <button className="account-signout" onClick={() => void signOut(fetcher)}>
         <LogOut size={15} /> Đăng xuất
       </button>

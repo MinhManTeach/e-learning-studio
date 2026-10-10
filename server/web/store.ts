@@ -172,8 +172,7 @@ export class Store {
   }
   user(id: string): User | null {
     const r = this.db.prepare("select * from users where id = ?").get(id) as
-      | Row
-      | undefined;
+      Row | undefined;
     return r ? toUser(r) : null;
   }
 
@@ -266,9 +265,7 @@ export class Store {
     }[];
   }
 
-  createPayment(
-    p: Omit<Payment, "status" | "createdAt" | "paidAt">,
-  ): Payment {
+  createPayment(p: Omit<Payment, "status" | "createdAt" | "paidAt">): Payment {
     const payment: Payment = {
       ...p,
       status: "PENDING",

@@ -88,14 +88,19 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     to: string,
     headers: Record<string, string | string[]> = {},
   ) => {
-    res.writeHead(302, { Location: to, "Cache-Control": "no-store", ...headers });
+    res.writeHead(302, {
+      Location: to,
+      "Cache-Control": "no-store",
+      ...headers,
+    });
     res.end();
   };
   const userOf = (req: IncomingMessage): User | null =>
     store.sessionUser(parseCookies(req.headers.cookie)[sessionCookie]);
   // Browsers send Origin on every cross-site POST; ours must match.
   const sameOrigin = (req: IncomingMessage) =>
-    req.headers.origin === origin && req.headers["sec-fetch-site"] !== "cross-site";
+    req.headers.origin === origin &&
+    req.headers["sec-fetch-site"] !== "cross-site";
 
   async function readJson(req: IncomingMessage, limit: number) {
     let size = 0;
@@ -114,7 +119,11 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
 
   async function googleStart(res: ServerResponse) {
     if (!config.google) return send(res, 404, { error: "AUTH_UNAVAILABLE" });
-    const login = { state: randomToken(), nonce: randomToken(), verifier: randomToken() };
+    const login = {
+      state: randomToken(),
+      nonce: randomToken(),
+      verifier: randomToken(),
+    };
     redirect(res, googleAuthUrl(config.google, redirectUri, login), {
       "Set-Cookie": cookie(
         loginCookie,
@@ -124,7 +133,11 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     });
   }
 
-  async function googleCallback(req: IncomingMessage, res: ServerResponse, url: URL) {
+  async function googleCallback(
+    req: IncomingMessage,
+    res: ServerResponse,
+    url: URL,
+  ) {
     if (!config.google) return send(res, 404, { error: "AUTH_UNAVAILABLE" });
     const [state, nonce, verifier] = (
       parseCookies(req.headers.cookie)[loginCookie] ?? ""
@@ -142,7 +155,10 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         transport,
         now(),
       );
-      const { user, created } = store.upsertUser({ provider: "google", ...profile });
+      const { user, created } = store.upsertUser({
+        provider: "google",
+        ...profile,
+      });
       if (created && config.freeCredits > 0)
         store.addCredits(user.id, config.freeCredits, "welcome", user.id);
       const days = config.sessionDays;
@@ -158,7 +174,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   async function aiDesign(req: IncomingMessage, res: ServerResponse) {
     const user = userOf(req);
     if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
-    if (store.balance(user.id) < 1) return send(res, 402, { error: "AI_NO_CREDITS" });
+    if (store.balance(user.id) < 1)
+      return send(res, 402, { error: "AI_NO_CREDITS" });
     if (busy.has(user.id)) return send(res, 429, { error: "AI_ONE_AT_A_TIME" });
     busy.add(user.id);
     const controller = new AbortController();
@@ -169,12 +186,25 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     let usage = { model: "", inputTokens: 0, outputTokens: 0, ms: 0 };
     try {
       const body = await readJson(req, 40_000_000);
-      const plan = await design(config.ai, body, controller.signal, transport, (_line, u) => {
-        usage = u;
+      const plan = await design(
+        config.ai,
+        body,
+        controller.signal,
+        transport,
+        (_line, u) => {
+          usage = u;
+        },
+      );
+      const ref = store.recordAiCall({
+        userId: user.id,
+        ...usage,
+        ok: true,
+        error: "",
       });
-      const ref = store.recordAiCall({ userId: user.id, ...usage, ok: true, error: "" });
       store.spendCredit(user.id, ref);
-      send(res, 200, plan, { "X-Credits-Left": String(store.balance(user.id)) });
+      send(res, 200, plan, {
+        "X-Credits-Left": String(store.balance(user.id)),
+      });
     } catch (error) {
       const code =
         error instanceof Error && /^AI_[A-Z_]+$/.test(error.message)
@@ -182,10 +212,19 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           : "AI_UNAVAILABLE";
       // Tokens the provider billed are logged; the teacher's credit is not spent.
       if (usage.model)
-        store.recordAiCall({ userId: user.id, ...usage, ok: false, error: code });
-      send(res, code === "AI_INPUT" ? 400 : code === "AI_INPUT_TOO_LARGE" ? 413 : 502, {
-        error: code,
-      });
+        store.recordAiCall({
+          userId: user.id,
+          ...usage,
+          ok: false,
+          error: code,
+        });
+      send(
+        res,
+        code === "AI_INPUT" ? 400 : code === "AI_INPUT_TOO_LARGE" ? 413 : 502,
+        {
+          error: code,
+        },
+      );
     } finally {
       busy.delete(user.id);
       res.off("close", cancel);
@@ -223,7 +262,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     const path = url.pathname;
     const method = req.method ?? "GET";
     try {
-      if (method === "GET" && path === "/auth/google") return await googleStart(res);
+      if (method === "GET" && path === "/auth/google")
+        return await googleStart(res);
       if (method === "GET" && path === "/auth/google/callback")
         return await googleCallback(req, res, url);
       if (path.startsWith("/api/") || path === "/auth/logout") {
@@ -231,7 +271,12 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           return send(res, 403, { error: "AUTH_ORIGIN" });
         if (method === "POST" && path === "/auth/logout") {
           store.deleteSession(parseCookies(req.headers.cookie)[sessionCookie]);
-          return send(res, 200, { ok: true }, { "Set-Cookie": cookie(sessionCookie, "", 0) });
+          return send(
+            res,
+            200,
+            { ok: true },
+            { "Set-Cookie": cookie(sessionCookie, "", 0) },
+          );
         }
         if (method === "GET" && path === "/api/me") {
           const user = userOf(req);
@@ -263,7 +308,11 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           return await aiDesign(req, res);
         }
         if (method === "GET" && path === "/api/lesson-ai/voice/status")
-          return send(res, 200, { available: false, voice: "", reason: "HOSTED" });
+          return send(res, 200, {
+            available: false,
+            voice: "",
+            reason: "HOSTED",
+          });
         return send(res, 404, { error: "NOT_FOUND" });
       }
       if (method !== "GET" && method !== "HEAD")

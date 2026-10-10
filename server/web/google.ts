@@ -84,7 +84,9 @@ export async function verifyGoogleIdToken(
   }
   if (header.alg !== "RS256" || !header.kid) throw new Error("AUTH_TOKEN");
   // Google rotates keys: look again once if the key id is new to us.
-  let jwk = (await googleKeys(transport, now)).find((k) => k.kid === header.kid);
+  let jwk = (await googleKeys(transport, now)).find(
+    (k) => k.kid === header.kid,
+  );
   if (!jwk)
     jwk = (await googleKeys(transport, now, true)).find(
       (k) => k.kid === header.kid,

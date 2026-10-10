@@ -23,7 +23,10 @@ it("works out whether the app is hosted and who is signed in", async () => {
   expect(
     await readAccount(answering(json({ providers: ["google"] }, 401))),
   ).toEqual({ mode: "signedOut", providers: ["google"] });
-  const me = { user: { name: "Cô Lan", email: "a@b.c", picture: "" }, credits: 7 };
+  const me = {
+    user: { name: "Cô Lan", email: "a@b.c", picture: "" },
+    credits: 7,
+  };
   expect(await readAccount(answering(json(me)))).toEqual({
     mode: "signedIn",
     ...me,
@@ -35,14 +38,21 @@ it("works out whether the app is hosted and who is signed in", async () => {
 });
 
 it("offers Google sign-in on the hosted app and shows the credits once signed in", async () => {
-  render(<AccountBar fetcher={answering(json({ providers: ["google"] }, 401))} />);
-  const link = await screen.findByRole("link", { name: /Đăng nhập bằng Google/ });
+  render(
+    <AccountBar fetcher={answering(json({ providers: ["google"] }, 401))} />,
+  );
+  const link = await screen.findByRole("link", {
+    name: /Đăng nhập bằng Google/,
+  });
   expect(link.getAttribute("href")).toBe("/auth/google");
   cleanup();
   render(
     <AccountBar
       fetcher={answering(
-        json({ user: { name: "Cô Lan", email: "a@b.c", picture: "" }, credits: 7 }),
+        json({
+          user: { name: "Cô Lan", email: "a@b.c", picture: "" },
+          credits: 7,
+        }),
       )}
     />,
   );
@@ -85,7 +95,9 @@ function studio(status: object, design?: Response) {
 
 it("asks a teacher who is not signed in to sign in before using AI", async () => {
   studio({ signedIn: false, credits: 0 });
-  const link = await screen.findByRole("link", { name: "Đăng nhập bằng Google" });
+  const link = await screen.findByRole("link", {
+    name: "Đăng nhập bằng Google",
+  });
   expect(link.getAttribute("href")).toBe("/auth/google");
   expect(screen.queryByRole("button", { name: "Bắt đầu" })).toBeNull();
 });
