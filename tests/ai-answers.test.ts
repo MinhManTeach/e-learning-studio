@@ -26,7 +26,7 @@ it("tells the AI which answers are known, which are several, and which are missi
   const request = lessonRequest(unknownLesson());
   const qs = request.slides.find((s) => s.id === "s-quiz")?.questions ?? [];
   expect(qs.map((q) => q.correct)).toEqual([[], [0, 1]]);
-  const wire = designWireSchema() as {
+  const wire = designWireSchema() as unknown as {
     properties: { answers: { items: { properties: object } } };
   };
   expect(Object.keys(wire.properties.answers.items.properties)).toEqual([

@@ -9,18 +9,13 @@ import {
   within,
 } from "@testing-library/react";
 import { createProject, createSlide } from "../src/model/factories";
-import {
-  parseProject,
-  type LessonProject,
-  type QuizData,
-} from "../src/model/schema";
+import { parseProject, type QuizData } from "../src/model/schema";
 import { QuizEditor } from "../src/editor/QuizEditor";
 import { LessonPlayer } from "../src/player/LessonPlayer";
 import { StandaloneAdapter } from "../src/player/lms";
 
 afterEach(cleanup);
 
-type Quiz = Extract<LessonProject["slides"][number], { type: "quiz" }>;
 function quizData(unknown = false): QuizData {
   const quiz = createSlide("quiz");
   return {

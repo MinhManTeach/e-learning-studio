@@ -47,13 +47,12 @@ export function QuizEditor({
         />
       ))}
       {d.questions.map((q, index) => {
-        const update = (patch: Partial<typeof q> | typeof q) =>
+        const replace = (next: typeof q) =>
           onChange({
             ...d,
-            questions: d.questions.map((x) =>
-              x.id !== q.id ? x : "id" in patch ? patch : { ...x, ...patch },
-            ),
+            questions: d.questions.map((x) => (x.id === q.id ? next : x)),
           });
+        const update = (patch: Partial<typeof q>) => replace({ ...q, ...patch });
         return (
           <details className="question-editor" key={q.id}>
             <summary>
@@ -122,7 +121,7 @@ export function QuizEditor({
                           ? base.filter((x) => x !== i)
                           : [...base, i];
                         // Keep at least one right answer.
-                        if (next.length) update(withCorrect(q, next));
+                        if (next.length) replace(withCorrect(q, next));
                       }}
                     />
                     Lựa chọn {i + 1}
