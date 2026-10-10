@@ -14,14 +14,16 @@ export function SpeakButton({
   lang = "vi-VN",
 }: {
   id: string;
-  text: string;
+  /** One text, or pieces read one after another (see readAloud.ts). */
+  text: string | string[];
   /** What is read, for screen readers: "câu 1", "yêu cầu"… */
   label: string;
   lang?: string;
 }) {
   const speaking = useSpeaking(id);
   const [notice, setNotice] = useState("");
-  if (!text.trim() || !speechSupported()) return null;
+  const empty = !(Array.isArray(text) ? text.join("") : text).trim();
+  if (empty || !speechSupported()) return null;
   return (
     <span className="speak-wrap">
       <button

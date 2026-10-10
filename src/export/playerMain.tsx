@@ -7,6 +7,7 @@ import "../kids-theme.css";
 import "../player/player.css";
 import { LessonPlayer } from "../player/LessonPlayer";
 import { connectLms } from "../player/lms";
+import { setVoiceClips } from "../player/speech";
 import {
   ImageResolverContext,
   packagedImageResolver,
@@ -19,6 +20,15 @@ try {
     (window as unknown as Record<string, unknown>)[playerDataGlobal],
   );
   document.title = data.project.metadata.projectTitle || document.title;
+  // Recorded voice plays in any browser; set before the first render so the
+  // listen buttons show even where the browser has no voice of its own.
+  const voice = data.voice ?? {};
+  if (Object.keys(voice).length)
+    setVoiceClips((key) =>
+      Object.hasOwn(voice, key)
+        ? new URL(voice[key], document.baseURI).href
+        : undefined,
+    );
   root.render(
     <ImageResolverContext.Provider
       value={packagedImageResolver(data.files, document.baseURI)}

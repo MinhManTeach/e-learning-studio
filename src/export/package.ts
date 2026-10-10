@@ -3,6 +3,9 @@ import { parseProject, type LessonProject } from "../model/schema";
 import type { StoredMedia } from "../media/model";
 import { detectImageMime, detectVideoMime } from "../media/storage";
 import type { PlayerPackageData } from "./playerData";
+import { lessonSpeechPieces } from "../player/readAloud";
+import { detectAudioMime } from "../media/storage";
+import { voiceAssetId } from "../voice/voiceover";
 import { playerDataGlobal } from "./playerData";
 
 export interface PlayerAssets {
@@ -25,6 +28,10 @@ export interface LessonPackage {
   scorm: ScormVersion;
   imageCount: number;
   videoCount: number;
+  /** Recorded voice pieces packed in ("Tạo giọng đọc"). */
+  voiceCount: number;
+  /** Pieces the lesson reads that have no recording yet. */
+  voiceMissing: number;
 }
 
 const extensions: Record<string, string> = {
@@ -289,11 +296,31 @@ export async function buildLessonPackage(
     files[asset.id] = path;
     entries[path] = [bytes, { level: 0 }]; // already compressed
   }
+  // Recorded voice: only pieces this lesson still reads, so edited-away
+  // sentences are not shipped. Missing ones fall back to the browser's voice.
+  const voice: Record<string, string> = {};
+  let voiceMissing = 0;
+  for (const piece of lessonSpeechPieces(p)) {
+    const stored = await Promise.resolve()
+      .then(() => media.get(voiceAssetId(piece.key), project.projectId))
+      .catch(() => undefined);
+    const bytes = stored
+      ? new Uint8Array(await stored.blob.arrayBuffer())
+      : undefined;
+    if (!bytes || detectAudioMime(bytes) !== "audio/mp4") {
+      voiceMissing++;
+      continue;
+    }
+    const path = `voice/${String(Object.keys(voice).length + 1).padStart(4, "0")}.m4a`;
+    voice[piece.key] = path;
+    entries[path] = [bytes, { level: 0 }]; // already compressed
+  }
   const data: PlayerPackageData = {
     format: "E_LEARNING_STUDIO_PLAYER",
     version: 1,
     project: p,
     files,
+    ...(Object.keys(voice).length ? { voice } : {}),
   };
   entries["index.html"] = strToU8(indexHtml(p));
   entries["player.js"] = strToU8(player.js);
@@ -311,5 +338,7 @@ export async function buildLessonPackage(
     scorm,
     imageCount: images,
     videoCount: videos,
+    voiceCount: Object.keys(voice).length,
+    voiceMissing,
   };
 }

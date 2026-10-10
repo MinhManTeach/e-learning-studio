@@ -7,7 +7,13 @@ import { CertificateDialog } from "../player/CertificateDialog";
 import { useLessonSession } from "../player/SessionContext";
 import { celebrate } from "../player/celebrate";
 import { SpeakButton } from "../player/SpeakButton";
-import { canReadAloud, joinSpeech, questionSpeech } from "../player/readAloud";
+import {
+  canReadAloud,
+  decisionSpeech,
+  questionPieces,
+  situationSpeech,
+  warmupSpeech,
+} from "../player/readAloud";
 import {
   calculateQuizScore,
   canRetry,
@@ -30,11 +36,7 @@ export function WarmupRenderer({ slide }: { slide: Slide }) {
             id={"warmup:" + slide.id}
             label="câu hỏi"
             lang={slide.narration.lang}
-            text={joinSpeech([
-              slide.data.question,
-              slide.data.instruction,
-              ...slide.data.items.map((i) => i.label),
-            ])}
+            text={warmupSpeech(slide)}
           />
         )}
       </div>
@@ -103,7 +105,7 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
               id={"situation:" + slide.id}
               label="tình huống"
               lang={slide.narration.lang}
-              text={slide.data.situation}
+              text={situationSpeech(slide)}
             />
           )}
         </div>
@@ -128,10 +130,7 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
                 id={"decision:" + slide.id}
                 label="câu hỏi và các cách xử lý"
                 lang={slide.narration.lang}
-                text={joinSpeech([
-                  slide.data.question,
-                  ...slide.data.choices.map((c) => `${c.label}. ${c.text}`),
-                ])}
+                text={decisionSpeech(slide)}
               />
             )}
           </div>
@@ -215,7 +214,7 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
                 id={"question:" + q.id}
                 label={`câu ${i + 1}`}
                 lang={slide.narration.lang}
-                text={questionSpeech(
+                text={questionPieces(
                   {
                     ...q,
                     options: orderedOptions(

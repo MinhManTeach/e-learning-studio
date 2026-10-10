@@ -1,5 +1,6 @@
 // One shared reader for the whole lesson: starting a new reading stops the old
 // one, and every "Nghe" button can show whether it is the one speaking.
+import { normalizeSpeech, voiceKey } from "./readAloud";
 
 export interface VoiceLike {
   lang: string;
@@ -66,27 +67,61 @@ export function speechChunks(text: string, max = 180): string[] {
 export type SpeakResult = "OK" | "STOPPED" | "UNSUPPORTED" | "NO_VOICE";
 export const speechNotices: Record<"UNSUPPORTED" | "NO_VOICE", string> = {
   UNSUPPORTED: "Trình duyệt này chưa hỗ trợ đọc bài.",
+  // Chrome, Brave and Cốc Cốc on Windows cannot use the Vietnamese voice that
+  // Windows installs (only Edge can), so installing it does not help there.
   NO_VOICE:
-    "Máy này chưa có giọng đọc tiếng Việt. Hãy mở bài bằng Microsoft Edge, hoặc nhờ người lớn thêm giọng Tiếng Việt trong Cài đặt → Thời gian và ngôn ngữ → Giọng nói.",
+    "Trình duyệt này chưa đọc được tiếng Việt. Hãy mở bài bằng Microsoft Edge, hoặc nhờ thầy cô bấm “Tạo giọng đọc” khi soạn bài.",
 };
 
 type Synth = Pick<SpeechSynthesis, "speak" | "cancel" | "getVoices">;
 type UtteranceCtor = new (text: string) => SpeechSynthesisUtterance;
+/** The part of an <audio> element a recorded voice needs. */
+export interface ClipPlayer {
+  play(): Promise<void> | void;
+  pause(): void;
+  onended: (() => void) | null;
+  onerror: (() => void) | null;
+}
 interface Engine {
   synth: Synth | null;
   Utterance: UtteranceCtor | null;
+  /** Plays recorded voice files; absent where there is no <audio>. */
+  Audio?: (new (src: string) => ClipPlayer) | null;
 }
 function browserEngine(): Engine {
+  const Audio =
+    typeof window !== "undefined" && typeof window.Audio === "function"
+      ? (window.Audio as unknown as new (src: string) => ClipPlayer)
+      : null;
   if (typeof window === "undefined" || !("speechSynthesis" in window))
-    return { synth: null, Utterance: null };
+    return { synth: null, Utterance: null, Audio };
   return {
     synth: window.speechSynthesis,
     Utterance:
       typeof SpeechSynthesisUtterance === "undefined"
         ? null
         : SpeechSynthesisUtterance,
+    Audio,
   };
 }
+
+// Recorded voice ("Tạo giọng đọc"): text key -> playable URL. Recordings work on
+// every computer, while browsers like Chrome cannot use Windows' Vietnamese voice.
+let clipUrl: ((key: string) => string | undefined) | null = null;
+/** The player hands in its recordings; `null` when the lesson has none. */
+export function setVoiceClips(
+  lookup: ((key: string) => string | undefined) | null,
+) {
+  clipUrl = lookup;
+  emit();
+}
+/** URLs of the recordings for every piece, or null if any is missing. */
+function recorded(pieces: string[], lang: string) {
+  if (!clipUrl || !currentEngine().Audio) return null;
+  const urls = pieces.map((p) => clipUrl?.(voiceKey(p, lang)));
+  return urls.every((u): u is string => !!u) ? urls : null;
+}
+let playing: ClipPlayer | null = null;
 let engine: Engine | null = null;
 const currentEngine = () => (engine ??= browserEngine());
 /** Tests swap in a fake engine; `null` goes back to the browser's. */
@@ -95,9 +130,10 @@ export function setSpeechEngine(next: Engine | null) {
   speakingId = null;
   emit();
 }
+/** Whether this browser can read anything: its own voice or recordings. */
 export function speechSupported() {
   const e = currentEngine();
-  return !!e.synth && !!e.Utterance;
+  return (!!e.synth && !!e.Utterance) || (!!clipUrl && !!e.Audio);
 }
 
 let speakingId: string | null = null;
@@ -112,23 +148,69 @@ const setSpeaking = (id: string | null) => {
 export function stopSpeaking() {
   run++;
   currentEngine().synth?.cancel();
+  if (playing) {
+    playing.onended = playing.onerror = null;
+    playing.pause();
+    playing = null;
+  }
   if (speakingId !== null) setSpeaking(null);
 }
 
-/** Reads `text` aloud; pressing the same button again stops it. */
-export function speak(id: string, text: string, lang = "vi-VN"): SpeakResult {
-  const { synth, Utterance } = currentEngine();
-  if (!synth || !Utterance) return "UNSUPPORTED";
+/** Plays recordings one after another; a failed file stops the reading. */
+function playClips(id: string, urls: string[]) {
+  const Audio = currentEngine().Audio!;
+  const mine = ++run;
+  const next = (i: number) => {
+    if (run !== mine) return;
+    if (i >= urls.length) {
+      playing = null;
+      setSpeaking(null);
+      return;
+    }
+    const clip = new Audio(urls[i]);
+    playing = clip;
+    clip.onended = () => next(i + 1);
+    clip.onerror = () => {
+      if (run === mine) stopSpeaking();
+    };
+    // play() rejects when the file cannot be played.
+    void Promise.resolve(clip.play()).catch(() => clip.onerror?.());
+  };
+  setSpeaking(id);
+  next(0);
+}
+
+/**
+ * Reads `text` aloud; pressing the same button again stops it. Pieces are
+ * played from the teacher's recordings when every one has been recorded,
+ * otherwise read by the browser's own Vietnamese voice.
+ */
+export function speak(
+  id: string,
+  text: string | string[],
+  lang = "vi-VN",
+): SpeakResult {
+  const pieces = (Array.isArray(text) ? text : [text])
+    .map(normalizeSpeech)
+    .filter(Boolean);
   if (speakingId === id) {
     stopSpeaking();
     return "STOPPED";
   }
+  const urls = recorded(pieces, lang);
+  if (urls && urls.length) {
+    stopSpeaking();
+    playClips(id, urls);
+    return "OK";
+  }
+  const { synth, Utterance } = currentEngine();
+  if (!synth || !Utterance) return clipUrl ? "NO_VOICE" : "UNSUPPORTED";
   stopSpeaking();
   const voices = synth.getVoices();
   const voice = pickVoice(voices, lang);
   // An empty list means the voices have not loaded yet: let the browser choose.
   if (voices.length && !voice) return "NO_VOICE";
-  const chunks = speechChunks(text);
+  const chunks = speechChunks(pieces.join(" "));
   if (!chunks.length) return "STOPPED";
   const mine = ++run;
   chunks.forEach((chunk, i) => {

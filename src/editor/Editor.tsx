@@ -30,6 +30,7 @@ import { applyProposal } from "../quality/analyzer";
 import { BackupButton } from "../backup/BackupButton";
 import { ExportButton } from "../export/ExportButton";
 import { AiStudio } from "../ai/AiStudio";
+import { VoiceDialog } from "../voice/VoiceDialog";
 import { localMediaStore } from "../media/storage";
 import "../backup/backup.css";
 
@@ -55,6 +56,7 @@ export function Editor({
   const [showMedia, setShowMedia] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
   const [showAi, setShowAi] = useState(false);
+  const [showVoice, setShowVoice] = useState(false);
   const inflightSave = useRef<Promise<boolean> | null>(null);
   // updatedAt of the copy last loaded from or written to storage.
   const baseline = useRef(project.updatedAt);
@@ -167,6 +169,9 @@ export function Editor({
             <button className="ai-button" onClick={() => setShowAi(true)}>
               AI thiết kế bài giảng
             </button>
+          )}
+          {!preview && (
+            <button onClick={() => setShowVoice(true)}>Tạo giọng đọc</button>
           )}
           {!preview && (
             <button onClick={() => setShowQuality(true)}>
@@ -441,6 +446,13 @@ export function Editor({
           media={localMediaStore}
           apply={(project) => dispatch({ type: "ai", project })}
           onClose={() => setShowAi(false)}
+        />
+      )}
+      {showVoice && !preview && (
+        <VoiceDialog
+          project={state.project}
+          store={localMediaStore}
+          onClose={() => setShowVoice(false)}
         />
       )}
       {showQuality && !preview && (

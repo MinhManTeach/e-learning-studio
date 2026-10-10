@@ -2,7 +2,11 @@ import { useState } from "react";
 import type { Slide } from "../model/schema";
 import { ChoicePicture } from "./ChoicePicture";
 import { SpeakButton } from "../player/SpeakButton";
-import { canReadAloud } from "../player/readAloud";
+import {
+  canReadAloud,
+  rememberSpeech,
+  rememberText,
+} from "../player/readAloud";
 
 type CardsSlide = Extract<Slide, { type: "cards" }>;
 type Item = CardsSlide["data"]["items"][number];
@@ -44,7 +48,7 @@ function FlipCard({ item, index }: { item: Item; index: number }) {
 export function CardsRenderer({ slide }: { slide: Slide }) {
   if (slide.type !== "cards") return null;
   const { style, items, intro, center, groups, keyTakeaway } = slide.data;
-  const remember = keyTakeaway.replace(/^\s*em cần nhớ\s*:?\s*/i, "");
+  const remember = rememberText(keyTakeaway);
   return (
     <div className={"cards cards-" + style}>
       {intro && <p className="cards-intro">{intro}</p>}
@@ -118,7 +122,7 @@ export function CardsRenderer({ slide }: { slide: Slide }) {
               id={"remember:" + slide.id}
               label="điều em cần nhớ"
               lang={slide.narration.lang}
-              text={"Em cần nhớ: " + remember}
+              text={rememberSpeech(keyTakeaway)}
             />
           )}
         </p>

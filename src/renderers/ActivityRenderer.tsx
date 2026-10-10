@@ -3,7 +3,7 @@ import type { Slide } from "../model/schema";
 import { ChoicePicture } from "./ChoicePicture";
 import { celebrate } from "../player/celebrate";
 import { SpeakButton } from "../player/SpeakButton";
-import { canReadAloud } from "../player/readAloud";
+import { activitySpeech, canReadAloud } from "../player/readAloud";
 import {
   allRight,
   checkMatch,
@@ -401,7 +401,7 @@ export function ActivityRenderer({ slide }: { slide: Slide }) {
               id={"activity:" + slide.id}
               label="yêu cầu"
               lang={slide.narration.lang}
-              text={slide.data.instruction}
+              text={activitySpeech(slide)}
             />
           )}
         </div>

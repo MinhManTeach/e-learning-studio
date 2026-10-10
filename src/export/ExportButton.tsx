@@ -58,6 +58,8 @@ export function ExportButton({
     name: string;
     size: number;
     scorm: ScormVersion;
+    voiceCount: number;
+    voiceMissing: number;
   } | null>(null);
   useEffect(
     () => () => {
@@ -87,6 +89,8 @@ export function ExportButton({
         name: pkg.fileName,
         size: pkg.bytes.length,
         scorm: pkg.scorm,
+        voiceCount: pkg.voiceCount,
+        voiceMissing: pkg.voiceMissing,
       });
     } catch (e) {
       setError(
@@ -132,6 +136,18 @@ export function ExportButton({
         <span className="hint" role="status">
           Tải nguyên tệp ZIP lên LMS, hoặc giải nén rồi mở index.html để học
           không cần mạng.
+        </span>
+      )}
+      {download && download.voiceCount > 0 && (
+        <span className="hint">
+          Kèm giọng đọc thu sẵn: {download.voiceCount} đoạn.
+        </span>
+      )}
+      {download && download.voiceMissing > 0 && (
+        <span className="hint export-warning">
+          {download.voiceMissing} đoạn đọc chưa có giọng thu sẵn; trên Chrome,
+          Cốc Cốc, Brave học sinh sẽ không nghe được các đoạn này. Bấm “Tạo giọng
+          đọc” rồi xuất lại gói.
         </span>
       )}
       {warnings.map((w) => (

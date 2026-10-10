@@ -12,6 +12,8 @@ import {
 } from "./session";
 import { SessionContext } from "./SessionContext";
 import { useSpeech } from "./useSpeech";
+import { useRecordedVoice } from "../voice/useRecordedVoice";
+import { localMediaStore } from "../media/storage";
 export function StudentPreview({
   project,
   initialId,
@@ -33,6 +35,7 @@ export function StudentPreview({
     if (target) act({ type: "visit", id: target.id });
   }
   const speech = useSpeech(slide);
+  useRecordedVoice(project, localMediaStore);
   useEffect(() => {
     function key(e: KeyboardEvent) {
       const target = e.target as HTMLElement;

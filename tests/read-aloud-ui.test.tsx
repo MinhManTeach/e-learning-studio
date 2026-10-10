@@ -89,7 +89,7 @@ it("explains what to do when the computer has no Vietnamese voice", () => {
   expect(
     screen
       .getAllByRole("status")
-      .some((x) => /chưa có giọng đọc tiếng Việt/.test(x.textContent ?? "")),
+      .some((x) => /chưa đọc được tiếng Việt/.test(x.textContent ?? "")),
   ).toBe(true);
 });
 

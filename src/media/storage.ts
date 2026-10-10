@@ -18,6 +18,23 @@ export function detectVideoMime(bytes: Uint8Array) {
     return "video/webm";
   return "";
 }
+/** Recorded voice ("Tạo giọng đọc"): AAC in an MP4 container (.m4a). */
+export function detectAudioMime(bytes: Uint8Array) {
+  return String.fromCharCode(...bytes.slice(4, 8)) === "ftyp"
+    ? "audio/mp4"
+    : "";
+}
+export const maxAudioBytes = 5 * 1024 * 1024;
+export async function validateAudioBlob(blob: Blob) {
+  if (!blob.size || blob.size > maxAudioBytes)
+    throw new Error("Tệp giọng đọc phải lớn hơn 0 và không quá 5 MB.");
+  const detected = detectAudioMime(
+    new Uint8Array(await blob.slice(0, 16).arrayBuffer()),
+  );
+  if (!detected || blob.type !== detected)
+    throw new Error("Tệp giọng đọc không phải M4A hợp lệ.");
+  return detected;
+}
 export const maxImageBytes = 8 * 1024 * 1024;
 export const maxVideoBytes = 200 * 1024 * 1024;
 export async function validateVideoBlob(blob: Blob) {
@@ -93,7 +110,9 @@ export class LocalMediaAssetStore {
   private async write(value: StoredMedia, insertOnly: boolean) {
     const mime = value.mimeType.startsWith("video/")
       ? await validateVideoBlob(value.blob)
-      : await validateImageBlob(value.blob);
+      : value.mimeType.startsWith("audio/")
+        ? await validateAudioBlob(value.blob)
+        : await validateImageBlob(value.blob);
     if (
       mime !== value.mimeType ||
       value.size !== value.blob.size ||

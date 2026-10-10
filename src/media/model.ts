@@ -41,7 +41,7 @@ export const mediaCandidateSchema = z.object({
 export type MediaCandidate = z.infer<typeof mediaCandidateSchema>;
 export interface MediaSourceMetadata {
   title: string;
-  provider: "WIKIMEDIA_COMMONS" | "UPLOAD" | "DOCX";
+  provider: "WIKIMEDIA_COMMONS" | "UPLOAD" | "DOCX" | "VOICE";
   sourceUrl: string;
   creator: string;
   license: string;
