@@ -5,6 +5,7 @@ import { documentBlockSchema, semanticCategories } from "../src/import/model";
 import { projectSchema } from "../src/model/schema";
 import { enhanceWithOpenAi } from "./enhancement";
 import { designLesson, drawIllustration, studioStatus } from "./studio";
+import { recordVoice, voiceStatus, type VoiceStatus } from "./windowsVoice";
 import {
   analyzeWithOpenAi,
   connectionStatus,
@@ -26,7 +27,19 @@ const inputSchema = z.object({
     }),
   ),
 });
-export function localAiMiddleware(config: LocalAiConfig) {
+/** The Windows voice recorder; tests pass a fake. */
+export interface VoiceService {
+  status(): Promise<VoiceStatus>;
+  record(body: unknown, signal?: AbortSignal): Promise<unknown>;
+}
+const windowsVoice: VoiceService = {
+  status: () => voiceStatus(),
+  record: (body, signal) => recordVoice(body, signal),
+};
+export function localAiMiddleware(
+  config: LocalAiConfig,
+  voice: VoiceService = windowsVoice,
+) {
   return async (
     req: IncomingMessage,
     res: ServerResponse,
@@ -62,13 +75,20 @@ export function localAiMiddleware(config: LocalAiConfig) {
       send(200, studioStatus(config));
       return;
     }
+    if (req.url === "/api/lesson-ai/voice/status" && req.method === "GET") {
+      send(200, await voice.status());
+      return;
+    }
     const enhancing = req.url === "/api/lesson-ai/enhance";
     const studio =
       req.url === "/api/lesson-ai/studio/design"
         ? designLesson
         : req.url === "/api/lesson-ai/studio/illustrate"
           ? drawIllustration
-          : undefined;
+          : req.url === "/api/lesson-ai/voice/record"
+            ? (_: LocalAiConfig, body: unknown, signal?: AbortSignal) =>
+                voice.record(body, signal)
+            : undefined;
     if (
       (!enhancing && !studio && req.url !== "/api/lesson-ai/analyze") ||
       req.method !== "POST"
@@ -105,10 +125,13 @@ export function localAiMiddleware(config: LocalAiConfig) {
         } catch (error) {
           // Only our own error codes reach the browser, never provider text.
           const code =
-            error instanceof Error && /^AI_[A-Z_]+$/.test(error.message)
+            error instanceof Error &&
+            /^(AI|VOICE)_[A-Z_]+$/.test(error.message)
               ? error.message
               : "AI_UNAVAILABLE";
-          send(code === "AI_INPUT" ? 400 : 502, { error: code });
+          send(code === "AI_INPUT" || code === "VOICE_INPUT" ? 400 : 502, {
+            error: code,
+          });
         }
         return;
       }
