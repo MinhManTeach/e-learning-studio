@@ -1,4 +1,38 @@
-# Personal local AI setup — Phase 2A.3
+# Personal local AI setup
+
+## AI làm đẹp bài giảng (Gemini)
+
+The editor button **AI làm đẹp bài giảng** uses the teacher's own Google AI Studio key.
+
+1. Get a key at https://aistudio.google.com/apikey.
+2. Create `.env.local` in the repository root:
+
+   ```
+   LESSON_AI_PROVIDER=gemini
+   LESSON_AI_API_KEY=your-key
+   # optional, these are the defaults:
+   LESSON_AI_MODEL=gemini-3.8-flash
+   LESSON_AI_IMAGE_MODEL=gemini-nano-banana-2.1
+   ```
+
+3. Restart `npm run dev`, open a lesson and press **AI làm đẹp bài giảng**.
+
+The AI reads every page (text plus page pictures up to 1.5 MB) and proposes titles,
+child-friendly wording, narration, picture descriptions, missing quiz explanations and
+new illustrations for pages without a picture. Nothing changes until the teacher
+applies the accepted pages; **Hoàn tác cải thiện** undoes the whole change. Answers,
+scores, questions and page order are never changed.
+
+Text uses the free tier when available. Picture generation has no free tier: it needs
+billing enabled on the key (about 0.034 USD per 1K picture at the time of writing).
+
+Endpoints (dev server only, local callers only): `GET /api/lesson-ai/studio/status`,
+`POST /api/lesson-ai/studio/polish`, `POST /api/lesson-ai/studio/illustrate`. The key
+stays in the Node process and is sent to Google in the `x-goog-api-key` header; only
+error codes (never provider messages) reach the browser. A hosted version will replace
+these endpoints with an authenticated server that meters usage per account.
+
+## Lesson-plan analysis (OpenAI) — Phase 2A.3
 
 Without configuration, run `npm ci` then `npm run dev` and use **Phân tích cơ bản**.
 All automated tests work without credentials; no test contacts a real AI provider.

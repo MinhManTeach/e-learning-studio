@@ -29,6 +29,8 @@ import { QualityPanel } from "../quality/QualityPanel";
 import { applyProposal } from "../quality/analyzer";
 import { BackupButton } from "../backup/BackupButton";
 import { ExportButton } from "../export/ExportButton";
+import { AiStudio } from "../ai/AiStudio";
+import { localMediaStore } from "../media/storage";
 import "../backup/backup.css";
 
 export function Editor({
@@ -52,6 +54,7 @@ export function Editor({
   const [jsonExport, setJsonExport] = useState<string | null>(null);
   const [showMedia, setShowMedia] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
+  const [showAi, setShowAi] = useState(false);
   const inflightSave = useRef<Promise<boolean> | null>(null);
   // updatedAt of the copy last loaded from or written to storage.
   const baseline = useRef(project.updatedAt);
@@ -160,6 +163,11 @@ export function Editor({
         <div className="top-actions">
           {!preview && <BackupButton project={state.project} />}
           {!preview && <ExportButton project={state.project} />}
+          {!preview && (
+            <button className="ai-button" onClick={() => setShowAi(true)}>
+              AI làm đẹp bài giảng
+            </button>
+          )}
           {!preview && (
             <button onClick={() => setShowQuality(true)}>
               Rà soát chất lượng
@@ -425,6 +433,14 @@ export function Editor({
           attach={(id, asset, caption) =>
             dispatch({ type: "attach-media", id, asset, caption })
           }
+        />
+      )}
+      {showAi && !preview && (
+        <AiStudio
+          project={state.project}
+          media={localMediaStore}
+          apply={(project) => dispatch({ type: "ai", project })}
+          onClose={() => setShowAi(false)}
         />
       )}
       {showQuality && !preview && (

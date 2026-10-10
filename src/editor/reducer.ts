@@ -18,6 +18,8 @@ export interface EditorState {
 export type EditorAction =
   | { type: "quality"; proposal: ImprovementProposal }
   | { type: "quality-undo" }
+  /** A whole-lesson change made by AI, undone with the same button as quality fixes. */
+  | { type: "ai"; project: LessonProject }
   | { type: "select"; id: string | null }
   | { type: "metadata"; metadata: Metadata }
   | { type: "objectives"; objectives: Objectives }
@@ -42,6 +44,15 @@ export function editorReducer(
       ...applyProposal(project, action.proposal),
       updatedAt: new Date().toISOString(),
     };
+    return {
+      ...state,
+      project: changed,
+      revision: state.revision + 1,
+      qualityUndo: { before: project, after: JSON.stringify(changed) },
+    };
+  }
+  if (action.type === "ai") {
+    const changed = { ...action.project, updatedAt: new Date().toISOString() };
     return {
       ...state,
       project: changed,
