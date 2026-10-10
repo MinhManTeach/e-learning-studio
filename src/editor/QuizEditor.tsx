@@ -52,7 +52,8 @@ export function QuizEditor({
             ...d,
             questions: d.questions.map((x) => (x.id === q.id ? next : x)),
           });
-        const update = (patch: Partial<typeof q>) => replace({ ...q, ...patch });
+        const update = (patch: Partial<typeof q>) =>
+          replace({ ...q, ...patch });
         return (
           <details className="question-editor" key={q.id}>
             <summary>
