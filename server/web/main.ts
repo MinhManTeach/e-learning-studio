@@ -35,6 +35,14 @@ const config: WebConfig = {
   freeCredits: Number(env.FREE_CREDITS ?? 10),
   sessionDays: Number(env.SESSION_DAYS ?? 30),
   staticDir: resolve(env.STATIC_DIR ?? "dist"),
+  payos:
+    env.PAYOS_CLIENT_ID && env.PAYOS_API_KEY && env.PAYOS_CHECKSUM_KEY
+      ? {
+          clientId: env.PAYOS_CLIENT_ID,
+          apiKey: env.PAYOS_API_KEY,
+          checksumKey: env.PAYOS_CHECKSUM_KEY,
+        }
+      : null,
 };
 const store = new Store(join(dataDir, "app.db"));
 const handler = createWebHandler(config, { store });
@@ -43,6 +51,8 @@ createServer((req, res) => void handler(req, res)).listen(port, () => {
   console.info(
     `Ứng dụng soạn bài đang chạy ở cổng ${port} (${publicUrl}). Đăng nhập Google: ${
       config.google ? "bật" : "chưa cấu hình"
-    }. AI: ${config.ai.apiKey ? "đã có khoá" : "chưa có khoá"}.`,
+    }. AI: ${config.ai.apiKey ? "đã có khoá" : "chưa có khoá"}. Thanh toán PayOS: ${
+      config.payos ? "bật" : "chưa cấu hình"
+    }.`,
   );
 });

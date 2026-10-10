@@ -13,6 +13,12 @@ import {
   type GoogleConfig,
 } from "./google";
 import type { Store, User } from "./store";
+import {
+  createPaymentLink,
+  plans,
+  verifyWebhook,
+  type PayosConfig,
+} from "./payos";
 
 export interface WebConfig {
   /** Public address, e.g. https://giangvui.vn (no trailing slash). */
@@ -24,6 +30,8 @@ export interface WebConfig {
   sessionDays: number;
   /** Folder with the built editor (vite build output). */
   staticDir?: string;
+  /** PayOS keys; without them buying credits is switched off. */
+  payos?: PayosConfig | null;
 }
 export interface WebDeps {
   store: Store;
@@ -73,6 +81,64 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const origin = new URL(config.publicUrl).origin;
   const redirectUri = `${config.publicUrl}/auth/google/callback`;
   const busy = new Set<string>(); // users with an AI design running
+
+  /** A 12-digit order number: time-based, with a random tail. */
+  const newOrderCode = () =>
+    Number(
+      String(now()).slice(-9) +
+        String(Math.floor(Math.random() * 1000)).padStart(3, "0"),
+    );
+
+  async function buyCredits(req: IncomingMessage, res: ServerResponse) {
+    const user = userOf(req);
+    if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
+    if (!config.payos) return send(res, 503, { error: "PAY_UNAVAILABLE" });
+    const body = (await readJson(req, 10_000).catch(() => ({}))) as {
+      plan?: string;
+    };
+    const plan = plans.find((p) => p.id === body.plan);
+    if (!plan) return send(res, 400, { error: "PAY_PLAN" });
+    let orderCode = newOrderCode();
+    for (let i = 0; store.payment(orderCode) && i < 5; i++)
+      orderCode = newOrderCode();
+    store.createPayment({
+      orderCode,
+      userId: user.id,
+      plan: plan.id,
+      amount: plan.amount,
+      credits: plan.credits,
+    });
+    try {
+      const link = await createPaymentLink(
+        config.payos,
+        {
+          orderCode,
+          amount: plan.amount,
+          // Shown on the bank transfer; PayOS allows 25 characters.
+          description: `GV ${orderCode}`.slice(0, 25),
+          returnUrl: `${config.publicUrl}/?paid=${orderCode}`,
+          cancelUrl: `${config.publicUrl}/?paid=cancelled`,
+        },
+        transport,
+      );
+      send(res, 200, { orderCode, ...link });
+    } catch (error) {
+      send(res, 502, {
+        error: error instanceof Error ? error.message : "PAY_PROVIDER",
+      });
+    }
+  }
+
+  async function payWebhook(req: IncomingMessage, res: ServerResponse) {
+    if (!config.payos) return send(res, 404, { error: "NOT_FOUND" });
+    const body = await readJson(req, 100_000).catch(() => null);
+    const data = verifyWebhook(body, config.payos.checksumKey);
+    if (!data) return send(res, 400, { error: "PAY_SIGNATURE" });
+    // "00" is a completed transfer; the amount must match the order exactly.
+    if (data.code === "00") store.completePayment(data.orderCode, data.amount);
+    // PayOS's own "confirm webhook" test uses an order we never made: still 200.
+    send(res, 200, { success: true });
+  }
 
   const cookie = (name: string, value: string, maxAge: number) =>
     `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
@@ -273,6 +339,10 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         return await googleStart(res);
       if (method === "GET" && path === "/auth/google/callback")
         return await googleCallback(req, res, url);
+      // PayOS calls this from its own servers, so no origin check; the
+      // signature is what proves it.
+      if (method === "POST" && path === "/api/pay/webhook")
+        return await payWebhook(req, res);
       if (path.startsWith("/api/") || path === "/auth/logout") {
         if (method === "POST" && !sameOrigin(req))
           return send(res, 403, { error: "AUTH_ORIGIN" });
@@ -314,6 +384,12 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
             return send(res, 415, { error: "AI_INPUT" });
           return await aiDesign(req, res);
         }
+        if (method === "GET" && path === "/api/plans")
+          return send(res, 200, {
+            plans: config.payos ? plans : [],
+          });
+        if (method === "POST" && path === "/api/pay/create")
+          return await buyCredits(req, res);
         if (method === "GET" && path === "/api/lesson-ai/voice/status")
           return send(res, 200, {
             available: false,

@@ -119,3 +119,37 @@ it("does not start a design with no credits left", async () => {
     ),
   ).toBe(true);
 });
+
+it("lets a signed-in teacher pick a plan and go on to the PayOS QR page", async () => {
+  const went: string[] = [];
+  const calls: string[] = [];
+  const fetcher = (async (url: string, init?: RequestInit) => {
+    calls.push(url + (init?.body ? " " + String(init.body) : ""));
+    if (url === "/api/me")
+      return json({ user: { name: "Cô Lan", email: "a@b.c", picture: "" }, credits: 0 });
+    if (url === "/api/plans")
+      return json({
+        plans: [{ id: "TEACHER_MONTH", name: "Gói tháng", amount: 49000, credits: 50 }],
+      });
+    return json({ orderCode: 1, checkoutUrl: "https://pay.payos.vn/web/abc" });
+  }) as unknown as typeof fetch;
+  const { BuyCredits } = await import("../src/account/BuyCredits");
+  render(<AccountBar fetcher={fetcher} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Mua thêm lượt" }));
+  expect(await screen.findByText(/50 lượt · 49\.000đ/)).toBeTruthy();
+  cleanup();
+  render(<BuyCredits fetcher={fetcher} onClose={() => {}} go={(u) => went.push(u)} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Thanh toán bằng QR" }));
+  await screen.findByRole("button", { name: /Đang tạo mã|Thanh toán bằng QR/ });
+  await new Promise((r) => setTimeout(r, 0));
+  expect(calls).toContain('/api/pay/create {"plan":"TEACHER_MONTH"}');
+  expect(went).toEqual(["https://pay.payos.vn/web/abc"]);
+});
+
+it("says what happened when the teacher comes back from Google or PayOS", async () => {
+  const { returnNotice } = await import("../src/account/AccountBar");
+  expect(returnNotice("?paid=123456789012")).toMatch(/Cảm ơn/);
+  expect(returnNotice("?paid=cancelled")).toMatch(/huỷ thanh toán/);
+  expect(returnNotice("?login=failed")).toMatch(/chưa thành công/);
+  expect(returnNotice("")).toBe("");
+});
