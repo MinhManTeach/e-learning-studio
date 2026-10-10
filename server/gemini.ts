@@ -4,6 +4,8 @@ export interface GeminiConfig {
   apiKey: string;
   model: string;
   imageModel: string;
+  /** Gemini 3 "thinking level"; "low" answers several times faster. */
+  thinking?: "minimal" | "low" | "medium" | "high";
 }
 const endpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
@@ -81,6 +83,9 @@ export async function geminiJson(
         responseMimeType: "application/json",
         responseJsonSchema: request.schema,
         temperature: 0.4,
+        ...(config.thinking
+          ? { thinkingConfig: { thinkingLevel: config.thinking } }
+          : {}),
       },
     },
     signal,

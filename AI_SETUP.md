@@ -13,7 +13,11 @@ The editor button **AI làm đẹp bài giảng** uses the teacher's own Google 
    # optional, these are the defaults:
    LESSON_AI_MODEL=gemini-3.8-flash
    LESSON_AI_IMAGE_MODEL=gemini-nano-banana-2.1
+   LESSON_AI_THINKING=low
    ```
+
+   `LESSON_AI_THINKING=low` answers several times faster than the model default; use
+   `medium` or `high` for more careful rewrites, `off` for models without thinking levels.
 
 3. Restart `npm run dev`, open a lesson and press **AI làm đẹp bài giảng**.
 

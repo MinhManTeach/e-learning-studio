@@ -4,7 +4,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { geminiImage, geminiJson } from "../server/gemini";
 import { localAiMiddleware } from "../server/localAiPlugin";
 import { connectionStatus } from "../server/openai";
-import { drawIllustration, polishLesson, studioStatus } from "../server/studio";
+import {
+  drawIllustration,
+  polishLesson,
+  studioConfig,
+  studioStatus,
+} from "../server/studio";
 import { polishRequest } from "../src/ai/polish";
 import { aiLesson, aiPlan } from "./support/aiLesson";
 
@@ -45,7 +50,7 @@ describe("Gemini REST", () => {
   it("asks for schema-shaped JSON with the key in a header, not the URL", async () => {
     const { calls, transport } = fakeGemini(textAnswer({ ok: 1 }));
     const value = await geminiJson(
-      ready,
+      { ...ready, thinking: "low" },
       { system: "SYS", parts: [{ text: "DATA" }], schema: { type: "object" } },
       undefined,
       transport,
@@ -65,6 +70,7 @@ describe("Gemini REST", () => {
       generationConfig: {
         responseMimeType: "application/json",
         responseJsonSchema: { type: "object" },
+        thinkingConfig: { thinkingLevel: "low" },
       },
     });
   });
@@ -145,6 +151,18 @@ describe("lesson studio", () => {
       model: "",
       imageModel: "",
     });
+    // Fast answers by default; "off" (any unknown level) sends no thinking setting.
+    expect(studioConfig({ provider: "gemini", apiKey: "abc" })?.thinking).toBe(
+      "low",
+    );
+    expect(
+      studioConfig({ provider: "gemini", apiKey: "abc", thinking: "HIGH" })
+        ?.thinking,
+    ).toBe("high");
+    expect(
+      studioConfig({ provider: "gemini", apiKey: "abc", thinking: "off" })
+        ?.thinking,
+    ).toBeUndefined();
     const status = studioStatus({ provider: "gemini", apiKey: "abc" });
     expect(status.configured).toBe(true);
     expect(status.model).toBeTruthy();

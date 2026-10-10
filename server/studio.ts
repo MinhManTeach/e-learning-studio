@@ -19,7 +19,11 @@ export function studioConfig(config: LocalAiConfig) {
   const model = config.model?.trim() || defaultGeminiModel;
   const imageModel = config.imageModel?.trim() || defaultGeminiImageModel;
   if (!modelName.test(model) || !modelName.test(imageModel)) return undefined;
-  return { apiKey: config.apiKey.trim(), model, imageModel };
+  const level = config.thinking?.trim().toLowerCase() || "low";
+  const thinking = (["minimal", "low", "medium", "high"] as const).find(
+    (t) => t === level,
+  );
+  return { apiKey: config.apiKey.trim(), model, imageModel, thinking };
 }
 export function studioStatus(config: LocalAiConfig) {
   const ready = studioConfig(config);
