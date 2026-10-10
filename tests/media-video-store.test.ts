@@ -9,7 +9,7 @@ const mp4 = new Uint8Array([
 const record = (bytes: Uint8Array, type: string): StoredMedia => ({
   assetId: "clip",
   projectId: "lesson",
-  blob: new Blob([bytes], { type }),
+  blob: new Blob([new Uint8Array(bytes)], { type }),
   mimeType: type,
   size: bytes.length,
   source: {
