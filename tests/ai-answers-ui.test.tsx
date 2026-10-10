@@ -46,7 +46,8 @@ it("shows the AI's suggested answer and applies it only when the teacher ticks i
   expect((tick as HTMLInputElement).checked).toBe(false);
   fireEvent.click(tick);
   fireEvent.click(screen.getByRole("button", { name: /^Áp dụng/ }));
-  const q1 = (applied[0].slides.find((s) => s.type === "quiz") as Quiz).data
+  // New activities add quiz pages too; look at the lesson's own quiz.
+  const q1 = (applied[0].slides.find((s) => s.id === "s-quiz") as Quiz).data
     .questions[0];
   expect(q1.answerUnknown).toBeUndefined();
   expect(q1.correctAnswerIndex).toBe(1);

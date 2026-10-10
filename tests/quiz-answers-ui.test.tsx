@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
 import { useState } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { createProject, createSlide } from "../src/model/factories";
 import {
   parseProject,
@@ -74,8 +80,9 @@ it("flags a question PowerPoint gave no answer for until the teacher chooses", (
     /PowerPoint không cho biết/,
   );
   // Nothing looks chosen yet.
+  const answers = within(screen.getByRole("group", { name: /Đáp án đúng/ }));
   expect(
-    screen
+    answers
       .getAllByRole("checkbox")
       .every((c) => !(c as HTMLInputElement).checked),
   ).toBe(true);
