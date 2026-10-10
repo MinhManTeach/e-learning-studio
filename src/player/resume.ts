@@ -8,6 +8,7 @@ import {
   type QuizSession,
 } from "./session";
 import type { LmsReport, LmsStatus } from "./lms";
+import { answerIds, answerOf, isMultiAnswer } from "../model/answers";
 
 // Resume data is keyed by page position, not by ID, so it stays small enough for
 // SCORM 1.2's 4096-character suspend_data. Quiz results are recomputed on load
@@ -136,8 +137,11 @@ export function decodeResume(
         if (!isRecord(answers)) return out;
         for (const q of slide.data.questions) {
           const a = answers[q.id];
-          if (typeof a === "string" && q.options.some((o) => o.id === a))
-            out[q.id] = a;
+          if (typeof a !== "string") continue;
+          const ids = answerIds(a);
+          const known = ids.every((id) => q.options.some((o) => o.id === id));
+          if (ids.length && known && (ids.length === 1 || isMultiAnswer(q)))
+            out[q.id] = answerOf(ids);
         }
         return out;
       };

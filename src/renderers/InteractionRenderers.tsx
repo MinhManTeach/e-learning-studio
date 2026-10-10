@@ -6,6 +6,12 @@ import { certificateStatus } from "../player/certificate";
 import { CertificateDialog } from "../player/CertificateDialog";
 import { useLessonSession } from "../player/SessionContext";
 import { celebrate } from "../player/celebrate";
+import {
+  answerIds,
+  correctIndexes,
+  isMultiAnswer,
+  isRightAnswer,
+} from "../model/answers";
 import { SpeakButton } from "../player/SpeakButton";
 import {
   canReadAloud,
@@ -228,6 +234,11 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
               />
             )}
           </legend>
+          {isMultiAnswer(q) && (
+            <p className="hint quiz-multi">
+              Câu này có nhiều đáp án đúng: em hãy chọn tất cả.
+            </p>
+          )}
           <div className="quiz-options">
             {orderedOptions(
               q,
@@ -236,9 +247,9 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
             ).map((o) => (
               <label key={o.id}>
                 <input
-                  type="radio"
+                  type={isMultiAnswer(q) ? "checkbox" : "radio"}
                   name={slide.id + "-" + q.id}
-                  checked={state.answers[q.id] === o.id}
+                  checked={answerIds(state.answers[q.id]).includes(o.id)}
                   disabled={!rt || state.submitted}
                   onChange={() =>
                     rt?.act({
@@ -257,14 +268,15 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
           {showReview && (
             <div className="feedback">
               <strong>
-                {state.answers[q.id] === q.options[q.correctAnswerIndex]?.id
+                {isRightAnswer(q, state.answers[q.id])
                   ? "✓ Đúng"
                   : "! Chưa đúng hoặc chưa trả lời"}
               </strong>
               <p>
                 Đáp án đúng:{" "}
-                {q.options[q.correctAnswerIndex]?.text ??
-                  "Cần kiểm tra lại câu hỏi"}
+                {correctIndexes(q)
+                  .map((i) => q.options[i].text)
+                  .join("; ") || "Cần kiểm tra lại câu hỏi"}
               </p>
               <p>{q.explanation}</p>
             </div>

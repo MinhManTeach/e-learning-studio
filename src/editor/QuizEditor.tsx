@@ -1,5 +1,6 @@
 import type { QuizData } from "../model/schema";
 import { defaultQuestion } from "../slides/defaults";
+import { correctIndexes, withCorrect } from "../model/answers";
 import { Field } from "./Fields";
 import { CheckField, NumberField, SelectField } from "./Controls";
 export function QuizEditor({
@@ -46,17 +47,20 @@ export function QuizEditor({
         />
       ))}
       {d.questions.map((q, index) => {
-        const update = (patch: Partial<typeof q>) =>
+        const update = (patch: Partial<typeof q> | typeof q) =>
           onChange({
             ...d,
             questions: d.questions.map((x) =>
-              x.id === q.id ? { ...x, ...patch } : x,
+              x.id !== q.id ? x : "id" in patch ? patch : { ...x, ...patch },
             ),
           });
         return (
           <details className="question-editor" key={q.id}>
             <summary>
               Câu {index + 1}: {q.prompt}
+              {q.answerUnknown && (
+                <span className="answer-unknown-badge"> · Chưa chọn đáp án</span>
+              )}
             </summary>
             <Field
               label="Câu hỏi"
@@ -93,16 +97,42 @@ export function QuizEditor({
                 }
               />
             ))}
-            <SelectField
-              label="Đáp án đúng"
-              value={String(q.correctAnswerIndex)}
-              options={Object.fromEntries(
-                q.options.map((_, i) => [String(i), "Lựa chọn " + (i + 1)]),
+            <fieldset className="correct-answers">
+              <legend>Đáp án đúng (có thể chọn nhiều)</legend>
+              {q.answerUnknown && (
+                <p className="answer-unknown" role="alert">
+                  ⚠ PowerPoint không cho biết đáp án đúng của câu này. Hãy tích
+                  đáp án đúng; chưa chọn thì chưa xuất được gói.
+                </p>
               )}
-              onChange={(value) =>
-                update({ correctAnswerIndex: Number(value) })
-              }
-            />
+              {q.options.map((o, i) => {
+                const right = correctIndexes(q);
+                const checked = !q.answerUnknown && right.includes(i);
+                return (
+                  <label key={o.id}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const base = q.answerUnknown ? [] : right;
+                        const next = checked
+                          ? base.filter((x) => x !== i)
+                          : [...base, i];
+                        // Keep at least one right answer.
+                        if (next.length) update(withCorrect(q, next));
+                      }}
+                    />
+                    Lựa chọn {i + 1}
+                    {o.text ? `: ${o.text}` : ""}
+                  </label>
+                );
+              })}
+              {correctIndexes(q).length > 1 && !q.answerUnknown && (
+                <p className="hint">
+                  Học sinh phải chọn đủ tất cả đáp án đúng mới được điểm.
+                </p>
+              )}
+            </fieldset>
             <Field
               label="Giải thích đáp án"
               value={q.explanation}

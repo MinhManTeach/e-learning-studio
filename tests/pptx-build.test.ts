@@ -126,10 +126,12 @@ it("builds a lesson with the slide picture, the video, the picture quiz and a co
   expect(options[0].imageAssetId).toBe("pptx-image1-png");
   // The EMF picture is not supported in browsers: the answer keeps its letter only.
   expect(options[1].imageAssetId).toBeUndefined();
-  expect(quiz.teacherNotes).toMatch(/Cần kiểm tra đáp án đúng/);
+  // PowerPoint marks both options right: kept as a question with two answers.
+  expect(quiz.data.questions[0].correctAnswerIndexes).toEqual([0, 1]);
+  expect(quiz.data.questions[0].answerUnknown).toBeUndefined();
+  expect(quiz.teacherNotes).toBe("");
   expect(warnings).toEqual([
     "Slide 3: bỏ qua “image2.emf” vì định dạng chưa hỗ trợ.",
-    "Slide 3, câu 1: PowerPoint có nhiều đáp án đúng; hãy kiểm tra lại trong trình soạn.",
   ]);
   expect(media.map((m) => [m.assetId, m.mimeType]).sort()).toEqual([
     ["pptx-image1-png", "image/png"],

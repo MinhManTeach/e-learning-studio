@@ -132,10 +132,22 @@ export const questionSchema = z
       .min(2)
       .max(6),
     correctAnswerIndex: z.number().int().nonnegative(),
+    /** Several right answers: the student ticks all of them (see answers.ts). */
+    correctAnswerIndexes: z
+      .array(z.number().int().nonnegative())
+      .max(6)
+      .optional(),
+    /** Imported without a known right answer: the teacher must choose one. */
+    answerUnknown: z.boolean().optional(),
     explanation: text,
     points: z.number().nonnegative(),
   })
   .superRefine((q, c) => {
+    if (q.correctAnswerIndexes?.some((i) => i >= q.options.length))
+      c.addIssue({
+        code: "custom",
+        message: "Đáp án đúng nằm ngoài danh sách lựa chọn.",
+      });
     if (q.correctAnswerIndex >= q.options.length)
       c.addIssue({
         code: "custom",

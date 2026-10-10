@@ -19,7 +19,7 @@ const kindLabel = { PAGE: "Trang", VIDEO: "Video", QUESTIONS: "Câu hỏi" };
 const letter = (i: number) => String.fromCharCode(65 + i);
 const titleFromFile = (name: string) =>
   name
-    .replace(/\.pptx$/i, "")
+    .replace(/(\.pptx)+$/i, "")
     .replace(/[_]+/g, " ")
     .trim();
 

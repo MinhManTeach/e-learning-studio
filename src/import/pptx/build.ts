@@ -50,6 +50,12 @@ const stageWords: [RegExp, Stage][] = [
   [/LUYỆN TẬP|CỦNG CỐ|TRÒ CHƠI|CÂU HỎI|KIỂM TRA/i, "ASSESSMENT"],
   [/VẬN DỤNG|GHI NHỚ|TỔNG KẾT|DẶN DÒ|HOÀN THÀNH/i, "APPLICATION"],
 ];
+/** The file name may end in ".pptx" (or ".pptx.pptx" when Windows hides extensions). */
+export const lessonTitle = (title: string) =>
+  title
+    .trim()
+    .replace(/(\.pptx)+$/i, "")
+    .trim();
 const stageOf = (title: string) =>
   stageWords.find(([re]) => re.test(title))?.[1];
 
@@ -58,7 +64,7 @@ const letter = (i: number) => String.fromCharCode(65 + i);
 export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
   const warnings: string[] = [];
   const project = createProject(
-    input.title.trim() || "Bài giảng từ PowerPoint",
+    lessonTitle(input.title) || "Bài giảng từ PowerPoint",
   );
   project.metadata = {
     ...project.metadata,
@@ -166,27 +172,29 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
             ? partAsset(o.image, `Đáp án ${letter(i)}`, where)
             : undefined,
         }));
-        if (q.correct.length !== 1)
+        const correct = [...new Set(q.correct)].filter(
+          (i) => i < options.length,
+        );
+        if (!correct.length)
           warnings.push(
-            `${where}, câu ${qi + 1}: ${
-              q.correct.length
-                ? "PowerPoint có nhiều đáp án đúng"
-                : "chưa rõ đáp án đúng"
-            }; hãy kiểm tra lại trong trình soạn.`,
+            `${where}, câu ${qi + 1}: chưa rõ đáp án đúng; hãy chọn đáp án trong trình soạn trước khi xuất gói.`,
           );
         return {
           id: crypto.randomUUID(),
           level: "RECOGNITION" as const,
           prompt: q.prompt || "Câu hỏi",
           options,
-          correctAnswerIndex: Math.min(q.correct[0] ?? 0, options.length - 1),
+          correctAnswerIndex: correct[0] ?? 0,
+          // PowerPoint marked several options right: the student ticks them all.
+          ...(correct.length > 1 ? { correctAnswerIndexes: correct } : {}),
+          ...(correct.length ? {} : { answerUnknown: true }),
           explanation: q.explanation,
           points: 10,
         };
       });
-      if (page.questions.some((q) => q.correct.length !== 1))
+      if (page.questions.some((q) => !q.correct.length))
         s.teacherNotes =
-          "Cần kiểm tra đáp án đúng: PowerPoint không cho biết rõ một đáp án duy nhất.";
+          "Cần chọn đáp án đúng: PowerPoint không cho biết đáp án của câu hỏi này.";
       slides.push(s);
       continue;
     }

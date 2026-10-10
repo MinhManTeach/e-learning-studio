@@ -99,6 +99,18 @@ export function exportIssues(p: LessonProject): ExportIssue[] {
       level: "WARN",
       message: `${pageName(p, emptyQuiz.id)} là trang trắc nghiệm chưa có câu hỏi.`,
     });
+  // A question without a chosen right answer would mark children wrong.
+  for (const s of p.slides) {
+    if (s.type !== "quiz") continue;
+    const i = s.data.questions.findIndex((q) => q.answerUnknown);
+    if (i >= 0) {
+      issues.push({
+        level: "BLOCK",
+        message: `${pageName(p, s.id)}: câu ${i + 1} chưa chọn đáp án đúng. Hãy chọn đáp án trong trình soạn (có thể chọn nhiều) rồi xuất gói.`,
+      });
+      break;
+    }
+  }
   if (p.slides.some((s) => s.narration.mode === "AUDIO_ASSET"))
     issues.push({
       level: "WARN",

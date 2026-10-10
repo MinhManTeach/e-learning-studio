@@ -1311,3 +1311,36 @@ button.primary:hover {
   cursor: pointer;
   box-shadow: 0 3px 16px #0001;
 }
+
+/* Quiz editor: right answers as ticks; unknown answers stand out. */
+.correct-answers {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #d6dde3;
+  border-radius: 8px;
+  padding: 8px 12px 10px;
+}
+.correct-answers legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.correct-answers label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.answer-unknown {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #8a1c12;
+  font-weight: 600;
+}
+.answer-unknown-badge {
+  color: #b42318;
+  font-weight: 700;
+}
+.quiz-multi {
+  margin: 0.2em 0 0.4em;
+}

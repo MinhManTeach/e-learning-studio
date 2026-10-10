@@ -1,4 +1,10 @@
 import type { LessonProject, Question, QuizData, Slide } from "../model/schema";
+import {
+  answerIds,
+  answerOf,
+  isMultiAnswer,
+  isRightAnswer,
+} from "../model/answers";
 export interface QuizResult {
   score: number;
   earnedPoints: number;
@@ -59,8 +65,7 @@ export function calculateQuizScore(
   q.questions.forEach((x) => {
     if (!Number.isFinite(x.points) || x.points < 0) return;
     availablePoints += x.points;
-    const correct = x.options[x.correctAnswerIndex];
-    if (correct && answers[x.id] === correct.id) earnedPoints += x.points;
+    if (isRightAnswer(x, answers[x.id])) earnedPoints += x.points;
   });
   const score =
     availablePoints > 0
@@ -143,15 +148,27 @@ export function sessionReducer(
   if (slide.type === "quiz") {
     const q = s.quizAttempts[a.id] ?? emptyQuiz();
     let next = q;
-    if (
-      a.type === "answer" &&
-      !q.submitted &&
-      slide.data.questions.some(
-        (x) =>
-          x.id === a.questionId && x.options.some((o) => o.id === a.optionId),
-      )
-    )
-      next = { ...q, answers: { ...q.answers, [a.questionId]: a.optionId } };
+    const question =
+      a.type === "answer"
+        ? slide.data.questions.find(
+            (x) =>
+              x.id === a.questionId &&
+              x.options.some((o) => o.id === a.optionId),
+          )
+        : undefined;
+    if (a.type === "answer" && question && !q.submitted) {
+      // Several right answers: each tick toggles that option.
+      let answer = a.optionId;
+      if (isMultiAnswer(question)) {
+        const ids = new Set(answerIds(q.answers[a.questionId]));
+        if (ids.has(a.optionId)) ids.delete(a.optionId);
+        else ids.add(a.optionId);
+        answer = answerOf([...ids]);
+      }
+      const answers = { ...q.answers, [a.questionId]: answer };
+      if (!answer) delete answers[a.questionId];
+      next = { ...q, answers };
+    }
     if (
       a.type === "submit" &&
       !q.submitted &&
