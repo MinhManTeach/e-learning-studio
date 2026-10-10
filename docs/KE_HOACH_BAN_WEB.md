@@ -1,6 +1,8 @@
 # Kế hoạch: bản web cho giáo viên khác dùng (có trả phí)
 
-Trạng thái: **bản nháp, chờ thầy Mẫn quyết các mục ở phần 7**. Chưa triển khai gì.
+Trạng thái: **bản nháp**. Đã quyết (10/10/2026): hộ kinh doanh cá nhân; đăng nhập Google (Gmail) trước,
+Zalo sau; trang chủ giới thiệu tất cả sản phẩm giáo dục của thầy (app soạn bài là một sản phẩm); model AI
+mặc định Haiku (~0,01 USD/lần). Chờ: chọn tên miền .vn, ngân sách máy chủ, chốt giá.
 
 ## 1. Mục tiêu
 
@@ -60,11 +62,15 @@ Trình duyệt giáo viên ──(tệp tĩnh)──> Hosting tĩnh (bản build
 
 ## 4. Gói và giá (gợi ý, chờ số liệu thật)
 
-| Gói | Gồm | Ghi chú |
+| Gói | Giá đề xuất | Gồm |
 |---|---|---|
-| Miễn phí | Mọi thứ trừ AI, cộng 3 lượt AI để thử | Đủ để giáo viên thấy giá trị |
-| Giáo viên | X lượt AI mỗi tháng | Gợi ý 49.000–99.000đ/tháng |
-| Trường | Nhiều tài khoản, một hoá đơn | Ban giám hiệu mua; cần hoá đơn điện tử |
+| Miễn phí | 0đ | 10 lượt AI/tháng, xuất 3 bài/tháng (có dòng "Tạo bằng …") |
+| Giáo viên — tháng | 49.000đ | 50 lượt AI/tháng, xuất không giới hạn, giọng đọc |
+| Giáo viên — năm | 399.000đ | như gói tháng, 600 lượt/năm |
+| Trường — năm | 3.000.000đ / 20 GV | 30 lượt/GV/tháng, một hoá đơn |
+
+Với Haiku, mỗi lượt AI ~260đ; kể cả khi dùng hết hạn mức, biên lãi trước phí máy chủ khoảng 50–70%
+(bảng tính bang-gia-v2.xlsx). Tham khảo: iSpring Suite 970 USD/tác giả/năm.
 
 **Phải đo trước khi chốt giá.** Từ bản này, mỗi lần chạy "AI thiết kế bài giảng" trên máy thầy, cửa sổ chạy app sẽ in một dòng, ví dụ:
 
