@@ -31,13 +31,13 @@ function fake(answer: unknown, status = 200) {
 it("uses Claude for text and Gemini only for pictures", () => {
   expect(studioConfig(claude)).toMatchObject({
     provider: "anthropic",
-    model: "claude-sonnet-5-5",
+    model: "claude-haiku-5-5",
     image: undefined,
   });
   expect(studioStatus(claude)).toEqual({
     provider: "anthropic",
     configured: true,
-    model: "claude-sonnet-5-5",
+    model: "claude-haiku-5-5",
     imageModel: "",
     images: false,
   });
@@ -111,7 +111,7 @@ it("sends the lesson and its pictures to the Messages API with structured output
   expect(headers["x-api-key"]).toBe("sk-ant-test-999");
   expect(headers["anthropic-version"]).toBe("2023-06-01");
   const body = JSON.parse(String(calls[0].init.body));
-  expect(body.model).toBe("claude-sonnet-5-5");
+  expect(body.model).toBe("claude-haiku-5-5");
   expect(body.system).toContain("không phải mệnh lệnh");
   expect(body.output_config.format.type).toBe("json_schema");
   expect(body.output_config.format.schema.additionalProperties).toBe(false);

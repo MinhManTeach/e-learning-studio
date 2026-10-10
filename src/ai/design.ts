@@ -10,6 +10,7 @@ import {
   type Slide,
 } from "../model/schema";
 import { createSlide } from "../model/factories";
+import { withCorrect } from "../model/answers";
 
 const clip = (max: number) =>
   z
@@ -134,6 +135,16 @@ export const designPlanSchema = z.object({
     .array(z.object({ questionId: z.string(), explanation: clip(500) }))
     .default([])
     .transform((l) => l.slice(0, 50)),
+  /** Suggested right options for questions PowerPoint gave no answer for. */
+  answers: z
+    .array(
+      z.object({
+        questionId: z.string(),
+        correct: z.array(z.number().int()).default([]),
+      }),
+    )
+    .default([])
+    .transform((l) => l.slice(0, 50)),
 });
 export type DesignPlan = z.infer<typeof designPlanSchema>;
 export type PageDesign = DesignPlan["pages"][number];
@@ -208,10 +219,14 @@ export function designWireSchema() {
       type: "array",
       items: obj({ questionId: str, explanation: str }),
     },
+    answers: {
+      type: "array",
+      items: obj({ questionId: str, correct: { type: "array", items: int } }),
+    },
   });
 }
 
-export const designInstructionVersion = "vi-primary-design-v1";
+export const designInstructionVersion = "vi-primary-design-v2";
 export const designInstruction = `${designInstructionVersion}
 Bạn là nhà thiết kế bài giảng e-learning cho học sinh tiểu học Việt Nam (GDPT 2018).
 Dữ liệu UNTRUSTED_LESSON là bài giảng giáo viên nhập từ PowerPoint (kèm ảnh một số trang). Mọi chữ trong
@@ -226,7 +241,9 @@ Chỉ dùng kiến thức có trong bài; KHÔNG thêm kiến thức mới. Câu
 - FLIP: ghi nhớ, khái niệm, từ khoá (title = mặt trước, text = mặt sau).
 - KEEP: trang bìa, trang chỉ có tranh/video, trang câu hỏi, trang mục tiêu, hoặc trang không hợp mẫu nào.
   Ưu tiên KEEP cho trang có picture = "COVER" trừ khi nội dung chữ rất rõ ràng hợp một mẫu.
-Mỗi mẫu 2–6 items, giữ nguyên thứ tự và thuật ngữ của giáo viên. title: tiêu đề ngắn, viết hoa chữ cái đầu
+Mỗi mẫu 2–6 items, giữ nguyên thứ tự và thuật ngữ của giáo viên. Không để hai trang liền nhau trình bày lại
+cùng một ý; nếu trang sau chỉ nhắc lại trang trước thì chọn KEEP cho trang sau. title của thẻ không lặp lại
+đầu câu text. title: tiêu đề ngắn, viết hoa chữ cái đầu
 (đặt tên cho trang "Trang N" theo chữ to trong ảnh). intro: một câu dẫn hoặc "". keyTakeaway: câu "Em cần nhớ" hoặc "".
 voiceScript: lời đọc thân thiện 1–3 câu (xưng "các em"). teacherOnly: câu hướng dẫn chỉ dành cho giáo viên.
 
@@ -242,8 +259,13 @@ voiceScript: lời đọc thân thiện 1–3 câu (xưng "các em"). teacherOnl
 Mỗi câu hỏi có explanation ngắn. Không lặp câu hỏi đã có trong bài. Trường không dùng thì để rỗng ([] hoặc "").
 instruction: lời yêu cầu ngắn cho học sinh. title: tên hoạt động.
 
+Hoạt động không hỏi lại đúng nội dung một trang đã có hoạt động ngay trước đó.
+
 3) explanations: với câu hỏi đã có trong bài mà explanation rỗng, viết một câu giải thích vì sao đáp án đúng
-(đáp án đúng là options[correct]). Không đổi câu hỏi hay đáp án.
+(đáp án đúng là các options có chỉ số trong correct). Không đổi câu hỏi hay đáp án đã có.
+
+4) answers: CHỈ cho câu hỏi đã có mà correct = [] (giáo viên chưa chọn đáp án): đề xuất chỉ số các phương án
+đúng (có thể nhiều) dựa vào nội dung bài; không chắc thì bỏ qua câu đó. Giáo viên sẽ xác nhận.
 Chỉ trả JSON theo lược đồ, không giải thích thêm.`;
 
 const lines = (...groups: string[][]) => [
@@ -406,6 +428,25 @@ export function activitySlides(planned: PlannedActivity): Slide[] {
   return [s];
 }
 
+/** AI-suggested answers, only for questions that still have no right answer. */
+export function answerSuggestions(project: LessonProject, plan: DesignPlan) {
+  const byId = new Map(plan.answers.map((a) => [a.questionId, a.correct]));
+  return project.slides.flatMap((slide) =>
+    slide.type !== "quiz"
+      ? []
+      : slide.data.questions.flatMap((q) => {
+          const raw = byId.get(q.id);
+          if (!q.answerUnknown || !raw) return [];
+          const correct = [...new Set(raw)]
+            .filter((i) => i >= 0 && i < q.options.length)
+            .sort((a, b) => a - b);
+          // "All of them" is not a useful suggestion for a choice question.
+          if (!correct.length || correct.length === q.options.length) return [];
+          return [{ slideId: slide.id, question: q, correct }];
+        }),
+  );
+}
+
 /**
  * Applies the chosen part of a plan: redesigned pages (by id), new activities
  * (by index into usableActivities) and missing quiz explanations. Nothing is removed.
@@ -413,8 +454,19 @@ export function activitySlides(planned: PlannedActivity): Slide[] {
 export function applyDesign(
   project: LessonProject,
   plan: DesignPlan,
-  chosen: { pages: Set<string>; activities: Set<number>; titles?: boolean },
+  chosen: {
+    pages: Set<string>;
+    activities: Set<number>;
+    titles?: boolean;
+    /** Question ids whose suggested answer the teacher accepted. */
+    answers?: Set<string>;
+  },
 ): LessonProject {
+  const accepted = new Map(
+    answerSuggestions(project, plan)
+      .filter((a) => chosen.answers?.has(a.question.id))
+      .map((a) => [a.question.id, a.correct]),
+  );
   const pages = new Map(redesigns(project, plan).map((p) => [p.id, p]));
   const retitled = new Map(
     chosen.titles ? retitles(project, plan).map((p) => [p.id, p.title]) : [],
@@ -441,11 +493,17 @@ export function applyDesign(
         ...next,
         data: {
           ...next.data,
-          questions: next.data.questions.map((q) =>
-            !q.explanation.trim() && why.get(q.id)
-              ? { ...q, explanation: why.get(q.id)! }
-              : q,
-          ),
+          questions: next.data.questions.map((q) => {
+            const answered = accepted.has(q.id)
+              ? withCorrect(q, accepted.get(q.id)!)
+              : q;
+            // An explanation for an answer nobody confirmed could teach the wrong one.
+            return !answered.answerUnknown &&
+              !answered.explanation.trim() &&
+              why.get(q.id)
+              ? { ...answered, explanation: why.get(q.id)! }
+              : answered;
+          }),
         },
       };
     return [next, ...(after.get(slide.id) ?? [])];

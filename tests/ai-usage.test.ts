@@ -31,7 +31,7 @@ it("prints how many tokens a Claude lesson design used, and nothing of the lesso
     (line) => lines.push(line),
   );
   expect(lines).toHaveLength(1);
-  expect(lines[0]).toMatch(/claude-sonnet-5-5/);
+  expect(lines[0]).toMatch(/claude-haiku-5-5/);
   expect(lines[0]).toMatch(/42\.000 token vào/);
   expect(lines[0]).toMatch(/9\.050 token ra/);
   expect(lines[0]).not.toMatch(/Tư thế|UNTRUSTED/);

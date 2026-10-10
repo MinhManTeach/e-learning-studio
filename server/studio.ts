@@ -16,7 +16,9 @@ import { usageLine, type AiUsage } from "./usage";
 const modelName = /^[a-zA-Z0-9._:-]{1,120}$/;
 export const defaultGeminiModel = "gemini-3.8-flash";
 export const defaultGeminiImageModel = "gemini-nano-banana-2.1";
-export const defaultClaudeModel = "claude-sonnet-5-5";
+// Haiku: about 0.01 USD per lesson design, quality close to the larger models
+// (measured on Bài 3 lớp 5, 10/2026).
+export const defaultClaudeModel = "claude-haiku-5-5";
 
 /**
  * Text comes from Gemini or Claude (LESSON_AI_PROVIDER). Pictures always come

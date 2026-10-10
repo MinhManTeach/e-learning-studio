@@ -14,7 +14,7 @@ existing answers never change, and **Hoàn tác cải thiện** undoes the whole
 
 ```
 LESSON_AI_API_KEY=your-key
-# optional: LESSON_AI_PROVIDER=anthropic|gemini, LESSON_AI_MODEL=claude-sonnet-5-5 (default)
+# optional: LESSON_AI_PROVIDER=anthropic|gemini, LESSON_AI_MODEL=claude-haiku-5-5 (default)
 #           or gemini-3.8-flash (default for Gemini), LESSON_AI_THINKING=low (Gemini only)
 # optional, pictures (Gemini only, needs Billing): LESSON_AI_GEMINI_KEY=your-gemini-key
 ```

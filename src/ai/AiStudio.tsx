@@ -7,6 +7,7 @@ import {
   applyDesign,
   designLabels,
   designPlanSchema,
+  answerSuggestions,
   redesigns,
   retitles,
   usableActivities,
@@ -126,6 +127,8 @@ export function AiStudio({
   const [error, setError] = useState("");
   const [pages, setPages] = useState<Set<string>>(new Set());
   const [activities, setActivities] = useState<Set<number>>(new Set());
+  // Suggested answers start unticked: the teacher confirms each one.
+  const [answers, setAnswers] = useState<Set<string>>(new Set());
   const [titles, setTitles] = useState(true);
   useEffect(() => {
     let live = true;
@@ -182,7 +185,7 @@ export function AiStudio({
   }
   function confirm(plan: DesignPlan) {
     try {
-      apply(applyDesign(project, plan, { pages, activities, titles }));
+      apply(applyDesign(project, plan, { pages, activities, titles, answers }));
       setPhase({
         step: "done",
         pages: pages.size,
@@ -281,6 +284,8 @@ export function AiStudio({
             setActivities={setActivities}
             titles={titles}
             setTitles={setTitles}
+            answers={answers}
+            setAnswers={setAnswers}
             cancel={() => setPhase({ step: "intro" })}
             confirm={() => confirm(phase.plan)}
           />
@@ -320,6 +325,8 @@ function Review({
   setActivities,
   titles,
   setTitles,
+  answers,
+  setAnswers,
   cancel,
   confirm,
 }: {
@@ -331,9 +338,12 @@ function Review({
   setActivities: (s: Set<number>) => void;
   titles: boolean;
   setTitles: (on: boolean) => void;
+  answers: Set<string>;
+  setAnswers: (s: Set<string>) => void;
   cancel: () => void;
   confirm: () => void;
 }) {
+  const suggested = answerSuggestions(project, plan);
   const designed = redesigns(project, plan);
   const usable = usableActivities(project, plan);
   const renamed = retitles(project, plan);
@@ -457,7 +467,39 @@ function Review({
           </span>
         </label>
       )}
-      {!designed.length && !usable.length && !renamed.length && (
+      {suggested.length > 0 && (
+        <>
+          <h3>Gợi ý đáp án cho {suggested.length} câu chưa có đáp án</h3>
+          <p className="hint">
+            PowerPoint không cho biết đáp án của các câu này. Thầy cô kiểm tra
+            rồi tích để dùng đáp án AI gợi ý.
+          </p>
+          <ul className="ai-answers">
+            {suggested.map(({ question: q, correct }) => (
+              <li key={q.id}>
+                <label className="ai-page-head">
+                  <input
+                    type="checkbox"
+                    checked={answers.has(q.id)}
+                    aria-label={`Dùng đáp án gợi ý cho câu “${q.prompt}”`}
+                    onChange={(e) =>
+                      setAnswers(toggle(answers, q.id, e.target.checked))
+                    }
+                  />
+                  <span>
+                    <strong>{q.prompt}</strong> → đáp án:{" "}
+                    {correct.map((i) => q.options[i].text).join("; ")}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {!designed.length &&
+        !usable.length &&
+        !renamed.length &&
+        !suggested.length && (
         <p>AI chưa đề xuất được thay đổi nào cho bài này.</p>
       )}
       {plan.explanations.length > 0 && (
@@ -470,7 +512,10 @@ function Review({
         <button
           className="primary"
           disabled={
-            !pages.size && !activities.size && !plan.explanations.length
+            !pages.size &&
+            !activities.size &&
+            !plan.explanations.length &&
+            !answers.size
           }
           onClick={confirm}
         >

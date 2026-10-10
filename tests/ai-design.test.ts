@@ -31,7 +31,7 @@ it("sends every page but the completion page, with its pictures and questions", 
     ["s-quiz", "quiz", "NONE"],
   ]);
   expect(request.slides[1]).toMatchObject({ stage: "Mở đầu", image: 0 });
-  expect(request.slides[3].questions?.[0].correct).toBe(1);
+  expect(request.slides[3].questions?.[0].correct).toEqual([1]);
 });
 
 it("reads loose answers: unknown designs are kept, lowercase designs accepted, lists clipped", () => {
@@ -50,7 +50,12 @@ it("reads loose answers: unknown designs are kept, lowercase designs accepted, l
   expect(plan.activities).toEqual([]);
   // The wire schema names every field the model must return.
   const wire = designWireSchema() as { required: string[] };
-  expect(wire.required).toEqual(["pages", "activities", "explanations"]);
+  expect(wire.required).toEqual([
+    "pages",
+    "activities",
+    "explanations",
+    "answers",
+  ]);
 });
 
 it("proposes only real redesigns and activities that can be built", () => {

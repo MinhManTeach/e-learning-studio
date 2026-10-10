@@ -1,6 +1,7 @@
 // What "AI thiết kế bài giảng" sends to the AI about a lesson: page text, notes,
 // existing questions and (optionally) page pictures. Shared by server and browser.
 import { z } from "zod";
+import { correctIndexes } from "../model/answers";
 import type { AssetReference, LessonProject, Slide } from "../model/schema";
 
 export type PictureState = "NONE" | "PICTURE" | "COVER" | "VIDEO";
@@ -18,7 +19,8 @@ export interface LessonSlideInput {
     id: string;
     prompt: string;
     options: string[];
-    correct: number;
+    /** Right options; empty when PowerPoint did not say (AI may suggest). */
+    correct: number[];
     explanation: string;
   }[];
 }
@@ -50,7 +52,7 @@ export const lessonRequestSchema = z.object({
               id: z.string().min(1).max(100),
               prompt: z.string().max(1000),
               options: z.array(z.string().max(400)).max(6),
-              correct: z.number().int(),
+              correct: z.array(z.number().int()).max(6),
               explanation: z.string().max(1000),
             }),
           )
@@ -151,7 +153,7 @@ export function lessonRequest(
                   id: q.id,
                   prompt: q.prompt,
                   options: q.options.map((o) => o.text),
-                  correct: q.correctAnswerIndex,
+                  correct: q.answerUnknown ? [] : correctIndexes(q),
                   explanation: q.explanation,
                 })),
               }

@@ -81,3 +81,15 @@
   margin: 12px 0 4px;
   font-size: 14px;
 }
+.ai-answers {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ai-answers li {
+  border: 1px solid #f0c8c2;
+  background: #fff8f6;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
