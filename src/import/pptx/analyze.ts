@@ -25,6 +25,8 @@ export type DraftPage =
       notes: string[];
       /** Biggest meaningful picture on the slide, used when no slide image is given. */
       picture?: string;
+      /** The slide is only a picture (no text): show it on its own, filling the page. */
+      cover?: boolean;
     }
   | {
       kind: "VIDEO";
@@ -228,6 +230,15 @@ function mainPicture(slide: PptxSlide, deck: PptxDeck) {
   );
   return framed.sort((x, y) => y.a - x.a)[0]?.e.image;
 }
+/** A slide that is only a big picture, e.g. a "KHÁM PHÁ" section title drawn as art. */
+function coverPicture(slide: PptxSlide, deck: PptxDeck) {
+  return slide.elements
+    .filter((e) => e.image && !e.media && onSlide(e.rect, deck))
+    .map((e) => ({ e, a: area(e.rect, deck) }))
+    .filter(({ a }) => a > 0.2 && a < 0.95)
+    .sort((x, y) => y.a - x.a)[0]?.e.image;
+}
+
 interface Choice {
   element: PptxElement;
   correct: boolean | undefined;
@@ -471,13 +482,18 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
       });
       continue;
     }
+    const text = slideText(slide, deck, title);
+    const cover =
+      !title && !text.length ? coverPicture(slide, deck) : undefined;
     pages.push({
       kind: "PAGE",
       slide: n,
       title: title || `Trang ${n}`,
-      text: slideText(slide, deck, title),
+      text,
       notes: slide.notes,
-      picture: mainPicture(slide, deck),
+      ...(cover
+        ? { picture: cover, cover: true }
+        : { picture: mainPicture(slide, deck) }),
     });
   }
   const media = new Set<string>();

@@ -217,10 +217,10 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
             : undefined;
     if (assetId) {
       s.media = { ...s.media, enabled: true, assetId };
-      // Videos and the teacher's own slide pictures fill the page; a single
-      // picture taken from the slide sits beside the text.
+      // Videos, the teacher's own slide pictures and picture-only slides fill
+      // the page; a single picture taken from the slide sits beside the text.
       s.layout =
-        page.kind === "VIDEO" || picture
+        page.kind === "VIDEO" || picture || (page.kind === "PAGE" && page.cover)
           ? "MEDIA_COVER"
           : "TEXT_LEFT_MEDIA_RIGHT";
     }

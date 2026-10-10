@@ -275,6 +275,9 @@ export function PptxImport({
                         update(i, { ...page, title: e.target.value })
                       }
                     />
+                    {/^Trang \d+$/.test(page.title.trim()) && (
+                      <strong className="pptx-check">Đặt tên trang</strong>
+                    )}
                     {review.pictures.some((p) => p.slide === page.slide) && (
                       <span className="pptx-badge">Ảnh slide</span>
                     )}

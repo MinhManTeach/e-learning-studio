@@ -173,3 +173,35 @@ it("keeps a labelled drawing even though a few labels sit on it", () => {
   );
   expect(page(analyzeDeck(deck).pages).picture).toBe("ppt/media/image1.png");
 });
+
+it("shows a slide that is only a picture as a cover page", () => {
+  const bytes = buildPptx(
+    [
+      {
+        shapes: [
+          picture(2, "rId1", { x: 0, y: 0, w: 100, h: 100 }),
+          picture(3, "rId2", { x: 1, y: 4, w: 64, h: 85 }),
+          picture(4, "rId1", { x: 90, y: 2, w: 8, h: 10 }),
+        ],
+        rels: { rId1: img(1), rId2: img(2) },
+      },
+    ],
+    { "image1.png": pngBytes, "image2.png": pngOfSize(1200, 900, 250000) },
+  );
+  const { pages } = analyzeDeck(parsePptx(bytes));
+  expect(page(pages)).toMatchObject({
+    title: "Trang 1",
+    text: [],
+    picture: "ppt/media/image2.png",
+    cover: true,
+  });
+  const { project } = buildLessonFromPptx({
+    title: "Bài",
+    subject: "",
+    grade: "",
+    pages,
+    pptx: bytes,
+    slidePictures: [],
+  });
+  expect(project.slides[0].layout).toBe("MEDIA_COVER");
+});

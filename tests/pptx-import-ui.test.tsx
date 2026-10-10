@@ -147,3 +147,27 @@ it("explains when the file is not a PowerPoint", async () => {
     "Tệp không phải PowerPoint (.pptx) hợp lệ.",
   );
 });
+
+it("asks for a page name when a slide had no heading", async () => {
+  setup();
+  const bytes = buildPptx(
+    [
+      {
+        shapes: [picture(2, "rIdP", { x: 5, y: 5, w: 60, h: 80 })],
+        rels: { rIdP: { type: "image", target: "../media/image1.png" } },
+      },
+      { shapes: [text(2, "GHI NHỚ", { x: 10, y: 5, w: 40, h: 10 })] },
+    ],
+    { "image1.png": pngBytes },
+  );
+  fireEvent.change(screen.getByLabelText("Tệp PowerPoint"), {
+    target: { files: [new File([new Uint8Array(bytes)], "bai.pptx")] },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Đọc PowerPoint" }));
+  await screen.findByText(/Tìm thấy 2 trang/);
+  expect(screen.getAllByText("Đặt tên trang")).toHaveLength(1);
+  fireEvent.change(screen.getByRole("textbox", { name: "Tiêu đề slide 1" }), {
+    target: { value: "Khám phá" },
+  });
+  expect(screen.queryByText("Đặt tên trang")).toBeNull();
+});
