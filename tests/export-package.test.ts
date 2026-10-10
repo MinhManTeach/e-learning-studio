@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
+import { XMLValidator } from "fast-xml-parser";
 import {
   buildLessonPackage,
   exportIssues,
@@ -192,4 +193,56 @@ it("packages pictures used only on answer cards", async () => {
     (await buildLessonPackage(p, media, { js: "", css: "" })).bytes,
   );
   expect(zip["media/0001.png"]).toEqual(png);
+});
+
+it("writes a well-formed SCORM 2004 4th Edition manifest", async () => {
+  const { p } = await backupFixture();
+  p.metadata.projectTitle = 'Chuột & bàn phím <Tiết 2> "ôn tập"';
+  const manifest = scormManifest(p, ["index.html", "media/0001.png"], "2004");
+  expect(XMLValidator.validate(manifest)).toBe(true);
+  expect(manifest).toContain(
+    "<schemaversion>2004 4th Edition</schemaversion>",
+  );
+  expect(manifest).toContain('xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"');
+  expect(manifest).toContain('adlcp:scormType="sco" href="index.html"');
+  expect(manifest).toContain('<file href="media/0001.png"/>');
+  expect(manifest).toContain(
+    "<title>Chuột &amp; bàn phím &lt;Tiết 2&gt; &quot;ôn tập&quot;</title>",
+  );
+  // The lesson itself decides completion and pass/fail.
+  expect(manifest).toContain('completionSetByContent="true"');
+  expect(manifest).toContain('objectiveSetByContent="true"');
+  expect(manifest).not.toContain("masteryscore");
+});
+
+it("still writes the SCORM 1.2 manifest by default", async () => {
+  const { p } = await backupFixture();
+  const manifest = scormManifest(p, ["index.html"]);
+  expect(XMLValidator.validate(manifest)).toBe(true);
+  expect(manifest).toContain("<schemaversion>1.2</schemaversion>");
+});
+
+it("names SCORM 2004 packages so they are not mixed up with SCORM 1.2 ones", () => {
+  expect(packageFileName("Bài 4", "2004")).toBe("bai-4-scorm2004.zip");
+  expect(packageFileName("Bài 4", "1.2")).toBe("bai-4-scorm.zip");
+  expect(packageFileName("???", "2004")).toBe("bai-giang-scorm2004.zip");
+});
+
+it("packages a lesson as SCORM 2004 with the same player and media", async () => {
+  const { p, media } = await backupFixture();
+  p.metadata.projectTitle = "Bài 4. Làm việc với máy tính";
+  const pkg = await buildLessonPackage(
+    p,
+    media,
+    { js: "/* player */", css: "/* css */" },
+    { scorm: "2004" },
+  );
+  expect(pkg.fileName).toBe("bai-4-lam-viec-voi-may-tinh-scorm2004.zip");
+  expect(pkg.scorm).toBe("2004");
+  const files = unzipSync(pkg.bytes);
+  expect(Object.keys(files)).toContain("media/0001.png");
+  const manifest = strFromU8(files["imsmanifest.xml"]);
+  expect(manifest).toContain("2004 4th Edition");
+  expect(manifest).toContain('<file href="lesson-data.js"/>');
+  expect(strFromU8(files["HUONG_DAN.txt"])).toContain("SCORM 2004");
 });

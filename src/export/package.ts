@@ -16,9 +16,13 @@ export interface ExportIssue {
   level: "BLOCK" | "WARN";
   message: string;
 }
+/** Which SCORM edition the package declares; the player itself handles both. */
+export type ScormVersion = "1.2" | "2004";
+export const scormVersions: ScormVersion[] = ["1.2", "2004"];
 export interface LessonPackage {
   bytes: Uint8Array;
   fileName: string;
+  scorm: ScormVersion;
   imageCount: number;
   videoCount: number;
 }
@@ -110,7 +114,7 @@ export function studentCopy(p: LessonProject): LessonProject {
   });
 }
 
-export function packageFileName(title: string) {
+export function packageFileName(title: string, scorm: ScormVersion = "1.2") {
   const slug = title
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -120,7 +124,7 @@ export function packageFileName(title: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60)
     .replace(/-+$/, "");
-  return `${slug || "bai-giang"}-scorm.zip`;
+  return `${slug || "bai-giang"}-${scorm === "2004" ? "scorm2004" : "scorm"}.zip`;
 }
 
 const xml = (s: string) =>
@@ -136,9 +140,14 @@ const xml = (s: string) =>
       })[c]!,
   );
 
-export function scormManifest(p: LessonProject, files: string[]) {
+export function scormManifest(
+  p: LessonProject,
+  files: string[],
+  scorm: ScormVersion = "1.2",
+) {
   const id = "LESSON-" + p.projectId.replace(/[^A-Za-z0-9_.-]/g, "-");
   const title = xml(p.metadata.projectTitle || "Bài giảng");
+  if (scorm === "2004") return scorm2004Manifest(id, title, files);
   const hasQuiz = p.slides.some(
     (s) => s.type === "quiz" && s.data.questions.length,
   );
@@ -172,6 +181,45 @@ ${files.map((f) => `      <file href="${xml(f)}"/>`).join("\n")}
 `;
 }
 
+/**
+ * SCORM 2004 4th Edition, one SCO. The lesson reports completion and pass/fail
+ * itself (with the teacher's passing score), so the LMS is told not to work
+ * them out from its own rules.
+ */
+function scorm2004Manifest(id: string, title: string, files: string[]) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="${id}" version="1.0"
+  xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+  xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3"
+  xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3"
+  xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3"
+  xmlns:imsss="http://www.imsglobal.org/xsd/imsss"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 4th Edition</schemaversion>
+  </metadata>
+  <organizations default="ORG-1">
+    <organization identifier="ORG-1">
+      <title>${title}</title>
+      <item identifier="ITEM-1" identifierref="RES-1" isvisible="true">
+        <title>${title}</title>
+        <imsss:sequencing>
+          <imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
+        </imsss:sequencing>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="RES-1" type="webcontent" adlcp:scormType="sco" href="index.html">
+${files.map((f) => `      <file href="${xml(f)}"/>`).join("\n")}
+    </resource>
+  </resources>
+</manifest>
+`;
+}
+
 function indexHtml(p: LessonProject) {
   return `<!doctype html>
 <html lang="vi">
@@ -191,10 +239,10 @@ function indexHtml(p: LessonProject) {
 `;
 }
 
-const guide = `HƯỚNG DẪN SỬ DỤNG GÓI BÀI GIẢNG
+const guide = (scorm: ScormVersion) => `HƯỚNG DẪN SỬ DỤNG GÓI BÀI GIẢNG
 
-1. Đưa lên LMS (Moodle, K12Online, vnEdu...):
-   Tải nguyên tệp ZIP này lên mục "Gói SCORM" (SCORM 1.2). Không giải nén.
+1. Đưa lên LMS (LMS360, Moodle, K12Online, vnEdu...):
+   Tải nguyên tệp ZIP này lên mục "Gói SCORM" (SCORM ${scorm}). Không giải nén.
    LMS sẽ ghi nhận tiến độ, điểm và trạng thái đạt/chưa đạt.
 
 2. Học không cần mạng:
@@ -209,7 +257,9 @@ export async function buildLessonPackage(
   project: LessonProject,
   media: ExportMediaReader,
   player: PlayerAssets,
+  options: { scorm?: ScormVersion } = {},
 ): Promise<LessonPackage> {
+  const scorm = options.scorm ?? "1.2";
   const p = studentCopy(project);
   const blocking = exportIssues(p).filter((x) => x.level === "BLOCK");
   if (blocking.length) throw new Error(blocking[0].message);
@@ -251,13 +301,14 @@ export async function buildLessonPackage(
   entries["lesson-data.js"] = strToU8(
     `window.${playerDataGlobal} = ${JSON.stringify(data)};\n`,
   );
-  entries["HUONG_DAN.txt"] = strToU8(guide);
+  entries["HUONG_DAN.txt"] = strToU8(guide(scorm));
   entries["imsmanifest.xml"] = strToU8(
-    scormManifest(p, Object.keys(entries).sort()),
+    scormManifest(p, Object.keys(entries).sort(), scorm),
   );
   return {
     bytes: zipSync(entries, { level: 6 }),
-    fileName: packageFileName(p.metadata.projectTitle),
+    fileName: packageFileName(p.metadata.projectTitle, scorm),
+    scorm,
     imageCount: images,
     videoCount: videos,
   };
