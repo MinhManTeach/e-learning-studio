@@ -74,7 +74,10 @@ export async function designLesson(
   signal?: AbortSignal,
   transport: typeof fetch = fetch,
   /** Where the token count goes; the teacher sees it in the server window. */
-  report: (line: string) => void = (line) => console.info(line),
+  report: (
+    line: string,
+    usage: AiUsage & { model: string; ms: number },
+  ) => void = (line) => console.info(line),
 ) {
   const ready = studioConfig(config);
   if (!ready) throw new Error("AI_CONFIGURATION");
@@ -112,15 +115,14 @@ export async function designLesson(
             transport,
           );
   } finally {
-    if (used.inputTokens || used.outputTokens)
-      report(
-        usageLine(
-          "AI thiết kế bài giảng",
-          ready.model,
-          used,
-          Date.now() - started,
-        ),
-      );
+    if (used.inputTokens || used.outputTokens) {
+      const ms = Date.now() - started;
+      report(usageLine("AI thiết kế bài giảng", ready.model, used, ms), {
+        ...used,
+        model: ready.model,
+        ms,
+      });
+    }
   }
   const plan = designPlanSchema.safeParse(answer);
   if (!plan.success) throw new Error("AI_INVALID_RESPONSE");
