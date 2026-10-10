@@ -21,6 +21,16 @@ export function instructionalText(s: Slide): string[] {
       return s.data.questions.map((q) => q.prompt);
     case "summary":
       return s.data.keyMessages;
+    case "cards":
+      return [
+        s.data.intro,
+        ...s.data.items.map((i) =>
+          [i.title, i.text].filter(Boolean).join(": "),
+        ),
+        s.data.keyTakeaway,
+      ];
+    case "activity":
+      return [s.data.instruction, ...s.data.items.map((i) => i.text)];
     case "completion":
       return [s.data.message];
     default:

@@ -642,3 +642,401 @@
     align-content: center;
   }
 }
+
+/* ---------- Thẻ nội dung (cards) and practice activities ---------- */
+.canvas {
+  --tone-0: #ffe9d6;
+  --tone-0-ink: #9a4b12;
+  --tone-1: #dff3e6;
+  --tone-1-ink: #1f6b3e;
+  --tone-2: #e2ecfd;
+  --tone-2-ink: #2b5596;
+  --tone-3: #fbe3ef;
+  --tone-3-ink: #8f2f62;
+  --tone-4: #fff4c7;
+  --tone-4-ink: #7a5c00;
+  --tone-5: #e9e4fb;
+  --tone-5-ink: #503b9a;
+  --right: #1f8a4c;
+  --wrong: #d9731a;
+}
+.canvas[data-theme="FOCUS_DARK"] {
+  --tone-0: #4a3424;
+  --tone-0-ink: #ffd2ad;
+  --tone-1: #22412f;
+  --tone-1-ink: #b6ecc9;
+  --tone-2: #23344f;
+  --tone-2-ink: #bcd3fb;
+  --tone-3: #46283a;
+  --tone-3-ink: #f7c1dd;
+  --tone-4: #47401e;
+  --tone-4-ink: #f5e39a;
+  --tone-5: #332c52;
+  --tone-5-ink: #d4cbfb;
+  --right: #7fe0a4;
+  --wrong: #ffb36b;
+}
+.phase1 .cards-intro {
+  margin: 0 0 1.2cqw;
+}
+.phase1 .cards .choice-picture {
+  display: block;
+  max-height: 9cqw;
+  max-width: 100%;
+  margin: 0 auto 0.6cqw;
+  object-fit: contain;
+}
+.phase1 .card-title {
+  display: block;
+}
+.phase1 .card-text {
+  display: block;
+  font-size: 0.92em;
+}
+.phase1 [class*="tone-"] {
+  border-radius: 1.2cqw;
+}
+.phase1 .tone-0 {
+  background: var(--tone-0);
+  color: var(--tone-0-ink);
+}
+.phase1 .tone-1 {
+  background: var(--tone-1);
+  color: var(--tone-1-ink);
+}
+.phase1 .tone-2 {
+  background: var(--tone-2);
+  color: var(--tone-2-ink);
+}
+.phase1 .tone-3 {
+  background: var(--tone-3);
+  color: var(--tone-3-ink);
+}
+.phase1 .tone-4 {
+  background: var(--tone-4);
+  color: var(--tone-4-ink);
+}
+.phase1 .tone-5 {
+  background: var(--tone-5);
+  color: var(--tone-5-ink);
+}
+
+/* Các bước */
+.phase1 .cards-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16cqw, 1fr));
+  gap: 1.4cqw;
+}
+.phase1 .cards-steps li {
+  position: relative;
+  padding: 2.6cqw 1.4cqw 1.4cqw;
+  text-align: center;
+}
+.phase1 .step-number {
+  position: absolute;
+  top: -1.4cqw;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3.2cqw;
+  height: 3.2cqw;
+  border-radius: 50%;
+  background: var(--lesson-accent);
+  color: var(--lesson-bg);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+.phase1 .cards-steps {
+  margin-top: 1.6cqw;
+}
+
+/* Hai cột so sánh */
+.phase1 .cards-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.6cqw;
+}
+.phase1 .compare-column {
+  border-radius: 1.2cqw;
+  padding: 1.2cqw 1.6cqw;
+  border: 2px solid;
+}
+.phase1 .compare-column.column-0 {
+  border-color: var(--right);
+}
+.phase1 .compare-column.column-1 {
+  border-color: var(--wrong);
+}
+.phase1 .compare-column h3 {
+  margin: 0 0 0.8cqw;
+}
+.phase1 .column-0 h3 span {
+  color: var(--right);
+}
+.phase1 .column-1 h3 span {
+  color: var(--wrong);
+}
+.phase1 .compare-column ul {
+  margin: 0;
+  padding-left: 2cqw;
+}
+.phase1 .compare-column li {
+  margin: 0.6cqw 0;
+}
+
+/* Dòng thời gian */
+.phase1 .cards-timeline {
+  list-style: none;
+  padding: 2.4cqw 0 0;
+  margin: 0;
+  display: flex;
+  gap: 1.2cqw;
+  position: relative;
+}
+.phase1 .cards-timeline::before {
+  content: "";
+  position: absolute;
+  top: 1cqw;
+  left: 2%;
+  right: 2%;
+  height: 0.4cqw;
+  border-radius: 1cqw;
+  background: var(--lesson-accent);
+}
+.phase1 .cards-timeline li {
+  flex: 1;
+  position: relative;
+  padding: 1.4cqw 1cqw 1cqw;
+  text-align: center;
+}
+.phase1 .timeline-dot {
+  position: absolute;
+  top: -2.1cqw;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.8cqw;
+  height: 1.8cqw;
+  border-radius: 50%;
+  background: var(--lesson-bg);
+  border: 0.5cqw solid var(--lesson-accent);
+}
+
+/* Sơ đồ tư duy */
+.phase1 .cards-mindmap {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1.6cqw;
+}
+.phase1 .mindmap-center {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 2cqw 2.6cqw;
+  border-radius: 50%;
+  background: var(--lesson-accent);
+  color: var(--lesson-bg);
+  font-weight: 800;
+  text-align: center;
+  max-width: 22cqw;
+}
+.phase1 .cards-mindmap ul {
+  display: contents;
+  list-style: none;
+}
+.phase1 .cards-mindmap li {
+  padding: 1cqw 1.4cqw;
+}
+.phase1 .cards-mindmap li:nth-child(odd) {
+  grid-column: 1;
+  text-align: right;
+}
+.phase1 .cards-mindmap li:nth-child(even) {
+  grid-column: 3;
+}
+
+/* Thẻ lật */
+.phase1 .cards-flip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18cqw, 1fr));
+  gap: 1.4cqw;
+}
+.phase1 .flip-card {
+  min-height: 14cqw;
+  padding: 0;
+  border: none;
+  perspective: 80cqw;
+  text-align: center;
+}
+.phase1 .flip-inner {
+  display: grid;
+  min-height: 14cqw;
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+.phase1 .flip-card[aria-pressed="true"] .flip-inner {
+  transform: rotateY(180deg);
+}
+.phase1 .flip-front,
+.phase1 .flip-back {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.4cqw;
+  backface-visibility: hidden;
+}
+.phase1 .flip-front small {
+  opacity: 0.75;
+  font-size: 0.75em;
+}
+.phase1 .flip-back {
+  transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .phase1 .flip-inner {
+    transition: none;
+  }
+}
+.phase1 .key-takeaway {
+  margin-top: 1.4cqw;
+  padding: 1cqw 1.6cqw;
+  border-left: 4px solid var(--lesson-accent);
+  background: var(--lesson-surface);
+  border-radius: 7px;
+}
+
+/* Hoạt động: sắp xếp, phân loại, nối */
+.phase1 .activity h3 {
+  margin: 0 0 0.4cqw;
+}
+.phase1 .activity-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8cqw;
+  border: 2px solid var(--lesson-border);
+  border-radius: 1cqw;
+  cursor: grab;
+}
+.phase1 .activity-card .choice-picture {
+  max-height: 6cqw;
+  max-width: 8cqw;
+  object-fit: contain;
+}
+.phase1 .activity-card.right,
+.phase1 .drop-zone.right {
+  border-color: var(--right);
+  box-shadow: inset 0 0 0 2px var(--right);
+}
+.phase1 .activity-card.wrong,
+.phase1 .drop-zone.wrong {
+  border-color: var(--wrong);
+  box-shadow: inset 0 0 0 2px var(--wrong);
+}
+.phase1 .activity-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1cqw;
+  min-height: 4.6cqw;
+  padding: 1cqw;
+  margin: 1cqw 0;
+  border: 2px dashed var(--lesson-border);
+  border-radius: 1.2cqw;
+}
+.phase1 .order-slots {
+  list-style: none;
+  padding: 0;
+  margin: 1cqw 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16cqw, 1fr));
+  gap: 1cqw;
+}
+.phase1 .order-slots li {
+  display: flex;
+  align-items: center;
+  gap: 0.8cqw;
+  min-height: 5cqw;
+  padding: 0.6cqw;
+  border: 2px solid var(--lesson-border);
+  border-radius: 1.2cqw;
+  background: var(--lesson-surface);
+}
+.phase1 .slot-number,
+.phase1 .pair-badge {
+  flex: 0 0 auto;
+  width: 2.6cqw;
+  height: 2.6cqw;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--lesson-accent);
+  color: var(--lesson-bg);
+  font-weight: 800;
+  font-size: 0.85em;
+}
+.phase1 .slot-empty {
+  color: var(--lesson-muted);
+  font-size: 0.9em;
+}
+.phase1 .sort-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4cqw;
+}
+.phase1 .sort-group {
+  border: 2px solid var(--lesson-border);
+  border-radius: 1.2cqw;
+  padding: 1cqw;
+  min-height: 12cqw;
+}
+.phase1 .sort-group.group-0 {
+  background: var(--tone-1);
+}
+.phase1 .sort-group.group-1 {
+  background: var(--tone-0);
+}
+.phase1 .sort-group h3 {
+  margin: 0 0 0.6cqw;
+}
+.phase1 .sort-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8cqw;
+  margin-bottom: 0.8cqw;
+}
+.phase1 .sort-drop {
+  font-size: 0.85em;
+}
+.phase1 .match-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3cqw;
+  margin: 1cqw 0;
+}
+.phase1 .match-columns ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.8cqw;
+}
+.phase1 .match-columns .activity-card {
+  width: 100%;
+}
+.phase1 .match-target.paired {
+  background: var(--lesson-surface);
+}
+.phase1 .activity-result {
+  display: flex;
+  align-items: center;
+  gap: 1.2cqw;
+}
+.phase1 .activity-result.right strong {
+  color: var(--right);
+}
+.phase1 .activity-result.retry strong {
+  color: var(--wrong);
+}

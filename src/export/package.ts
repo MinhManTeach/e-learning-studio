@@ -55,6 +55,8 @@ function shownMedia(p: LessonProject) {
     if (s.type === "quiz")
       for (const q of s.data.questions)
         for (const o of q.options) use(o.imageAssetId, s.id);
+    if (s.type === "cards" || s.type === "activity")
+      for (const item of s.data.items) use(item.imageAssetId, s.id);
   }
   return [...used].flatMap(([id, slideId]) => {
     const asset = p.assets.find(

@@ -17,6 +17,8 @@ import {
   QuizRenderer,
   CompletionRenderer,
 } from "../renderers/InteractionRenderers";
+import { CardsRenderer } from "../renderers/CardsRenderer";
+import { ActivityRenderer } from "../renderers/ActivityRenderer";
 const renderers = {
   welcome: TextRenderer,
   content: TextRenderer,
@@ -25,6 +27,8 @@ const renderers = {
   scenario: ScenarioRenderer,
   quiz: QuizRenderer,
   summary: SummaryRenderer,
+  cards: CardsRenderer,
+  activity: ActivityRenderer,
   completion: CompletionRenderer,
   legacy: LegacyRenderer,
 };
@@ -61,8 +65,6 @@ export const futureSlideTypes = [
   "video",
   "hyperlink_demo",
   "true_false",
-  "matching",
-  "drag_drop",
   "fill_blank",
   "hotspot",
   "handbook",

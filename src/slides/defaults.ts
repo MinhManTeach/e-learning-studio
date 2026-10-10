@@ -7,6 +7,8 @@ export const slideLabels = {
   scenario: "Tình huống",
   quiz: "Câu hỏi trắc nghiệm",
   summary: "Tổng kết",
+  cards: "Thẻ nội dung (bước, so sánh, sơ đồ…)",
+  activity: "Hoạt động kéo thả (sắp xếp, phân loại, nối)",
   completion: "Hoàn thành",
   legacy: "Hoạt động tham chiếu",
 };
@@ -57,6 +59,22 @@ export function createDefaultSlide(type: SlideType): Slide {
     },
     quiz: { questions: [defaultQuestion()] },
     summary: {},
+    cards: {
+      style: "STEPS",
+      items: [1, 2, 3].map((n) => ({
+        id: crypto.randomUUID(),
+        title: `Bước ${n}`,
+        text: "",
+      })),
+    },
+    activity: {
+      kind: "ORDER",
+      instruction: "Em hãy sắp xếp các bước theo đúng thứ tự.",
+      items: ["Bước thứ nhất", "Bước thứ hai", "Bước thứ ba"].map((text) => ({
+        id: crypto.randomUUID(),
+        text,
+      })),
+    },
     completion: { message: "Cảm ơn em đã tham gia bài học!" },
   };
   const pedagogicalStage =
@@ -66,9 +84,11 @@ export function createDefaultSlide(type: SlideType): Slide {
         ? "PRACTICE"
         : type === "quiz"
           ? "ASSESSMENT"
-          : type === "summary" || type === "completion"
-            ? "APPLICATION"
-            : "DISCOVERY";
+          : type === "activity"
+            ? "PRACTICE"
+            : type === "summary" || type === "completion"
+              ? "APPLICATION"
+              : "DISCOVERY";
   return slideSchema.parse({
     id: crypto.randomUUID(),
     type,

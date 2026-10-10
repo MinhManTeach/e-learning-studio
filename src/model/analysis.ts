@@ -84,7 +84,10 @@ export function effectiveLayout(s: Slide, hasImage: boolean): Layout {
   // A picture covering the page would hide the questions students must answer.
   if (
     s.layout === "MEDIA_COVER" &&
-    (s.type === "warmup" || s.type === "scenario" || s.type === "quiz")
+    (s.type === "warmup" ||
+      s.type === "scenario" ||
+      s.type === "quiz" ||
+      s.type === "activity")
   )
     return "MEDIA_FULL";
   return s.layout;

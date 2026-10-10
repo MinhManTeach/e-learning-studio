@@ -3,11 +3,14 @@ import { Field, toLines } from "./Fields";
 import { CheckField } from "./Controls";
 import { QuizEditor } from "./QuizEditor";
 import { defaultChoice } from "../slides/defaults";
+import { ActivityEditor, CardsEditor } from "./CardsActivityEditor";
 export interface TypeEditorProps {
   slide: Slide;
   edit: (slide: Slide) => void;
 }
 export function TypeSpecificEditor({ slide: s, edit }: TypeEditorProps) {
+  if (s.type === "cards") return <CardsEditor slide={s} edit={edit} />;
+  if (s.type === "activity") return <ActivityEditor slide={s} edit={edit} />;
   if (s.type === "content" || s.type === "welcome")
     return (
       <>

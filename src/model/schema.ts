@@ -166,6 +166,33 @@ export const helpChannelSchema = z.object({
   description: text,
   enabled: z.boolean().default(true),
 });
+/** Page designs for knowledge pages (no scoring). */
+export const cardStyles = [
+  "STEPS",
+  "COMPARE",
+  "TIMELINE",
+  "MINDMAP",
+  "FLIP",
+] as const;
+export const cardItemSchema = z.object({
+  id: z.string().min(1),
+  title: text,
+  text: text,
+  imageAssetId: choicePicture,
+  /** COMPARE: index of the column (0 or 1). */
+  group: z.number().int().min(0).max(1).default(0),
+});
+/** Practice activities checked on the page (not part of the quiz score). */
+export const activityKinds = ["ORDER", "SORT", "MATCH"] as const;
+export const activityItemSchema = z.object({
+  id: z.string().min(1),
+  text: text,
+  imageAssetId: choicePicture,
+  /** SORT: index of the right group (0 or 1). */
+  group: z.number().int().min(0).max(1).default(0),
+  /** MATCH: the text this item pairs with. */
+  match: text,
+});
 export const slideSchemas = {
   welcome: z.object({
     ...commonSlideFields,
@@ -242,6 +269,46 @@ export const slideSchemas = {
       helpChannels: z.array(helpChannelSchema).default([]),
     }),
   }),
+  cards: z.object({
+    ...commonSlideFields,
+    type: z.literal("cards"),
+    data: z
+      .object({
+        style: z.enum(cardStyles).default("STEPS"),
+        intro: text,
+        /** MINDMAP: the idea in the middle. */
+        center: text,
+        /** COMPARE: the two column headings. */
+        groups: z.array(z.string()).max(2).default(["Nên", "Không nên"]),
+        items: z.array(cardItemSchema).max(12).default([]),
+        keyTakeaway: text,
+      })
+      .superRefine((v, c) => {
+        if (new Set(v.items.map((i) => i.id)).size !== v.items.length)
+          c.addIssue({ code: "custom", message: "Mã thẻ bị trùng." });
+      }),
+  }),
+  activity: z.object({
+    ...commonSlideFields,
+    type: z.literal("activity"),
+    data: z
+      .object({
+        kind: z.enum(activityKinds).default("ORDER"),
+        instruction: text,
+        /** SORT: the two group names. */
+        groups: z.array(z.string()).max(2).default(["Nên", "Không nên"]),
+        /** ORDER: items in the right order (shown shuffled). */
+        items: z.array(activityItemSchema).max(10).default([]),
+        feedbackCorrect: z.string().default("Chính xác! Em làm rất tốt."),
+        feedbackRetry: z
+          .string()
+          .default("Chưa đúng hết. Em xem lại các ô màu cam rồi thử lại nhé."),
+      })
+      .superRefine((v, c) => {
+        if (new Set(v.items.map((i) => i.id)).size !== v.items.length)
+          c.addIssue({ code: "custom", message: "Mã mục bị trùng." });
+      }),
+  }),
   completion: z.object({
     ...commonSlideFields,
     type: z.literal("completion"),
@@ -268,6 +335,8 @@ export const slideSchema = z.discriminatedUnion("type", [
   slideSchemas.scenario,
   slideSchemas.quiz,
   slideSchemas.summary,
+  slideSchemas.cards,
+  slideSchemas.activity,
   slideSchemas.completion,
   slideSchemas.legacy,
 ]);
@@ -318,6 +387,8 @@ export type BasicSlide = Extract<Slide, { type: "welcome" | "content" }>;
 export type BasicData = z.infer<typeof basicDataSchema>;
 export type AssetReference = z.infer<typeof assetSchema>;
 export type QuizData = z.infer<typeof quizDataSchema>;
+export type CardStyle = (typeof cardStyles)[number];
+export type ActivityKind = (typeof activityKinds)[number];
 export type Question = z.infer<typeof questionSchema>;
 export type Stage = (typeof stages)[number];
 export type Layout = (typeof layouts)[number];
