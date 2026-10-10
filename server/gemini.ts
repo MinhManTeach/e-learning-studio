@@ -10,6 +10,8 @@ export interface GeminiConfig {
 const endpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
+import { geminiUsage, type UsageListener } from "./usage";
+
 export type GeminiPart =
   { text: string } | { inlineData: { mimeType: string; data: string } };
 
@@ -37,11 +39,20 @@ async function call(
   transport: typeof fetch,
   timeoutMs: number,
   retryDelayMs = 3000,
+  onUsage?: UsageListener,
 ) {
   // "Model overloaded" answers are not processed (nor billed): try twice more.
   for (let attempt = 0; ; attempt++) {
     try {
-      return await callOnce(config, model, body, signal, transport, timeoutMs);
+      return await callOnce(
+        config,
+        model,
+        body,
+        signal,
+        transport,
+        timeoutMs,
+        onUsage,
+      );
     } catch (error) {
       if (
         !(error instanceof Error) ||
@@ -61,6 +72,7 @@ async function callOnce(
   signal: AbortSignal | undefined,
   transport: typeof fetch,
   timeoutMs: number,
+  onUsage?: UsageListener,
 ) {
   const timeout = AbortSignal.timeout(timeoutMs);
   const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
@@ -92,12 +104,14 @@ async function callOnce(
     );
   }
   const envelope = (await response.json()) as {
+    usageMetadata?: unknown;
     promptFeedback?: { blockReason?: string };
     candidates?: {
       finishReason?: string;
       content?: { parts?: (GeminiPart & { thought?: boolean })[] };
     }[];
   };
+  onUsage?.(geminiUsage(envelope.usageMetadata));
   const candidate = envelope.candidates?.[0];
   if (envelope.promptFeedback?.blockReason || !candidate)
     throw new Error("AI_REFUSED");
@@ -106,7 +120,12 @@ async function callOnce(
 
 export async function geminiJson(
   config: GeminiConfig,
-  request: { system: string; parts: GeminiPart[]; schema: object },
+  request: {
+    system: string;
+    parts: GeminiPart[];
+    schema: object;
+    onUsage?: UsageListener;
+  },
   signal?: AbortSignal,
   transport: typeof fetch = fetch,
   timeoutMs = 180_000,
@@ -131,6 +150,7 @@ export async function geminiJson(
     transport,
     timeoutMs,
     retryDelayMs,
+    request.onUsage,
   );
   if (candidate.finishReason && candidate.finishReason !== "STOP")
     throw new Error(

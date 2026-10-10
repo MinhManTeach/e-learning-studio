@@ -11,6 +11,7 @@ import { detectImageMime } from "../src/media/storage";
 import { claudeJson } from "./anthropic";
 import { geminiImage, geminiJson, type GeminiPart } from "./gemini";
 import type { LocalAiConfig } from "./openai";
+import { usageLine, type AiUsage } from "./usage";
 
 const modelName = /^[a-zA-Z0-9._:-]{1,120}$/;
 export const defaultGeminiModel = "gemini-3.8-flash";
@@ -70,6 +71,8 @@ export async function designLesson(
   body: unknown,
   signal?: AbortSignal,
   transport: typeof fetch = fetch,
+  /** Where the token count goes; the teacher sees it in the server window. */
+  report: (line: string) => void = (line) => console.info(line),
 ) {
   const ready = studioConfig(config);
   if (!ready) throw new Error("AI_CONFIGURATION");
@@ -84,20 +87,39 @@ export async function designLesson(
     parts.push({ text: `Ảnh #${i} của trang id "${slide?.id ?? "?"}":` });
     parts.push({ inlineData: image });
   });
+  const used: AiUsage = { inputTokens: 0, outputTokens: 0 };
   const prompt = {
     system: designInstruction,
     parts,
     schema: designWireSchema(),
+    onUsage: (u: AiUsage) => {
+      used.inputTokens += u.inputTokens;
+      used.outputTokens += u.outputTokens;
+    },
   };
-  const answer =
-    ready.provider === "anthropic"
-      ? await claudeJson(ready, prompt, signal, transport)
-      : await geminiJson(
-          { ...ready, imageModel: ready.image?.imageModel ?? "" },
-          prompt,
-          signal,
-          transport,
-        );
+  const started = Date.now();
+  let answer: unknown;
+  try {
+    answer =
+      ready.provider === "anthropic"
+        ? await claudeJson(ready, prompt, signal, transport)
+        : await geminiJson(
+            { ...ready, imageModel: ready.image?.imageModel ?? "" },
+            prompt,
+            signal,
+            transport,
+          );
+  } finally {
+    if (used.inputTokens || used.outputTokens)
+      report(
+        usageLine(
+          "AI thiết kế bài giảng",
+          ready.model,
+          used,
+          Date.now() - started,
+        ),
+      );
+  }
   const plan = designPlanSchema.safeParse(answer);
   if (!plan.success) throw new Error("AI_INVALID_RESPONSE");
   // Keep only pages that were sent (once each) and activities placed after one.

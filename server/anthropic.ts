@@ -1,6 +1,15 @@
 // Claude (Anthropic API key) over plain REST: structured JSON answers with
 // page pictures as input. Claude does not draw pictures. Server-only.
 import type { GeminiPart } from "./gemini";
+import { claudeUsage, type UsageListener } from "./usage";
+
+export interface ClaudeRequest {
+  system: string;
+  parts: GeminiPart[];
+  schema: object;
+  /** Called with the tokens each answered call used (retries included). */
+  onUsage?: UsageListener;
+}
 
 export interface ClaudeConfig {
   apiKey: string;
@@ -49,7 +58,7 @@ const toContent = (parts: GeminiPart[]) =>
 
 async function once(
   config: ClaudeConfig,
-  request: { system: string; parts: GeminiPart[]; schema: object },
+  request: ClaudeRequest,
   signal: AbortSignal | undefined,
   transport: typeof fetch,
   timeoutMs: number,
@@ -89,7 +98,10 @@ async function once(
   const message = (await response.json()) as {
     stop_reason?: string;
     content?: { type: string; text?: string }[];
+    usage?: unknown;
   };
+  // Billed even when the answer is unusable, so report it first.
+  request.onUsage?.(claudeUsage(message.usage));
   if (message.stop_reason === "max_tokens") throw new Error("AI_TOO_LONG");
   if (message.stop_reason !== "end_turn") throw new Error("AI_REFUSED");
   const text = (message.content ?? [])
@@ -105,7 +117,7 @@ async function once(
 
 export async function claudeJson(
   config: ClaudeConfig,
-  request: { system: string; parts: GeminiPart[]; schema: object },
+  request: ClaudeRequest,
   signal?: AbortSignal,
   transport: typeof fetch = fetch,
   timeoutMs = 300_000,
