@@ -171,15 +171,63 @@ function slideText(slide: PptxSlide, deck: PptxDeck, title: string) {
       .filter((t) => t !== title),
   );
 }
-/** Largest picture that is neither the background nor a small decoration. */
-function mainPicture(slide: PptxSlide, deck: PptxDeck) {
-  return slide.elements
-    .filter((e) => e.image && !e.media && onSlide(e.rect, deck))
-    .map((e) => ({ e, a: area(e.rect, deck) }))
-    .filter(({ a }) => a > 0.04 && a < 0.85)
-    .sort((x, y) => y.a - x.a)[0]?.e.image;
+/** Compressed bytes per pixel: flat panels and frames are far below drawings and photos. */
+function looksLikePicture(path: string, deck: PptxDeck) {
+  const m = deck.media[path];
+  if (!m?.width || !m.height || !/\.png$/i.test(path)) return true;
+  return m.size / (m.width * m.height) >= 0.45;
 }
-
+const inside = (inner: Rect | undefined, outer: Rect | undefined) =>
+  !!inner &&
+  !!outer &&
+  inner !== outer &&
+  inner.x >= outer.x - 1 &&
+  inner.y >= outer.y - 1 &&
+  inner.x + inner.w <= outer.x + outer.w + 1 &&
+  inner.y + inner.h <= outer.y + outer.h + 1;
+/**
+ * The illustration of a slide: the largest picture that is not the background,
+ * not a panel or button with text written on it, not a frame around another
+ * picture and not a flat decorative shape.
+ */
+function mainPicture(slide: PptxSlide, deck: PptxDeck) {
+  const texts = slide.elements.filter(
+    (e) => onSlide(e.rect, deck) && cleanText(e.text).length,
+  );
+  // Text covering much of a picture makes it a panel or button background;
+  // a few small labels on a drawing do not.
+  const textShare = (r: Rect) =>
+    texts
+      .filter(
+        (t) =>
+          centerX(t.rect) > r.x &&
+          centerX(t.rect) < r.x + r.w &&
+          centerY(t.rect) > r.y &&
+          centerY(t.rect) < r.y + r.h,
+      )
+      .reduce((sum, t) => sum + (t.rect!.w * t.rect!.h) / (r.w * r.h), 0);
+  const pictures = slide.elements
+    .filter(
+      (e): e is PptxElement & { rect: Rect; image: string } =>
+        !!e.image && !e.media && !!e.rect && onSlide(e.rect, deck),
+    )
+    .map((e) => ({ e, a: area(e.rect, deck) }))
+    .filter(({ a }) => a > 0.03 && a < 0.85);
+  const candidates = pictures.filter(
+    ({ e }) => looksLikePicture(e.image, deck) && textShare(e.rect) < 0.2,
+  );
+  const framed = candidates.filter(
+    ({ e }) =>
+      !pictures.some(
+        (p) =>
+          p.e !== e &&
+          inside(p.e.rect, e.rect) &&
+          p.a > 0.03 &&
+          looksLikePicture(p.e.image, deck),
+      ),
+  );
+  return framed.sort((x, y) => y.a - x.a)[0]?.e.image;
+}
 interface Choice {
   element: PptxElement;
   correct: boolean | undefined;

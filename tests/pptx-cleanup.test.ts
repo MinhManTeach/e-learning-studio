@@ -114,3 +114,62 @@ it("joins lines PowerPoint wrapped, reads rows left to right and drops repeated 
   ]);
 });
 
+it("chooses the drawing, not panels with text on them, frames around a picture or flat shapes", () => {
+  const deck = parsePptx(
+    buildPptx(
+      [
+        {
+          shapes: [
+            text(2, "THỰC HÀNH - NHIỆM VỤ 2", { x: 32, y: 5, w: 42, h: 7 }),
+            // Title bar behind the heading (detailed, but mostly covered by text).
+            picture(3, "rId1", { x: 23, y: 3, w: 55, h: 12 }),
+            // Big panel holding the step text.
+            picture(4, "rId2", { x: 5, y: 30, w: 40, h: 60 }),
+            text(5, "BƯỚC 1: Nhấn nút công tắc", { x: 8, y: 40, w: 34, h: 30 }),
+            // Frame with the real drawing inside it.
+            picture(6, "rId3", { x: 52, y: 30, w: 40, h: 60 }),
+            picture(7, "rId4", { x: 56, y: 36, w: 30, h: 45 }),
+            // Large flat rounded rectangle (very few bytes per pixel).
+            picture(8, "rId5", { x: 0, y: 92, w: 100, h: 8 }),
+            picture(9, "rId5", { x: 30, y: 20, w: 20, h: 70 }),
+          ],
+          rels: {
+            rId1: img(1),
+            rId2: img(2),
+            rId3: img(3),
+            rId4: img(4),
+            rId5: img(5),
+          },
+        },
+      ],
+      {
+        "image1.png": pngOfSize(100, 20, 1400),
+        "image2.png": pngOfSize(100, 100, 3000),
+        "image3.png": pngOfSize(100, 100, 3000),
+        "image4.png": pngOfSize(100, 100, 8000),
+        "image5.png": pngOfSize(100, 100, 1000),
+      },
+    ),
+  );
+  expect(page(analyzeDeck(deck).pages).picture).toBe("ppt/media/image4.png");
+});
+
+it("keeps a labelled drawing even though a few labels sit on it", () => {
+  const deck = parsePptx(
+    buildPptx(
+      [
+        {
+          shapes: [
+            text(2, "HOẠT ĐỘNG 1: KHỞI ĐỘNG", { x: 10, y: 4, w: 50, h: 8 }),
+            text(3, "Lưng thẳng, vai thả lỏng.", { x: 5, y: 30, w: 40, h: 8 }),
+            picture(4, "rId1", { x: 55, y: 27, w: 32, h: 65 }),
+            text(5, "50 – 80 cm", { x: 67, y: 33, w: 8, h: 4 }),
+          ],
+          rels: { rId1: img(1) },
+        },
+      ],
+      { "image1.png": pngOfSize(600, 700, 300000) },
+    ),
+  );
+  expect(page(analyzeDeck(deck).pages).picture).toBe("ppt/media/image1.png");
+});
