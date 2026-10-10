@@ -87,11 +87,14 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
     (wordCount(slide.data.situation) > 55 ||
       slide.data.choices.reduce((n, c) => n + wordCount(c.text), 0) > 80);
   const showDecision = !stepped || decision || !!choice;
+  // "Nam · Ở nhà"; no stray dot when one of them is empty.
+  const who = [slide.data.character, slide.data.context]
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .join(" · ");
   return (
     <>
-      <p className="scenario-context">
-        {slide.data.character} · {slide.data.context}
-      </p>
+      {who && <p className="scenario-context">{who}</p>}
       {(!showDecision || !stepped) && slide.data.situation.trim() && (
         <div className="speak-line">
           <p className="scenario-situation">{slide.data.situation}</p>

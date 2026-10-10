@@ -122,3 +122,15 @@ it("'Đọc bài' reads the words on an imported page that has no narration", ()
   );
   expect(screen.getByRole("button", { name: /Dừng đọc/ })).toBeTruthy();
 });
+
+it("shows the scenario's character without a stray dot when there is no place", () => {
+  setSpeechEngine({ synth: null, Utterance: null });
+  const p = createProject("Bài 4");
+  const s = createSlide("scenario");
+  s.data = { ...s.data, character: "Nam", context: "" };
+  p.slides = [s];
+  const { container } = render(
+    <LessonPlayer project={p} lms={new StandaloneAdapter("k", null)} />,
+  );
+  expect(container.querySelector(".scenario-context")?.textContent).toBe("Nam");
+});
