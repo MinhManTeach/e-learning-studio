@@ -136,6 +136,7 @@ export function SlideCanvas({
       <div
         className="canvas"
         data-theme={project.settings.theme}
+        data-stage={slide?.pedagogicalStage}
         data-contrast={slide?.accessibility.highContrast ? "high" : undefined}
         aria-label="Nội dung trang bài giảng"
       >

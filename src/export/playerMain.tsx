@@ -3,6 +3,7 @@
 import { createRoot } from "react-dom/client";
 import "../styles.css";
 import "../lesson-themes.css";
+import "../kids-theme.css";
 import "../player/player.css";
 import { LessonPlayer } from "../player/LessonPlayer";
 import { connectLms } from "../player/lms";

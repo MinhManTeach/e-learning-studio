@@ -18,6 +18,8 @@ export function createProject(projectTitle = "Bài giảng mới"): LessonProjec
     createdAt: now,
     updatedAt: now,
     metadata: { projectTitle },
+    // New lessons start with the children's look; teachers can switch it.
+    settings: { theme: "KIDS" },
     slides: [createSlide("welcome"), createSlide("content")],
   });
 }

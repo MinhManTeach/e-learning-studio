@@ -1,6 +1,7 @@
 import { useMemo, useState, type DragEvent } from "react";
 import type { Slide } from "../model/schema";
 import { ChoicePicture } from "./ChoicePicture";
+import { celebrate } from "../player/celebrate";
 import {
   allRight,
   checkMatch,
@@ -27,6 +28,11 @@ const dropProps = (drop: (id: string) => void) => ({
     if (id) drop(id);
   },
 });
+/** Cheers the child on when everything is right, encourages a retry otherwise. */
+function judge<T extends boolean[] | Record<string, boolean>>(marks: T): T {
+  celebrate(allRight(marks) ? "right" : "retry");
+  return marks;
+}
 function ItemFace({ item, text }: { item?: ActivityItem; text?: string }) {
   return (
     <>
@@ -141,9 +147,11 @@ function OrderActivity({ slide }: { slide: ActivitySlide }) {
           disabled={placed.size < items.length}
           onClick={() =>
             setMarks(
-              checkOrder(
-                slots.map((x) => x ?? ""),
-                items,
+              judge(
+                checkOrder(
+                  slots.map((x) => x ?? ""),
+                  items,
+                ),
               ),
             )
           }
@@ -235,7 +243,7 @@ function SortActivity({ slide }: { slide: ActivitySlide }) {
         <button
           className="primary"
           disabled={Object.keys(placed).length < items.length}
-          onClick={() => setMarks(checkSort(placed, items))}
+          onClick={() => setMarks(judge(checkSort(placed, items)))}
         >
           Kiểm tra
         </button>
@@ -347,7 +355,7 @@ function MatchActivity({ slide }: { slide: ActivitySlide }) {
         <button
           className="primary"
           disabled={Object.keys(pairs).length < items.length}
-          onClick={() => setMarks(checkMatch(pairs, items))}
+          onClick={() => setMarks(judge(checkMatch(pairs, items)))}
         >
           Kiểm tra
         </button>

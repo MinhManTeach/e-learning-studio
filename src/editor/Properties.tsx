@@ -178,6 +178,7 @@ export function Properties({
                   SAFE_TEAL: "Xanh an toàn",
                   NAVY: "Xanh hải quân",
                   FOCUS_DARK: "Tập trung · Nền tối",
+                  KIDS: "Vui nhộn (cho học sinh tiểu học)",
                 }}
                 onChange={(theme) => editSettings({ ...settings, theme })}
               />

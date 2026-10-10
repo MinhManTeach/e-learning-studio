@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Bell,
+  BellOff,
   ListOrdered,
   Maximize,
   Minimize,
@@ -21,6 +23,7 @@ import {
 } from "./session";
 import { SessionContext } from "./SessionContext";
 import { useSpeech } from "./useSpeech";
+import { Celebration } from "./Celebration";
 import type { LmsAdapter } from "./lms";
 import { decodeResume, lmsReport } from "./resume";
 
@@ -28,6 +31,7 @@ export const themeLabels: Record<(typeof themes)[number], string> = {
   SAFE_TEAL: "Xanh ngọc",
   NAVY: "Xanh hải quân",
   FOCUS_DARK: "Tối tập trung",
+  KIDS: "Vui nhộn",
 };
 const fontSteps = [1, 1.15, 1.3, 1.5];
 /** Wide screens keep the table of contents open beside the page. */
@@ -60,6 +64,7 @@ export function LessonPlayer({
   const [fontStep, setFontStep] = useState(0);
   const [theme, setTheme] = useState(project.settings.theme);
   const [fullscreen, setFullscreen] = useState(false);
+  const [sound, setSound] = useState(true);
   const root = useRef<HTMLElement>(null);
   const index = project.slides.findIndex(
     (s) => s.id === session.currentSlideId,
@@ -149,7 +154,12 @@ export function LessonPlayer({
     <SessionContext.Provider
       value={{ project: shown, session, act, review, retry, studentName }}
     >
-      <main className="student-preview lesson-player" ref={root}>
+      <main
+        className="student-preview lesson-player"
+        ref={root}
+        data-theme={theme}
+        data-stage={slide?.pedagogicalStage}
+      >
         <header className="player-bar">
           <div className="player-title">
             {meta && <span className="eyebrow">{meta}</span>}
@@ -204,6 +214,14 @@ export function LessonPlayer({
                 ))}
               </select>
             </label>
+            <button
+              onClick={() => setSound((x) => !x)}
+              aria-pressed={sound}
+              aria-label="Âm thanh khen thưởng"
+            >
+              {sound ? <Bell size={18} /> : <BellOff size={18} />}
+              {sound ? "Âm thanh" : "Tắt tiếng"}
+            </button>
             <button onClick={toggleFullscreen}>
               {fullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
               {fullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
@@ -242,7 +260,7 @@ export function LessonPlayer({
                       <span>{i + 1}.</span> {s.title}
                       {session.visitedSlideIds.includes(s.id) && (
                         <span className="visited" aria-label="đã xem">
-                          ✓
+                          {theme === "KIDS" ? "⭐" : "✓"}
                         </span>
                       )}
                     </button>
@@ -274,6 +292,7 @@ export function LessonPlayer({
           </button>
         </div>
         {speech.notice && <p role="status">{speech.notice}</p>}
+        <Celebration sound={sound} />
       </main>
     </SessionContext.Provider>
   );

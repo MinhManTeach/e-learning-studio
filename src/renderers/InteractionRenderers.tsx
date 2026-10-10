@@ -5,7 +5,9 @@ import { ChoicePicture } from "./ChoicePicture";
 import { certificateStatus } from "../player/certificate";
 import { CertificateDialog } from "../player/CertificateDialog";
 import { useLessonSession } from "../player/SessionContext";
+import { celebrate } from "../player/celebrate";
 import {
+  calculateQuizScore,
   canRetry,
   emptyQuiz,
   orderedOptions,
@@ -98,9 +100,10 @@ export function ScenarioRenderer({ slide }: { slide: Slide }) {
                   key={c.id}
                   disabled={!rt || !!choice}
                   aria-pressed={selected === c.id}
-                  onClick={() =>
-                    rt?.act({ type: "scenario", id: slide.id, choiceId: c.id })
-                  }
+                  onClick={() => {
+                    rt?.act({ type: "scenario", id: slide.id, choiceId: c.id });
+                    if (rt) celebrate(c.isRecommended ? "right" : "retry");
+                  }}
                 >
                   <ChoicePicture assetId={c.imageAssetId} />
                   <strong>{c.label}.</strong>
@@ -221,7 +224,15 @@ export function QuizRenderer({ slide }: { slide: Slide }) {
         <button
           disabled={!rt}
           className="primary"
-          onClick={() => rt?.act({ type: "submit", id: slide.id })}
+          onClick={() => {
+            rt?.act({ type: "submit", id: slide.id });
+            if (rt && slide.data.questions.length)
+              celebrate(
+                calculateQuizScore(slide.data, state.answers).passed
+                  ? "right"
+                  : "retry",
+              );
+          }}
         >
           Nộp bài & chấm điểm
         </button>

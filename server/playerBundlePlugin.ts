@@ -45,6 +45,8 @@ async function buildProductionBundle(root: string): Promise<PlayerBundle> {
       emptyOutDir: false,
       minify: true,
       cssCodeSplit: false,
+      // Fonts are inlined into player.css so packages work offline and from file://.
+      assetsInlineLimit: () => true,
       lib: {
         entry: resolve(root, "src/export/playerMain.tsx"),
         name: "LessonPlayer",

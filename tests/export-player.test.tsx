@@ -101,6 +101,7 @@ it("enlarges text for students sitting far away", () => {
 
 it("lets the student switch colour theme without changing the lesson", () => {
   const p = lesson();
+  const saved = p.settings.theme;
   const { container } = render(
     <LessonPlayer project={p} lms={fakeLms().lms} />,
   );
@@ -110,7 +111,7 @@ it("lets the student switch colour theme without changing the lesson", () => {
   expect(container.querySelector(".canvas")?.getAttribute("data-theme")).toBe(
     "FOCUS_DARK",
   );
-  expect(p.settings.theme).toBe("SAFE_TEAL");
+  expect(p.settings.theme).toBe(saved);
 });
 
 it("closes the LMS attempt when the page is left", () => {

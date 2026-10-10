@@ -23,7 +23,8 @@ export const layouts = [
   "CENTERED",
   "MEDIA_COVER",
 ] as const;
-export const themes = ["SAFE_TEAL", "NAVY", "FOCUS_DARK"] as const;
+// KIDS ("Vui nhộn") is the look for new lessons; older lessons keep the theme they saved.
+export const themes = ["SAFE_TEAL", "NAVY", "FOCUS_DARK", "KIDS"] as const;
 export const metadataSchema = metadata21.extend({
   curriculumGrade: text,
   targetAudienceGrade: text,

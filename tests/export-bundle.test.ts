@@ -22,6 +22,10 @@ it("builds one classic script that runs without ES modules", () => {
   // Dev JSX would crash on the production React build (blank page).
   expect(bundle.js).not.toContain("jsxDEV");
   expect(bundle.css).toContain(".lesson-player");
+  // The children's fonts travel inside player.css (offline, file://, LMS).
+  expect(bundle.css).toContain("Baloo 2");
+  expect(bundle.css).toMatch(/url\(["']?data:font\/woff2;base64,/);
+  expect(bundle.css).not.toMatch(/url\(["']?[^"')]*\.woff2/);
 });
 
 async function until(ready: () => boolean) {
