@@ -52,6 +52,14 @@
 - Thử thật tiết 2: 87 đoạn thu trong 12 giây, gói tăng ~2 MB. Runner: export-lesson `"voice": true`.
 - Chromium của Playwright không giải mã AAC (Chrome/Edge/Brave thật thì có), nên kiểm tra phát trên máy thật.
 
+## Đáp án câu hỏi (nhánh `claude/quiz-answers`, 2026-10-10, chờ người dùng thử)
+- src/model/answers.ts: `correctAnswerIndexes` (nhiều đáp án đúng, học sinh phải tích đủ), `answerUnknown`
+  (PowerPoint không cho biết đáp án → trình soạn báo đỏ, exportIssues BLOCK). Câu trả lời lưu là một chuỗi
+  id nối bằng dấu phẩy, nên resume/suspend_data giữ nguyên dạng.
+- AI thiết kế: request gửi `correct: number[]` ([] = chưa rõ); plan có `answers` (gợi ý, mặc định KHÔNG tích,
+  chỉ cho câu answerUnknown); không thêm lời giải thích cho đáp án chưa xác nhận. Prompt v2 chống lặp ý.
+- Model mặc định claude-haiku-5-5 (~0,01 USD/bài; Opus ~0,15 USD/bài 28 trang, chất lượng tương đương).
+
 ## Chạy test trên máy người dùng (Windows, F:\Codex\e-learning-studio)
 - `powershell -ExecutionPolicy Bypass -File .\claude-dev.ps1` (để cửa sổ mở). Không commit: claude-dev.ps1, claude-runner.mjs, claude-export.mjs, .claude-dev/.
 - Gửi việc: ghi JSON vào `.claude-dev\inbox\`, đọc kết quả ở `.claude-dev\outbox\`.
