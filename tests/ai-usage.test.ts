@@ -8,7 +8,9 @@ const claude = { provider: "anthropic", apiKey: "sk-ant-test-999" };
 const gemini = { provider: "gemini", apiKey: "AIza-test-key-123" };
 const respond = (answer: unknown, status = 200) =>
   (async () =>
-    new Response(JSON.stringify(answer), { status })) as unknown as typeof fetch;
+    new Response(JSON.stringify(answer), {
+      status,
+    })) as unknown as typeof fetch;
 const request = () => lessonRequest(aiLesson(), new Map());
 
 it("prints how many tokens a Claude lesson design used, and nothing of the lesson", async () => {
@@ -93,7 +95,9 @@ it("prints nothing when the service never answered", async () => {
 
 it("reads usage blocks defensively", () => {
   expect(claudeUsage(undefined)).toEqual({ inputTokens: 0, outputTokens: 0 });
-  expect(geminiUsage({ promptTokenCount: "x", candidatesTokenCount: -5 })).toEqual({
+  expect(
+    geminiUsage({ promptTokenCount: "x", candidatesTokenCount: -5 }),
+  ).toEqual({
     inputTokens: 0,
     outputTokens: 0,
   });
