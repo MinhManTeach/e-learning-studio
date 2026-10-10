@@ -180,3 +180,50 @@ it("lets the teacher undo an AI change from the editor", async () => {
   state = editorReducer(state, { type: "quality-undo" });
   expect(state.project).toBe(project);
 });
+
+it("puts the Nên column first when the AI listed Không nên first", () => {
+  const project = aiLesson();
+  const plan = designPlanSchema.parse({
+    pages: [
+      {
+        id: "s-steps",
+        design: "COMPARE",
+        groups: ["Không nên", "Nên"],
+        items: [
+          { title: "Rút điện đột ngột", group: 0 },
+          { title: "Chọn Shut down", group: 1 },
+        ],
+      },
+    ],
+    activities: [
+      {
+        afterId: "s-steps",
+        type: "SORT",
+        title: "Nên hay không?",
+        groups: ["Không nên", "Nên"],
+        items: [
+          { text: "Rút điện", group: 0 },
+          { text: "Shut down", group: 1 },
+        ],
+      },
+    ],
+  });
+  const next = applyDesign(project, plan, {
+    pages: new Set(["s-steps"]),
+    activities: new Set([0]),
+  });
+  const page = next.slides[2];
+  if (page.type !== "cards") throw new Error("cards expected");
+  expect(page.data.groups).toEqual(["Nên", "Không nên"]);
+  expect(page.data.items.map((i) => [i.title, i.group])).toEqual([
+    ["Rút điện đột ngột", 1],
+    ["Chọn Shut down", 0],
+  ]);
+  const sort = next.slides[3];
+  if (sort.type !== "activity") throw new Error("activity expected");
+  expect(sort.data.groups).toEqual(["Nên", "Không nên"]);
+  expect(sort.data.items.map((i) => [i.text, i.group])).toEqual([
+    ["Rút điện", 1],
+    ["Shut down", 0],
+  ]);
+});

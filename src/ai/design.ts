@@ -255,6 +255,23 @@ const lines = (...groups: string[][]) => [
   ),
 ];
 const uid = () => crypto.randomUUID();
+const negative = /không|chưa|sai|tránh|đừng|cấm|nguy hiểm/i;
+/** Puts the "do" group first (green ✓ column) when the AI listed "Không nên" first. */
+export function positiveFirst<T extends { group: number }>(
+  groups: string[],
+  items: T[],
+): { groups: string[]; items: T[] } {
+  if (
+    groups.length === 2 &&
+    negative.test(groups[0]) &&
+    !negative.test(groups[1])
+  )
+    return {
+      groups: [groups[1], groups[0]],
+      items: items.map((i) => ({ ...i, group: i.group === 1 ? 0 : 1 })),
+    };
+  return { groups, items };
+}
 
 /** Pages the plan redesigns (a card design on a content page). */
 export function redesigns(project: LessonProject, plan: DesignPlan) {
@@ -282,8 +299,9 @@ export function usableActivities(project: LessonProject, plan: DesignPlan) {
   });
 }
 
-function cardsSlide(slide: Slide, page: PageDesign): Slide {
+function cardsSlide(slide: Slide, planned: PageDesign): Slide {
   const cards = createSlide("cards");
+  const page = { ...planned, ...positiveFirst(planned.groups, planned.items) };
   const cover = slide.layout === "MEDIA_COVER";
   return {
     ...cards,
@@ -315,7 +333,8 @@ function cardsSlide(slide: Slide, page: PageDesign): Slide {
   } as Slide;
 }
 
-export function activitySlides(a: PlannedActivity): Slide[] {
+export function activitySlides(planned: PlannedActivity): Slide[] {
+  const a = { ...planned, ...positiveFirst(planned.groups, planned.items) };
   if (a.type === "ORDER" || a.type === "SORT" || a.type === "MATCH") {
     const s = createSlide("activity");
     s.title = a.title || s.title;
