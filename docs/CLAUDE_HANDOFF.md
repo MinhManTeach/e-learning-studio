@@ -40,8 +40,17 @@
 - Đo chi phí: server/usage.ts; designLesson in một dòng "[AI thiết kế bài giảng] model: N token vào, M token ra, s giây"
   ra cửa sổ chạy app (không in nội dung bài). Kế hoạch bản web trả phí: docs/KE_HOACH_BAN_WEB.md (chờ quyết định).
 - Runner: export-lesson nhận `"scorm":"2004"`.
-- Ý tưởng chưa làm: giáo viên tự ghi âm giọng mình cho từng trang (AUDIO_ASSET, đóng gói vào SCORM) — chắc chắn
-  có tiếng trên mọi máy, không tốn API.
+- Chrome/Brave/Cốc Cốc trên Windows chỉ thấy giọng SAPI (David, Zira); giọng Việt "Microsoft An" của gói ngôn ngữ
+  nằm ở OneCore, chỉ Edge dùng được. Đã kiểm tra trên máy người dùng (runner `voice-probe`).
+- Vì vậy có "Tạo giọng đọc" (nhánh `claude/voice-clips`): server/windowsVoice.ts dùng WinRT SpeechSynthesizer +
+  MediaTranscoder (PowerShell -EncodedCommand, chữ đi qua in.json UTF-8) → M4A 16 kHz mono 32 kbps. Endpoint
+  /api/lesson-ai/voice/status|record. src/voice/: voiceover.ts (thu phần còn thiếu, lô 40), VoiceDialog.tsx,
+  useRecordedVoice.ts (xem trước). Tệp lưu trong kho media IndexedDB, assetId `voice-<voiceKey>`; voiceKey = băm
+  ngôn ngữ + chữ đã chuẩn hoá (readAloud.ts). Gói SCORM: voice/0001.m4a…, lesson-data.js `voice: {key: path}`;
+  speech.ts phát bản thu khi đủ mọi mảnh, nếu thiếu thì dùng giọng trình duyệt. Câu trắc nghiệm đọc theo mảnh
+  (số câu, câu hỏi, từng đáp án) để khớp thứ tự khi xáo đáp án.
+- Thử thật tiết 2: 87 đoạn thu trong 12 giây, gói tăng ~2 MB. Runner: export-lesson `"voice": true`.
+- Chromium của Playwright không giải mã AAC (Chrome/Edge/Brave thật thì có), nên kiểm tra phát trên máy thật.
 
 ## Chạy test trên máy người dùng (Windows, F:\Codex\e-learning-studio)
 - `powershell -ExecutionPolicy Bypass -File .\claude-dev.ps1` (để cửa sổ mở). Không commit: claude-dev.ps1, claude-runner.mjs, claude-export.mjs, .claude-dev/.
