@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => {
         provider: env.LESSON_AI_PROVIDER,
         model: env.LESSON_AI_MODEL,
         apiKey: env.LESSON_AI_API_KEY,
+        imageModel: env.LESSON_AI_IMAGE_MODEL,
       }),
     ],
   };

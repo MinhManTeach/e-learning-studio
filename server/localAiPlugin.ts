@@ -4,6 +4,7 @@ import { z } from "zod";
 import { documentBlockSchema, semanticCategories } from "../src/import/model";
 import { projectSchema } from "../src/model/schema";
 import { enhanceWithOpenAi } from "./enhancement";
+import { drawIllustration, polishLesson, studioStatus } from "./studio";
 import {
   analyzeWithOpenAi,
   connectionStatus,
@@ -57,9 +58,19 @@ export function localAiMiddleware(config: LocalAiConfig) {
       send(200, connectionStatus(config));
       return;
     }
+    if (req.url === "/api/lesson-ai/studio/status" && req.method === "GET") {
+      send(200, studioStatus(config));
+      return;
+    }
     const enhancing = req.url === "/api/lesson-ai/enhance";
+    const studio =
+      req.url === "/api/lesson-ai/studio/polish"
+        ? polishLesson
+        : req.url === "/api/lesson-ai/studio/illustrate"
+          ? drawIllustration
+          : undefined;
     if (
-      (!enhancing && req.url !== "/api/lesson-ai/analyze") ||
+      (!enhancing && !studio && req.url !== "/api/lesson-ai/analyze") ||
       req.method !== "POST"
     ) {
       send(404, { error: "AI_ROUTE" });
@@ -80,13 +91,27 @@ export function localAiMiddleware(config: LocalAiConfig) {
       for await (const chunk of req) {
         const bytes = Buffer.from(chunk);
         size += bytes.length;
-        if (size > 2_000_000) {
+        // Polishing sends the page pictures along with the text.
+        if (size > (studio === polishLesson ? 40_000_000 : 2_000_000)) {
           send(413, { error: "AI_INPUT_TOO_LARGE" });
           return;
         }
         chunks.push(bytes);
       }
       const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if (studio) {
+        try {
+          send(200, await studio(config, body, controller.signal));
+        } catch (error) {
+          // Only our own error codes reach the browser, never provider text.
+          const code =
+            error instanceof Error && /^AI_[A-Z_]+$/.test(error.message)
+              ? error.message
+              : "AI_UNAVAILABLE";
+          send(code === "AI_INPUT" ? 400 : 502, { error: code });
+        }
+        return;
+      }
       if (enhancing) {
         const project = projectSchema.safeParse(body);
         if (!project.success) {

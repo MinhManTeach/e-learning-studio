@@ -9,9 +9,14 @@ export interface LocalAiConfig {
   provider?: string;
   model?: string;
   apiKey?: string;
+  /** Picture model, used by "AI làm đẹp bài giảng" (Gemini). */
+  imageModel?: string;
 }
 export function connectionStatus(config: LocalAiConfig) {
-  const present = Boolean(config.provider || config.model || config.apiKey);
+  // Lesson-plan analysis uses OpenAI only; a Gemini key is for the lesson studio.
+  const present =
+    config.provider !== "gemini" &&
+    Boolean(config.provider || config.model || config.apiKey);
   const configured =
     config.provider === "openai" &&
     Boolean(config.apiKey?.trim()) &&
