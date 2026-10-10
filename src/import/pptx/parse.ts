@@ -47,8 +47,44 @@ export interface PptxDeck {
   height: number;
   slides: PptxSlide[];
   /** Every media part referenced by a slide, with its size in bytes. */
-  media: Record<string, { kind: PptxMediaKind; size: number }>;
+  media: Record<string, PptxMedia>;
 }
+export interface PptxMedia {
+  kind: PptxMediaKind;
+  size: number;
+  /** Pixel size of a PNG, JPEG or GIF picture, when its header could be read. */
+  width?: number;
+  height?: number;
+}
+
+/** Pixel size from a PNG, GIF or JPEG header. */
+export function imagePixels(b: Uint8Array) {
+  const u16 = (i: number) => (b[i] << 8) | b[i + 1];
+  const u32 = (i: number) => ((u16(i) << 16) >>> 0) + u16(i + 2);
+  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e)
+    return { width: u32(16), height: u32(20) };
+  if (b.length > 10 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46)
+    return { width: b[6] | (b[7] << 8), height: b[8] | (b[9] << 8) };
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return undefined;
+      const marker = b[i + 1];
+      // SOF0..SOF15 except DHT (C4), JPG (C8) and DAC (CC) carry the frame size.
+      if (
+        marker >= 0xc0 &&
+        marker <= 0xcf &&
+        ![0xc4, 0xc8, 0xcc].includes(marker)
+      )
+        return { width: u16(i + 7), height: u16(i + 5) };
+      i += 2 + u16(i + 2);
+    }
+  }
+  return undefined;
+}
+const pictureExt = /\.(png|jpe?g|gif)$/i;
+/** Pictures larger than this are not opened just to read their size. */
+const maxHeaderScan = 8 * 1048576;
 
 type XmlNode = { [key: string]: XmlNode[] | string | Record<string, string> };
 const parser = new XMLParser({
@@ -202,6 +238,7 @@ function readSlide(
   slideNumbers: Map<string, number>,
   media: PptxDeck["media"],
   mediaSizes: Map<string, number>,
+  pixels: Map<string, { width: number; height: number }>,
 ): PptxSlide {
   const xml = parser.parse(strFromU8(files[part])) as XmlNode[];
   const rels = readRels(files, part);
@@ -215,7 +252,7 @@ function readSlide(
     if (kind === "VIDEO" && audioExt.test(rel.target)) kind = "AUDIO";
     const size = mediaSizes.get(rel.target);
     if (!kind || size === undefined) return undefined;
-    media[rel.target] = { kind, size };
+    media[rel.target] = { kind, size, ...pixels.get(rel.target) };
     return { path: rel.target, kind };
   };
   const jumpOf = (nv: XmlNode | undefined, nvName: string) => {
@@ -361,12 +398,18 @@ export function parsePptx(bytes: Uint8Array): PptxDeck {
   let files: Record<string, Uint8Array>;
   const mediaSizes = new Map<string, number>();
   try {
-    // XML and relationship parts only; media stays compressed until needed.
+    // XML and relationship parts, plus pictures for their pixel size; videos
+    // and sounds stay compressed until needed.
     files = unzipSync(bytes, {
       filter: (f) => {
         if (f.name.startsWith("ppt/media/"))
           mediaSizes.set(f.name, f.originalSize);
-        return /\.(xml|rels)$/i.test(f.name);
+        return (
+          /\.(xml|rels)$/i.test(f.name) ||
+          (f.name.startsWith("ppt/media/") &&
+            pictureExt.test(f.name) &&
+            f.originalSize <= maxHeaderScan)
+        );
       },
     });
   } catch {
@@ -384,9 +427,16 @@ export function parsePptx(bytes: Uint8Array): PptxDeck {
     .filter((r): r is Rel => !!r && !!files[r.target])
     .map((r) => r.target);
   const slideNumbers = new Map(order.map((p, i) => [p, i + 1]));
+  const pixels = new Map<string, { width: number; height: number }>();
+  for (const [name, data] of Object.entries(files))
+    if (name.startsWith("ppt/media/")) {
+      const size = imagePixels(data);
+      if (size?.width && size.height) pixels.set(name, size);
+      delete files[name];
+    }
   const media: PptxDeck["media"] = {};
   const slides = order.map((part, i) =>
-    readSlide(files, part, i + 1, slideNumbers, media, mediaSizes),
+    readSlide(files, part, i + 1, slideNumbers, media, mediaSizes, pixels),
   );
   return {
     width: Number(attr(size, "cx") ?? 12192000),

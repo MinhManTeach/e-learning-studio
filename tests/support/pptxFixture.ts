@@ -83,6 +83,14 @@ const rels = (items: string[]) =>
 export const pngBytes = new Uint8Array([
   137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
 ]);
+/** A PNG header for a width × height picture, padded to `size` bytes (detail = size / pixels). */
+export function pngOfSize(width: number, height: number, size: number) {
+  const b = new Uint8Array(Math.max(size, 33));
+  b.set([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
+  new DataView(b.buffer).setUint32(16, width);
+  new DataView(b.buffer).setUint32(20, height);
+  return b;
+}
 export const mp4Bytes = new Uint8Array([
   0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, 0, 0, 2, 0,
 ]);
