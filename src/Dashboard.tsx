@@ -3,11 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
+  Check,
+  ClipboardPaste,
   Clock3,
   FileUp,
+  FolderOpen,
   GraduationCap,
+  PackageCheck,
+  Pencil,
   Presentation,
   Plus,
+  ShieldCheck,
+  Star,
   Trash2,
   Sparkles,
 } from "lucide-react";
@@ -114,100 +121,166 @@ export function Dashboard({
           <span className="brand-icon">
             <GraduationCap size={26} />
           </span>
-          <span>
-            E-Learning<span className="brand-light"> Studio</span>
+          <span className="brand-text">
+            <span>
+              E-Learning<span className="brand-light"> Studio</span>
+            </span>
+            <small>Không gian soạn bài của thầy cô</small>
           </span>
         </div>
         <AccountBar />
       </header>
       <main className="dashboard-main">
-        <section className="dashboard-hero plan-first-hero">
-          <div>
-            <span className="eyebrow">✨ TẠO BÀI GIẢNG E-LEARNING</span>
+        <section className="dashboard-hero">
+          <div className="hero-copy">
+            <span className="hero-pill">
+              <Sparkles size={15} /> Dành cho thầy cô
+            </span>
             <h1>
-              Tạo bài giảng
-              <br />
-              bằng AI<span>.</span>
+              Biến bài dạy thành <mark>bài học sinh động</mark>
             </h1>
             <p>
-              Đưa kế hoạch bài dạy vào và để E-Learning Studio phân tích cấu
-              trúc bài học cho thầy cô.
+              Nhập PowerPoint hoặc kế hoạch bài dạy. Thầy cô sửa, xem trước rồi
+              xuất gói SCORM để đưa lên LMS của trường.
             </p>
-            <div className="plan-entry-actions">
+            <div className="start-options">
               <button
-                className="primary large"
+                className="start-option featured"
+                onClick={() => setPptxOpen(true)}
+              >
+                <span className="start-icon">
+                  <Presentation size={22} />
+                </span>
+                <span className="start-text">
+                  <strong>Nhập PowerPoint</strong>
+                  <small>Giữ hình slide, video và câu hỏi</small>
+                </span>
+                <ArrowRight className="start-arrow" size={18} />
+              </button>
+              <button
+                className="start-option"
+                onClick={() => startImport("file")}
+              >
+                <span className="start-icon sky">
+                  <FileUp size={22} />
+                </span>
+                <span className="start-text">
+                  <strong>Nhập tệp kế hoạch</strong>
+                  <small>Giáo án Word (.docx) hoặc .txt</small>
+                </span>
+                <ArrowRight className="start-arrow" size={18} />
+              </button>
+              <button
+                className="start-option"
                 onClick={() => startImport("paste")}
               >
-                <Sparkles size={18} />
-                Dán nội dung kế hoạch
-                <ArrowRight size={18} />
-              </button>
-              <button className="large" onClick={() => startImport("file")}>
-                <FileUp size={18} />
-                Nhập tệp kế hoạch
-              </button>
-              <button className="large" onClick={() => setPptxOpen(true)}>
-                <Presentation size={18} />
-                Nhập PowerPoint
+                <span className="start-icon sun">
+                  <ClipboardPaste size={22} />
+                </span>
+                <span className="start-text">
+                  <strong>Dán nội dung kế hoạch</strong>
+                  <small>Chép từ giáo án có sẵn</small>
+                </span>
+                <ArrowRight className="start-arrow" size={18} />
               </button>
             </div>
-            <p className="plan-local-note">
-              Phân tích cục bộ · Giáo viên kiểm tra trước khi tiếp tục
-            </p>
-            <button
-              className="manual-entry"
-              onClick={() => setNewProject(true)}
-            >
-              <Plus size={14} />
-              Tạo bài thủ công
-            </button>
+            <div className="hero-foot">
+              <button
+                className="manual-entry"
+                onClick={() => setNewProject(true)}
+              >
+                <Plus size={15} />
+                Tạo bài thủ công
+              </button>
+              <span>Thầy cô kiểm tra mọi nội dung trước khi dùng.</span>
+            </div>
           </div>
           <div className="hero-art" aria-hidden="true">
-            <div className="art-circle" />
-            <div className="art-note">
-              <span>✦ TỪ KẾ HOẠCH ĐẾN BÀI HỌC</span>
-              <strong>
-                Kế hoạch của thầy cô,
-                <br />
-                khởi đầu bài học hay.
-              </strong>
-              <div className="art-line" />
-              <div className="art-line short" />
-              <FileUp size={48} />
-              <div className="art-dots">NHẬP → PHÂN TÍCH → KIỂM TRA</div>
+            <div className="art-blob" />
+            <div className="art-slide">
+              <div className="art-slide-top">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="art-slide-body">
+                <span className="art-chip">Câu 3/10</span>
+                <strong>Em chọn đáp án đúng</strong>
+                <div className="art-answers">
+                  <span>A</span>
+                  <span className="right">
+                    B <Check size={14} />
+                  </span>
+                  <span>C</span>
+                  <span>D</span>
+                </div>
+                <div className="art-progress">
+                  <span />
+                </div>
+              </div>
             </div>
-            <div className="art-label">
-              <Sparkles size={18} /> Thầy cô luôn là người quyết định
+            <div className="art-badge praise">
+              <Star size={16} /> Giỏi quá!
             </div>
-            <span className="art-star">✳</span>
+            <div className="art-badge scorm">
+              <Check size={16} /> SCORM · LMS
+            </div>
           </div>
         </section>
+        <ol className="steps-strip">
+          <li>
+            <span className="step-icon">
+              <FileUp size={19} />
+            </span>
+            <span>
+              <strong>Nhập bài</strong>
+              <small>PowerPoint hoặc giáo án</small>
+            </span>
+          </li>
+          <li>
+            <span className="step-icon sky">
+              <Pencil size={19} />
+            </span>
+            <span>
+              <strong>Sửa và xem trước</strong>
+              <small>Như học sinh nhìn thấy</small>
+            </span>
+          </li>
+          <li>
+            <span className="step-icon sun">
+              <PackageCheck size={19} />
+            </span>
+            <span>
+              <strong>Xuất gói SCORM</strong>
+              <small>Tải lên LMS của trường</small>
+            </span>
+          </li>
+        </ol>
         <section className="projects-section">
           <div className="projects-heading">
-            <div>
-              <span className="eyebrow">KHÔNG GIAN CỦA BẠN</span>
-              <h2>
-                Bài giảng gần đây <span>{projects.length}</span>
-              </h2>
+            <h2>
+              Bài giảng của tôi <span>{projects.length}</span>
+            </h2>
+            <div className="projects-actions">
+              <button onClick={() => file.current?.click()}>
+                <FolderOpen size={17} /> Mở tệp bài giảng
+              </button>
+              <RestoreControl store={store} open={open} />
+              <button
+                onClick={async () => {
+                  try {
+                    const sample = createSampleProject();
+                    sample.projectId = crypto.randomUUID();
+                    await store.save(sample);
+                    open(sample);
+                  } catch {
+                    setError("Chưa mở được bài mẫu. Hãy thử lại.");
+                  }
+                }}
+              >
+                <BookOpen size={17} /> Xem bài mẫu
+              </button>
             </div>
-            <button onClick={() => file.current?.click()}>
-              <FileUp size={17} /> Mở tệp bài giảng
-            </button>
-            <RestoreControl store={store} open={open} />
-            <button
-              onClick={async () => {
-                try {
-                  const sample = createSampleProject();
-                  sample.projectId = crypto.randomUUID();
-                  await store.save(sample);
-                  open(sample);
-                } catch {
-                  setError("Chưa mở được bài mẫu. Hãy thử lại.");
-                }
-              }}
-            >
-              Mở bài mẫu Phase 1
-            </button>
             <input
               ref={file}
               type="file"
@@ -232,20 +305,20 @@ export function Dashboard({
           )}
           <div className="project-grid">
             <button
-              className="new-project-card plan-project-card"
-              onClick={() => startImport("paste")}
+              className="new-project-card"
+              onClick={() => setPptxOpen(true)}
             >
               <span>
-                <Plus size={27} />
+                <Plus size={26} />
               </span>
-              <strong>Tạo từ kế hoạch bài dạy</strong>
-              <p>Dán nội dung, phân tích và kiểm tra.</p>
+              <strong>Bài giảng mới</strong>
+              <p>Bắt đầu từ PowerPoint của thầy cô.</p>
             </button>
-            {projects.map((project) => (
+            {projects.map((project, index) => (
               <article key={project.projectId} className="project-card">
                 <button className="project-open" onClick={() => open(project)}>
-                  <div className="project-cover">
-                    <span>{project.metadata.subject || "BÀI GIẢNG"}</span>
+                  <div className={`project-cover tone-${index % 4}`}>
+                    <span>{project.metadata.subject || "Bài giảng"}</span>
                     <BookOpen size={34} />
                     <strong>{project.metadata.projectTitle}</strong>
                   </div>
@@ -258,7 +331,7 @@ export function Dashboard({
                       {project.slides.length} trang
                     </p>
                     <span>
-                      <Clock3 size={13} />{" "}
+                      <Clock3 size={13} /> Sửa ngày{" "}
                       {new Date(project.updatedAt).toLocaleDateString("vi-VN")}
                     </span>
                   </div>
@@ -275,8 +348,9 @@ export function Dashboard({
           </div>
         </section>
         <p className="dashboard-note">
-          <span className="status-dot" /> Bài giảng được lưu trong trình duyệt
-          trên thiết bị này. Hãy dùng cùng trình duyệt để mở lại.
+          <ShieldCheck size={16} /> Bài giảng được lưu trong trình duyệt trên
+          thiết bị này. Hãy dùng cùng trình duyệt để mở lại, và sao lưu bài
+          thường xuyên.
         </p>
       </main>
       <footer className="dashboard-footer">
