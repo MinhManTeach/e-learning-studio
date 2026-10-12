@@ -1,3 +1,4 @@
+import { AccountBar } from "./account/AccountBar";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -117,9 +118,7 @@ export function Dashboard({
             E-Learning<span className="brand-light"> Studio</span>
           </span>
         </div>
-        <span className="local-badge">
-          <span className="status-dot" /> Không gian cá nhân
-        </span>
+        <AccountBar />
       </header>
       <main className="dashboard-main">
         <section className="dashboard-hero plan-first-hero">
