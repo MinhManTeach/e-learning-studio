@@ -690,3 +690,31 @@
     transform: none;
   }
 }
+
+/* Sign-in and AI credits (account.css) sit in the header; keep each item on
+   one line and let the group drop below the brand on narrow screens. */
+.dashboard .account-bar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dashboard .account-bar > * {
+  white-space: nowrap;
+}
+.dashboard .account-signin {
+  border-color: var(--home-line);
+  color: var(--home-green-dark);
+  font-weight: 700;
+}
+.dashboard .account-bar button {
+  border-radius: 999px;
+}
+@media (max-width: 560px) {
+  .dashboard-header {
+    flex-wrap: wrap;
+  }
+  .dashboard .account-bar {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+}
