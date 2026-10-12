@@ -196,289 +196,12 @@ button.primary:hover {
   width: 36px;
   padding: 7px;
 }
-.dashboard-header {
-  height: 85px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e4e9e5;
-  padding: 0 6.5vw;
-  background: #fff;
-}
 .local-badge {
   font-size: 12px;
   color: #718079;
   display: flex;
   align-items: center;
   gap: 5px;
-}
-.dashboard-main {
-  max-width: 1320px;
-  margin: auto;
-  padding: 0 50px;
-}
-.dashboard-hero {
-  min-height: 390px;
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  align-items: center;
-  padding: 46px 0 35px;
-  gap: 50px;
-}
-.dashboard-hero h1 {
-  font-size: 41px;
-  line-height: 1.3;
-  letter-spacing: -1.4px;
-  color: #254d3f;
-  margin: 16px 0;
-}
-.dashboard-hero h1 > span {
-  color: #c3a75e;
-}
-.dashboard-hero p {
-  color: #809087;
-  font-size: 14px;
-  line-height: 1.9;
-  margin-bottom: 24px;
-}
-.hero-art {
-  height: 300px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.art-circle {
-  position: absolute;
-  width: 285px;
-  height: 285px;
-  border-radius: 50%;
-  background: #e7efe8;
-  right: 45px;
-}
-.art-note {
-  position: relative;
-  transform: rotate(-6deg);
-  background: #fdfcf8;
-  border: 1px solid #e5e5d7;
-  border-radius: 12px;
-  padding: 28px;
-  width: 290px;
-  height: 230px;
-  box-shadow:
-    10px 17px 0 #b8cabd55,
-    0 15px 35px #254f3220;
-  color: #285541;
-}
-.art-note > span {
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-.art-note > strong {
-  display: block;
-  font-size: 27px;
-  line-height: 1.35;
-  letter-spacing: -0.5px;
-  margin: 16px 0;
-}
-.art-note > svg {
-  position: absolute;
-  right: 27px;
-  bottom: 28px;
-  stroke-width: 1.3;
-  color: #8eaa91;
-}
-.art-line {
-  width: 100px;
-  height: 5px;
-  background: #dce5d7;
-  border-radius: 5px;
-  margin: 7px 0;
-}
-.art-line.short {
-  width: 70px;
-}
-.art-dots {
-  font-size: 8px;
-  color: #cfb36b;
-  margin-top: 20px;
-  letter-spacing: 5px;
-}
-.art-label {
-  position: absolute;
-  right: 0;
-  bottom: 13px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 13px 18px;
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 9px;
-  font-size: 12px;
-  box-shadow: 0 5px 20px #2947330b;
-}
-.art-label svg {
-  color: #bc9b51;
-}
-.art-star {
-  position: absolute;
-  left: 20px;
-  top: 15px;
-  color: #c7ad63;
-  font-size: 50px;
-}
-.projects-section {
-  border-top: 1px solid #e0e7e0;
-  padding-top: 30px;
-}
-.projects-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 23px;
-}
-.projects-heading h2 {
-  font-size: 23px;
-  font-weight: 650;
-  margin: 8px 0 0;
-  letter-spacing: -0.5px;
-}
-.projects-heading h2 span {
-  font-size: 12px;
-  border-radius: 6px;
-  padding: 3px 7px;
-  background: #e8eeea;
-  color: #6c8376;
-  margin-left: 7px;
-  vertical-align: middle;
-}
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-}
-.new-project-card {
-  border: 1px dashed #c2d2c7;
-  background: #f4f8f4;
-  min-height: 260px;
-  flex-direction: column;
-  gap: 14px;
-}
-.new-project-card > span {
-  background: #e3eee5;
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  color: #54856a;
-}
-.new-project-card > strong {
-  font-size: 15px;
-  font-weight: 650;
-}
-.new-project-card p {
-  font-size: 12px;
-  color: #8a998f;
-  font-weight: 400;
-  margin: 0;
-}
-.project-card {
-  position: relative;
-  background: #fff;
-  border: 1px solid #e0e7e0;
-  border-radius: 9px;
-  overflow: hidden;
-}
-.project-open {
-  display: block;
-  border: 0;
-  border-radius: 0;
-  width: 100%;
-  padding: 0;
-  text-align: left;
-  background: white;
-}
-.project-cover {
-  height: 150px;
-  background: #e8eee2;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 23px;
-  color: #426441;
-}
-.project-cover > span {
-  font-size: 9px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-.project-cover > svg {
-  position: absolute;
-  right: 23px;
-  top: 28px;
-  opacity: 0.35;
-}
-.project-cover > strong {
-  font-size: 21px;
-  max-width: 80%;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
-}
-.project-card-body {
-  padding: 17px;
-}
-.project-card h3 {
-  font-size: 14px;
-  font-weight: 650;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 9px;
-  padding-right: 20px;
-}
-.project-card p {
-  font-size: 12px;
-  color: #8b9990;
-  margin-bottom: 16px;
-  font-weight: 400;
-}
-.project-card-body > span {
-  font-size: 10px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  color: #91a095;
-  font-weight: 400;
-}
-.delete-project {
-  position: absolute;
-  bottom: 13px;
-  right: 12px;
-  border: 0;
-  min-height: 30px;
-  padding: 6px;
-  color: #93a197;
-}
-.dashboard-note {
-  color: #8c9a90;
-  font-size: 11px;
-  margin: 27px 0 45px;
-  text-align: center;
-}
-.dashboard-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 23px 6.5vw;
-  color: #91a095;
-  border-top: 1px solid #e5eae5;
-  font-size: 11px;
 }
 .studio {
   height: 100vh;
@@ -1233,18 +956,6 @@ button.primary:hover {
     padding: 7px 10px;
     font-size: 12px;
   }
-  .dashboard-main {
-    padding: 0 30px;
-  }
-  .dashboard-hero h1 {
-    font-size: 33px;
-  }
-  .hero-art {
-    transform: scale(0.85);
-  }
-  .project-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 @media (max-width: 850px) {
   .studio {
@@ -1275,24 +986,6 @@ button.primary:hover {
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .dashboard-hero {
-    grid-template-columns: 1fr;
-  }
-  .hero-art {
-    display: none;
-  }
-  .dashboard-hero {
-    min-height: 340px;
-  }
-  .project-grid {
-    grid-template-columns: 1fr;
-  }
-  .dashboard-header {
-    padding: 0 25px;
-  }
-  .dashboard-footer {
-    gap: 20px;
-  }
 }
 :root .lesson {
   overflow-x: hidden;
@@ -1303,13 +996,13 @@ button.primary:hover {
   right: 24px;
   bottom: 24px;
   z-index: 20;
-  padding: 10px 16px;
-  border: 1px solid #d5dedb;
-  border-radius: 10px;
+  padding: 10px 18px;
+  border: 1px solid #d5e4dd;
+  border-radius: 999px;
   background: white;
   color: #194d42;
   cursor: pointer;
-  box-shadow: 0 3px 16px #0001;
+  box-shadow: 0 6px 20px #1d4c3e1f;
 }
 
 /* Quiz editor: right answers as ticks; unknown answers stand out. */

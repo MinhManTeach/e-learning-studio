@@ -25,7 +25,7 @@ Bản phân tích và chỉnh sửa chỉ giữ trong phiên hiện tại; quay 
 
 Luồng biên soạn thủ công Phase 1:
 
-1. Chọn **Tạo bài thủ công**, hoặc **Mở bài mẫu Phase 1** để khám phá bài 14 trang với tình huống và 10 câu hỏi. Mẫu cố ý có lớp chương trình 4 và lớp học sinh 5 để kiểm tra cảnh báo.
+1. Chọn **Tạo bài thủ công**, hoặc **Xem bài mẫu** để khám phá bài 14 trang với tình huống và 10 câu hỏi. Mẫu cố ý có lớp chương trình 4 và lớp học sinh 5 để kiểm tra cảnh báo.
 2. **Thông tin bài giảng** cho phép sửa metadata, mục tiêu, giao diện và điều kiện hoàn thành. Hai trường lớp độc lập; cảnh báo chỉ gợi ý, không sửa dữ liệu.
 3. **Thêm trang** có tám loại: mở đầu, mục tiêu, nội dung, khởi động, tình huống, trắc nghiệm, tổng kết, hoàn thành. Chọn trang bên trái để sửa thuộc tính ở bên phải.
 4. Mở **Bố cục & giai đoạn**, **Hình ảnh minh họa**, **Lời thuyết minh & ghi chú**, **Khả năng tiếp cận** khi cần. Chọn **Không dùng ảnh** để nội dung giãn hết chiều rộng. Ảnh HTTP(S) cần kết nối tới nguồn; ảnh không tải được có thông báo thay thế.
