@@ -49,6 +49,8 @@ export interface WebDeps {
 
 const sessionCookie = "gv_session";
 const loginCookie = "gv_login";
+/** Where the lesson studio (the single-page app) lives on the site. */
+const STUDIO = "/giao-vien";
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -116,8 +118,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           amount: plan.amount,
           // Shown on the bank transfer; PayOS allows 25 characters.
           description: `GV ${orderCode}`.slice(0, 25),
-          returnUrl: `${config.publicUrl}/?paid=${orderCode}`,
-          cancelUrl: `${config.publicUrl}/?paid=cancelled`,
+          returnUrl: `${config.publicUrl}${STUDIO}?paid=${orderCode}`,
+          cancelUrl: `${config.publicUrl}${STUDIO}?paid=cancelled`,
         },
         transport,
       );
@@ -218,7 +220,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     const clear = cookie(loginCookie, "", 0);
     const code = url.searchParams.get("code");
     if (!state || url.searchParams.get("state") !== state || !code)
-      return redirect(res, "/?login=failed", { "Set-Cookie": clear });
+      return redirect(res, `${STUDIO}?login=failed`, { "Set-Cookie": clear });
     try {
       const profile = await googleSignIn(
         config.google,
@@ -236,11 +238,11 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         store.addCredits(user.id, config.freeCredits, "welcome", user.id);
       const days = config.sessionDays;
       const token = store.createSession(user.id, days * 86_400_000);
-      redirect(res, "/", {
+      redirect(res, STUDIO, {
         "Set-Cookie": [clear, cookie(sessionCookie, token, days * 86_400)],
       });
     } catch {
-      redirect(res, "/?login=failed", { "Set-Cookie": clear });
+      redirect(res, `${STUDIO}?login=failed`, { "Set-Cookie": clear });
     }
   }
 
@@ -314,6 +316,10 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         () => false,
       );
     let file = wanted.startsWith(root) ? wanted : join(root, "index.html");
+    // The site's front page is its own plain page; the lesson studio lives
+    // at /giao-vien (any unknown path below falls back to it).
+    if (path === "/" && (await isFile(join(root, "trang-chu.html"))))
+      file = join(root, "trang-chu.html");
     // Plain pages such as /dieu-khoan are served from dieu-khoan.html.
     if (
       !extname(file) &&

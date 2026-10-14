@@ -47,5 +47,5 @@ export function useAccount(fetcher: typeof fetch = fetch) {
 
 export async function signOut(fetcher: typeof fetch = fetch) {
   await fetcher("/auth/logout", { method: "POST" }).catch(() => undefined);
-  location.assign("/");
+  location.assign("/giao-vien");
 }
