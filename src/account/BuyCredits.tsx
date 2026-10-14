@@ -94,6 +94,17 @@ export function BuyCredits({
           </ul>
         )}
         {error && <p role="alert">{error}</p>}
+        <p className="hint">
+          Khi thanh toán, thầy cô đồng ý với{" "}
+          <a href="/dieu-khoan" target="_blank" rel="noreferrer">
+            Điều khoản sử dụng
+          </a>{" "}
+          và{" "}
+          <a href="/chinh-sach-bao-mat" target="_blank" rel="noreferrer">
+            Chính sách bảo mật
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
