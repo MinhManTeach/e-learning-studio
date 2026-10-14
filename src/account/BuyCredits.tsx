@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface Plan {
@@ -13,7 +14,9 @@ const errors: Record<string, string> = {
   AUTH_REQUIRED: "Phiên đăng nhập đã hết. Hãy đăng nhập lại.",
 };
 
-/** Plans and "Thanh toán bằng QR": goes on to the PayOS payment page. */
+/** Plans and "Thanh toán bằng QR": goes on to the PayOS payment page.
+ *  Rendered into <body>: the header it opens from is blurred, which would
+ *  otherwise trap the fixed overlay inside the header's box. */
 export function BuyCredits({
   onClose,
   fetcher = fetch,
@@ -52,7 +55,7 @@ export function BuyCredits({
       setBusy("");
     }
   }
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div
         className="modal buy-credits"
@@ -106,6 +109,7 @@ export function BuyCredits({
           .
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
