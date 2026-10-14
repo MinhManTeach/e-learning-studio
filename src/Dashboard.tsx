@@ -354,8 +354,15 @@ export function Dashboard({
         </p>
       </main>
       <footer className="dashboard-footer">
-        <span>E-Learning Studio</span>
-        <span>Đồng hành cùng thầy cô, khơi mở từng bài học.</span>
+        <span>
+          © 2026 E-Learning Studio · Đồng hành cùng thầy cô, khơi mở từng bài
+          học.
+        </span>
+        <nav aria-label="Pháp lý">
+          <a href="/dieu-khoan">Điều khoản sử dụng</a>
+          <a href="/chinh-sach-bao-mat">Chính sách bảo mật</a>
+          <a href="mailto:minhmanteach@gmail.com">Liên hệ</a>
+        </nav>
       </footer>
       {newProject && (
         <div className="modal-overlay">

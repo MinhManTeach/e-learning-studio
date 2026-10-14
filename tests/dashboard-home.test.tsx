@@ -37,4 +37,16 @@ describe("teacher start page", () => {
     expect(screen.getByText(/Sửa ngày/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Xem bài mẫu/ })).toBeTruthy();
   });
+
+  it("links the terms and privacy pages from the footer", () => {
+    renderHome();
+    const legal = screen.getByRole("navigation", { name: "Pháp lý" });
+    const href = (name: string) =>
+      screen.getByRole("link", { name }).getAttribute("href");
+    expect(href("Điều khoản sử dụng")).toBe("/dieu-khoan");
+    expect(href("Chính sách bảo mật")).toBe("/chinh-sach-bao-mat");
+    expect(legal.contains(screen.getByRole("link", { name: "Liên hệ" }))).toBe(
+      true,
+    );
+  });
 });

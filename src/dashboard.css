@@ -626,9 +626,22 @@
   padding: 22px max(24px, 6vw) 84px;
   border-top: 1px solid var(--home-line);
   background: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--home-muted);
+}
+.dashboard-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.dashboard-footer a {
+  color: var(--home-green-dark);
+  font-weight: 800;
+  text-underline-offset: 3px;
+}
+.dashboard-footer a:hover {
+  color: var(--home-green);
 }
 
 @media (max-width: 1150px) {
