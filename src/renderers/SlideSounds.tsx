@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Volume2, Square } from "lucide-react";
 import type { LessonProject, Slide, SlideSound } from "../model/schema";
 import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
@@ -18,8 +18,14 @@ export function SlideSounds({
   cover: boolean;
 }) {
   if (slide.type !== "content" && slide.type !== "welcome") return null;
-  const sounds = slide.data.sounds.filter((s) =>
-    project.assets.some((a) => a.id === s.assetId && a.kind === "AUDIO"),
+  // Sounds played by clicking a picture of the original slide live on that picture.
+  const linked = new Set(
+    slide.data.original?.items.map((i) => i.soundId).filter(Boolean),
+  );
+  const sounds = slide.data.sounds.filter(
+    (s) =>
+      !linked.has(s.id) &&
+      project.assets.some((a) => a.id === s.assetId && a.kind === "AUDIO"),
   );
   if (!sounds.length) return null;
   const spots = cover ? sounds.filter((s) => s.area) : [];
@@ -69,14 +75,56 @@ function SoundButton({
   project: LessonProject;
   spot?: boolean;
 }) {
-  const asset = project.assets.find((a) => a.id === sound.assetId);
+  return (
+    <SoundTrigger
+      sound={sound}
+      project={project}
+      className={spot ? "sound-spot" : "sound-button primary"}
+      style={
+        spot && sound.area
+          ? {
+              left: `${sound.area.x}%`,
+              top: `${sound.area.y}%`,
+              width: `${sound.area.w}%`,
+              height: `${sound.area.h}%`,
+            }
+          : undefined
+      }
+      icon
+    >
+      {!spot && <span>{sound.label || "Âm thanh"}</span>}
+    </SoundTrigger>
+  );
+}
+
+/** A button that plays (and stops) one sound of the page. */
+export function SoundTrigger({
+  sound,
+  project,
+  className,
+  style,
+  icon = false,
+  children,
+}: {
+  sound: SlideSound;
+  project: LessonProject;
+  className: string;
+  style?: React.CSSProperties;
+  /** Show a speaker (or stop) icon before the content. */
+  icon?: boolean;
+  children?: ReactNode;
+}) {
+  const asset = project.assets.find(
+    (a) => a.id === sound.assetId && a.kind === "AUDIO",
+  );
   const resolved = useImageResolver()(asset, project.projectId);
   const audio = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const usable =
+    !!asset &&
     !resolved.loading &&
     !resolved.error &&
-    isDisplayableUrl(resolved.url, asset?.status === "LOCAL");
+    isDisplayableUrl(resolved.url, asset.status === "LOCAL");
   // Leaving the page stops its sounds.
   useEffect(() => () => audio.current?.pause(), []);
   const toggle = () => {
@@ -93,25 +141,16 @@ function SoundButton({
   return (
     <button
       type="button"
-      className={spot ? "sound-spot" : "sound-button primary"}
-      style={
-        spot && sound.area
-          ? {
-              left: `${sound.area.x}%`,
-              top: `${sound.area.y}%`,
-              width: `${sound.area.w}%`,
-              height: `${sound.area.h}%`,
-            }
-          : undefined
-      }
+      className={className}
+      style={style}
       aria-label={playing ? `Dừng: ${label}` : `Nghe: ${label}`}
       aria-pressed={playing}
       title={label}
       disabled={!usable}
       onClick={toggle}
     >
-      {playing ? <Square size={16} /> : <Volume2 size={16} />}
-      {!spot && <span>{label}</span>}
+      {icon && (playing ? <Square size={16} /> : <Volume2 size={16} />)}
+      {children}
       {usable && (
         <audio
           ref={audio}

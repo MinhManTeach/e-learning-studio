@@ -7,6 +7,11 @@ export function detectImageMime(bytes: Uint8Array) {
     String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
   return png ? "image/png" : jpeg ? "image/jpeg" : webp ? "image/webp" : "";
 }
+/** Pictures from a PowerPoint may also be GIF (often animated); kept as they are. */
+export function detectPictureMime(bytes: Uint8Array) {
+  const gif = /^GIF8[79]a$/.test(String.fromCharCode(...bytes.slice(0, 6)));
+  return detectImageMime(bytes) || (gif ? "image/gif" : "");
+}
 export function detectVideoMime(bytes: Uint8Array) {
   if (String.fromCharCode(...bytes.slice(4, 8)) === "ftyp") return "video/mp4";
   if (
@@ -78,7 +83,7 @@ export async function validateImageBlob(blob: Blob) {
   if (!blob.size || blob.size > maxImageBytes)
     throw new Error("Ảnh phải lớn hơn 0 và không quá 8 MB.");
   const bytes = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
-  const detected = detectImageMime(bytes);
+  const detected = detectPictureMime(bytes);
   if (!detected || blob.type !== detected)
     throw new Error(
       "Chỉ nhận PNG, JPEG hoặc WebP có nội dung hợp lệ; không nhận SVG.",

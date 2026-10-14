@@ -1049,3 +1049,19 @@ button.primary:hover {
 .sound-row button {
   margin-bottom: 12px;
 }
+/* Danh sách hình và chữ của slide gốc trong trình soạn. */
+.original-items {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.original-items small {
+  color: #6b7a68;
+}
+.original-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}

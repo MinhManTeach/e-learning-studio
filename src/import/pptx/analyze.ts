@@ -23,6 +23,33 @@ export interface DraftSound {
   label: string;
   /** What the student clicks, in percent of the slide (when it is on the slide). */
   area?: { x: number; y: number; w: number; h: number; slideRatio: number };
+  /** The slide element the student clicks (shape id). */
+  from?: string;
+}
+/** A picture or text box of the slide, in percent of the slide. */
+export interface DraftItem {
+  /** Shape id in the slide. */
+  id: string;
+  kind: "IMAGE" | "TEXT";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  image?: string;
+  text: string[];
+  /** Percent of the slide width. */
+  size?: number;
+  color?: string;
+  fill?: string;
+  bold?: boolean;
+  align?: "left" | "center" | "right";
+  /** Index in the page's sounds. */
+  sound?: number;
+  step?: number;
+}
+export interface DraftLayout {
+  ratio: number;
+  items: DraftItem[];
 }
 export type DraftPage =
   | {
@@ -34,6 +61,8 @@ export type DraftPage =
       sounds?: DraftSound[];
       /** The text appears bit by bit on click in PowerPoint. */
       reveal?: boolean;
+      /** The whole slide as laid out in PowerPoint (pages with sounds). */
+      original?: DraftLayout;
       /** Biggest meaningful picture on the slide, used when no slide image is given. */
       picture?: string;
       /** The slide is only a picture (no text): show it on its own, filling the page. */
@@ -485,7 +514,7 @@ function slideSounds(slide: PptxSlide, deck: PptxDeck): DraftSound[] {
     sounds.push({
       audio,
       label: label.slice(0, 80),
-      ...(usable ? { area: usable } : {}),
+      ...(usable ? { area: usable, from: where!.id } : {}),
     });
   };
   for (const e of slide.elements) {
@@ -502,6 +531,64 @@ function slideSounds(slide: PptxSlide, deck: PptxDeck): DraftSound[] {
     ...s,
     label: s.label || `Âm thanh ${i + 1}`,
   }));
+}
+/**
+ * Every picture, text box and coloured box on the slide, back to front, so the
+ * page looks like the teacher's slide. Nothing is left out but the NotebookLM
+ * watermark; the teacher removes what they do not want in the editor.
+ */
+function slideLayout(
+  slide: PptxSlide,
+  deck: PptxDeck,
+  sounds: DraftSound[],
+): DraftLayout {
+  const slideWidthPt = deck.width / 12700;
+  const order = new Map(slide.appear.map((id, i) => [id, i + 1]));
+  const items: DraftItem[] = [];
+  for (const e of slide.elements) {
+    if (!e.rect || !onSlide(e.rect, deck)) continue;
+    const text = e.text.filter((t) => !isWatermark(t));
+    if (e.text.length && !text.length) continue;
+    if (!e.image && !text.length && !e.style?.fill) continue;
+    // The picture clicked for the sound, or the sound's own speaker icon.
+    const clicked = sounds.findIndex((s) => s.from === e.id);
+    const sound =
+      clicked >= 0
+        ? clicked
+        : e.media?.kind === "AUDIO"
+          ? sounds.findIndex((s) => s.audio === e.media!.path)
+          : -1;
+    const round = (v: number) => Math.round(v * 100) / 100;
+    items.push({
+      id: e.id,
+      kind: e.image ? "IMAGE" : "TEXT",
+      x: round((e.rect.x / deck.width) * 100),
+      y: round((e.rect.y / deck.height) * 100),
+      w: round((e.rect.w / deck.width) * 100),
+      h: round((e.rect.h / deck.height) * 100),
+      ...(e.image ? { image: e.image } : {}),
+      text: e.image ? [] : text,
+      ...(e.style?.size
+        ? { size: round((e.style.size / slideWidthPt) * 100) }
+        : {}),
+      ...(e.style?.color ? { color: e.style.color } : {}),
+      ...(e.style?.fill ? { fill: e.style.fill } : {}),
+      ...(e.style?.bold ? { bold: true } : {}),
+      ...(e.style?.align ? { align: e.style.align } : {}),
+      ...(sound >= 0 ? { sound } : {}),
+      ...(order.has(e.id) ? { step: order.get(e.id) } : {}),
+    });
+    // A picture with text on it (a button): keep the words on top of it.
+    if (e.image && text.length)
+      items.push({
+        ...items.at(-1)!,
+        kind: "TEXT",
+        image: undefined,
+        text,
+        id: `${e.id}-text`,
+      });
+  }
+  return { ratio: deck.width / deck.height, items };
 }
 /** Text boxes on the slide that PowerPoint shows one click at a time. */
 function revealsText(slide: PptxSlide, deck: PptxDeck) {
@@ -570,6 +657,9 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
     const cover =
       !title && !text.length ? coverPicture(slide, deck) : undefined;
     const sounds = slideSounds(slide, deck);
+    const original = sounds.length
+      ? slideLayout(slide, deck, sounds)
+      : undefined;
     pages.push({
       kind: "PAGE",
       slide: n,
@@ -578,6 +668,7 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
       notes: slide.notes,
       ...(sounds.length ? { sounds } : {}),
       ...(text.length > 1 && revealsText(slide, deck) ? { reveal: true } : {}),
+      ...(original?.items.length ? { original } : {}),
       ...(cover
         ? { picture: cover, cover: true }
         : { picture: mainPicture(slide, deck) }),
@@ -588,6 +679,9 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
     if (p.kind === "VIDEO") media.add(p.video);
     if (p.kind === "PAGE" && p.picture) media.add(p.picture);
     if (p.kind === "PAGE") for (const s of p.sounds ?? []) media.add(s.audio);
+    if (p.kind === "PAGE")
+      for (const item of p.original?.items ?? [])
+        if (item.image) media.add(item.image);
     if (p.kind === "QUESTIONS")
       for (const q of p.questions)
         for (const o of q.options) if (o.image) media.add(o.image);

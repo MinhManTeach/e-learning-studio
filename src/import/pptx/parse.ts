@@ -28,6 +28,18 @@ export interface PptxElement {
   media?: { path: string; kind: "VIDEO" | "AUDIO" };
   /** 1-based slide number this element jumps to when clicked. */
   jump?: number;
+  /** How the text and its box look, when the file says so plainly (RGB colours only). */
+  style?: PptxStyle;
+}
+export interface PptxStyle {
+  /** Font size of the first run, in points. */
+  size?: number;
+  /** "#rrggbb" */
+  color?: string;
+  bold?: boolean;
+  /** Box fill, "#rrggbb". */
+  fill?: string;
+  align?: "left" | "center" | "right";
 }
 export interface PptxTrigger {
   /** The shape the student clicks. */
@@ -147,6 +159,30 @@ function paragraphs(list: XmlNode[]): string[] {
         .trim(),
     )
     .filter(Boolean);
+}
+
+const rgb = (fill: XmlNode | undefined) => {
+  const val = attr(find(kids(fill, "solidFill"), "srgbClr"), "val");
+  return val && /^[0-9a-f]{6}$/i.test(val)
+    ? `#${val.toLowerCase()}`
+    : undefined;
+};
+/** Size, colour, weight and alignment of the first run; the box's own fill. */
+function styleOf(spPr: XmlNode | undefined, txBody: XmlNode | undefined) {
+  const style: PptxStyle = {};
+  const fill = rgb(find(kids(spPr, "spPr"), "solidFill"));
+  if (fill) style.fill = fill;
+  const body = kids(txBody, "txBody");
+  const run = descendants(body, "rPr")[0] ?? descendants(body, "endParaRPr")[0];
+  const sz = Number(attr(run, "sz"));
+  if (sz > 0) style.size = sz / 100;
+  if (attr(run, "b") === "1") style.bold = true;
+  const color = rgb(find(kids(run, "rPr"), "solidFill"));
+  if (color) style.color = color;
+  const algn = attr(descendants(body, "pPr")[0], "algn");
+  if (algn === "ctr") style.align = "center";
+  else if (algn === "r") style.align = "right";
+  return Object.keys(style).length ? style : undefined;
 }
 
 interface Rel {
@@ -300,8 +336,10 @@ function readSlide(
           kids(find(inner, "spPr"), "spPr"),
           "blip",
         )[0];
+        const style = styleOf(find(inner, "spPr"), find(inner, "txBody"));
         elements.push({
           ...base(nv, "nvSpPr"),
+          ...(style ? { style } : {}),
           text: paragraphs(kids(find(inner, "txBody"), "txBody")),
           placeholder: ph ? (attr(ph, "type") ?? "body") : undefined,
           rect: rect && t.apply(rect),

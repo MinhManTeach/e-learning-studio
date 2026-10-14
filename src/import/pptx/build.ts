@@ -8,7 +8,7 @@ import {
 } from "../../model/schema";
 import type { StoredMedia } from "../../media/model";
 import {
-  detectImageMime,
+  detectPictureMime,
   detectSoundMime,
   detectVideoMime,
   maxImageBytes,
@@ -82,6 +82,9 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
     if (p.kind === "VIDEO") wanted.add(p.video);
     if (p.kind === "PAGE" && p.picture) wanted.add(p.picture);
     if (p.kind === "PAGE") for (const s of p.sounds ?? []) wanted.add(s.audio);
+    if (p.kind === "PAGE")
+      for (const item of p.original?.items ?? [])
+        if (item.image) wanted.add(item.image);
     if (p.kind === "QUESTIONS")
       for (const q of p.questions)
         for (const o of q.options) if (o.image) wanted.add(o.image);
@@ -97,7 +100,7 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
     sound = false,
   ): string | undefined {
     const head = bytes.slice(0, 16);
-    const image = sound ? "" : detectImageMime(head);
+    const image = sound ? "" : detectPictureMime(head);
     const video = sound || image ? "" : detectVideoMime(head);
     const audio = sound ? detectSoundMime(head) : "";
     const mime = image || video || audio;
@@ -225,25 +228,62 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
     }
     const picture = pictures.get(page.slide);
     if (page.kind === "PAGE") {
-      s.data.sounds = (page.sounds ?? []).flatMap((sound) => {
+      const soundIds = (page.sounds ?? []).map((sound) => {
         const assetId = partAsset(sound.audio, sound.label, where, true);
-        if (!assetId) return [];
+        return assetId ? { id: crypto.randomUUID(), assetId } : undefined;
+      });
+      s.data.sounds = (page.sounds ?? []).flatMap((sound, i) => {
+        const built = soundIds[i];
+        if (!built) return [];
         return [
           {
-            id: crypto.randomUUID(),
-            assetId,
+            ...built,
             label: sound.label,
             // A clickable spot only fits the teacher's picture of the whole slide.
             ...(picture && sound.area ? { area: sound.area } : {}),
           },
         ];
       });
+      // Without a slide picture, a page with sounds is drawn like the slide:
+      // every picture (sound icons included) and text box where it was.
+      if (page.original && !picture)
+        s.data.original = {
+          ratio: page.original.ratio,
+          items: page.original.items.flatMap((item) => {
+            const assetId = item.image
+              ? partAsset(item.image, item.text.join(" ") || page.title, where)
+              : undefined;
+            if (item.image && !assetId) return [];
+            const soundId =
+              item.sound !== undefined ? soundIds[item.sound]?.id : undefined;
+            return [
+              {
+                id: crypto.randomUUID(),
+                kind: item.kind,
+                x: item.x,
+                y: item.y,
+                w: item.w,
+                h: item.h,
+                ...(assetId ? { assetId } : {}),
+                text: item.text,
+                ...(item.size ? { size: Math.min(item.size, 30) } : {}),
+                ...(item.color ? { color: item.color } : {}),
+                ...(item.fill ? { fill: item.fill } : {}),
+                ...(item.bold ? { bold: true } : {}),
+                ...(item.align ? { align: item.align } : {}),
+                ...(soundId ? { soundId } : {}),
+                ...(item.step ? { step: item.step } : {}),
+              },
+            ];
+          }),
+        };
       // On a picture of the whole slide the text is part of the picture.
       if (page.reveal && picture)
         warnings.push(
           `${where}: chữ hiện dần khi bấm không giữ được vì trang dùng ảnh chụp slide.`,
         );
-      else if (page.reveal) s.data.revealOnClick = true;
+      // The original slide shows its own click order (item steps) instead.
+      else if (page.reveal && !s.data.original) s.data.revealOnClick = true;
     }
     const assetId =
       page.kind === "VIDEO"

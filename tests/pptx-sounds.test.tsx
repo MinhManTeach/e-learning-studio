@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { strFromU8, unzipSync } from "fflate";
 import { parsePptx } from "../src/import/pptx/parse";
 import { analyzeDeck } from "../src/import/pptx/analyze";
@@ -140,13 +146,12 @@ it("keeps the sounds as lesson audio and tells the teacher about WMA", () => {
   const { project, media, warnings } = build(false);
   const [page] = project.slides;
   if (page.type !== "content") throw new Error("expected content");
-  expect(page.data.revealOnClick).toBe(true);
   expect(page.data.sounds.map((s) => s.label)).toEqual([
     "Trống",
     "Nhạc nền",
     "Âm thanh khi mở trang",
   ]);
-  // Without a picture of the whole slide there is nothing to click on: buttons.
+  // Without a picture of the whole slide there is no spot on a picture.
   expect(page.data.sounds.every((s) => !s.area)).toBe(true);
   const audio = project.assets.filter((a) => a.kind === "AUDIO");
   expect(audio.map((a) => a.mimeType).sort()).toEqual([
@@ -158,6 +163,27 @@ it("keeps the sounds as lesson audio and tells the teacher about WMA", () => {
   expect(warnings).toEqual([
     "Slide 2: bỏ qua âm thanh “bai-hat.wma” vì định dạng chưa hỗ trợ. Hãy đổi tệp sang MP3 trong PowerPoint rồi nhập lại.",
   ]);
+});
+
+it("keeps every picture, the speaker icon and the text where the slide had them", () => {
+  const { project } = build(false);
+  const [page] = project.slides;
+  if (page.type !== "content") throw new Error("expected content");
+  const original = page.data.original!;
+  const drum = page.data.sounds[0].id;
+  expect(
+    original.items.map((i) => [i.kind, i.x, i.y, i.soundId === drum, i.step]),
+  ).toEqual([
+    ["TEXT", 5, 3, false, undefined],
+    // The text flew in on the first click.
+    ["TEXT", 5, 20, false, 1],
+    // The drum picture and its speaker icon both play the drum.
+    ["IMAGE", 55, 20, true, undefined],
+    ["IMAGE", 55, 70, true, undefined],
+  ]);
+  expect(original.ratio).toBeCloseTo(16 / 9);
+  // The slide shows its own click order, not the text template's.
+  expect(page.data.revealOnClick).toBe(false);
 });
 
 it("puts a click spot on the slide picture and says the fly-in text is lost", () => {
@@ -200,22 +226,69 @@ function show(project: LessonProject, student: boolean) {
   );
 }
 
-it("shows a student the points one click at a time, with sound buttons", () => {
+it("shows a student the original slide, click by click, with clickable sounds", () => {
   const { project } = build(false);
   const { container } = show(project, true);
-  expect(container.querySelectorAll("li")).toHaveLength(1);
-  fireEvent.click(screen.getByRole("button", { name: /Hiện ý tiếp theo/ }));
-  expect(container.querySelectorAll("li")).toHaveLength(2);
-  expect(screen.queryByRole("button", { name: /Hiện ý tiếp theo/ })).toBeNull();
-  const drum = screen.getByRole("button", { name: "Nghe: Trống" });
-  expect(drum.querySelector("audio")?.getAttribute("src")).toMatch(
-    /^https:\/\/lms\.example\/sco\/media\/pptx-trong-mp3$/,
+  expect(container.querySelector(".original-slide")).not.toBeNull();
+  const slide = container.querySelector<HTMLElement>(".original-slide")!;
+  const flyIn = within(slide).getByText(
+    "Trống có tiếng vang to.",
+  ).parentElement!;
+  expect(flyIn.style.visibility).toBe("hidden");
+  fireEvent.click(screen.getByRole("button", { name: /Tiếp theo \(0\/1\)/ }));
+  expect(flyIn.style.visibility).toBe("");
+  expect(screen.queryByRole("button", { name: /Tiếp theo/ })).toBeNull();
+  const drum = screen.getAllByRole("button", { name: "Nghe: Trống" });
+  expect(drum).toHaveLength(2);
+  expect(drum[0].querySelector("img")).not.toBeNull();
+  expect(drum[0].querySelector("audio")?.getAttribute("src")).toBe(
+    "https://lms.example/sco/media/pptx-trong-mp3",
+  );
+  // Background music had no place on the slide: a button at the bottom.
+  expect(screen.getByRole("button", { name: "Nghe: Nhạc nền" }).className).toBe(
+    "sound-button primary",
   );
 });
 
-it("shows the teacher every point in the editor", () => {
+it("shows the teacher every item of the original slide in the editor", () => {
   const { project } = build(false);
   const { container } = show(project, false);
+  const slide = container.querySelector<HTMLElement>(".original-slide")!;
+  expect(
+    within(slide).getByText("Trống có tiếng vang to.").parentElement!.style
+      .visibility,
+  ).toBe("");
+  expect(screen.queryByRole("button", { name: /Tiếp theo/ })).toBeNull();
+});
+
+it("still shows the points of a page without sounds one click at a time", () => {
+  const bytes = buildPptx(
+    [
+      {
+        shapes: [
+          text(2, "Nhịp 2/4", { x: 5, y: 3, w: 60, h: 12 }, { title: true }),
+          text(3, ["Mạnh – nhẹ.", "Đếm 1 – 2."], { x: 5, y: 20, w: 45, h: 30 }),
+        ],
+        appear: ["3"],
+      },
+    ],
+    {},
+  );
+  const { project } = buildLessonFromPptx({
+    title: "Âm nhạc",
+    subject: "",
+    grade: "",
+    pages: analyzeDeck(parsePptx(bytes)).pages,
+    pptx: bytes,
+    slidePictures: [],
+  });
+  const [page] = project.slides;
+  if (page.type !== "content") throw new Error("expected content");
+  expect(page.data.original).toBeUndefined();
+  expect(page.data.revealOnClick).toBe(true);
+  const { container } = show(project, true);
+  expect(container.querySelectorAll("li")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: /Hiện ý tiếp theo/ }));
   expect(container.querySelectorAll("li")).toHaveLength(2);
 });
 
@@ -240,6 +313,8 @@ it("packs the page sounds into the lesson package", async () => {
     { js: "", css: "" },
   );
   expect(pkg.soundCount).toBe(3);
+  // The original slide's pictures travel with it.
+  expect(pkg.imageCount).toBe(1);
   const zip = unzipSync(pkg.bytes);
   expect(
     Object.keys(zip)
@@ -251,4 +326,16 @@ it("packs the page sounds into the lesson package", async () => {
     "media/sound-0003.wav",
   ]);
   expect(strFromU8(zip["lesson-data.js"])).toContain("media/sound-0001.mp3");
+});
+
+it("reads the size, colour and box fill of a text box", () => {
+  const box = `<p:sp><p:nvSpPr><p:cNvPr id="7" name="Nhãn"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1000" cy="1000"/></a:xfrm><a:solidFill><a:srgbClr val="FFCC00"/></a:solidFill></p:spPr><p:txBody><a:bodyPr/><a:p><a:pPr algn="ctr"/><a:r><a:rPr sz="3600" b="1"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill></a:rPr><a:t>Đô Rê Mi</a:t></a:r></a:p></p:txBody></p:sp>`;
+  const deck = parsePptx(buildPptx([{ shapes: [box] }], {}));
+  expect(deck.slides[0].elements[0].style).toEqual({
+    fill: "#ffcc00",
+    size: 36,
+    bold: true,
+    color: "#c00000",
+    align: "center",
+  });
 });

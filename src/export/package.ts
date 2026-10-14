@@ -2,7 +2,7 @@ import { strToU8, zipSync, type Zippable } from "fflate";
 import { parseProject, type LessonProject } from "../model/schema";
 import type { StoredMedia } from "../media/model";
 import {
-  detectImageMime,
+  detectPictureMime,
   detectSoundMime,
   detectVideoMime,
 } from "../media/storage";
@@ -44,6 +44,7 @@ const extensions: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
+  "image/gif": "gif",
   "video/mp4": "mp4",
   "video/webm": "webm",
   "audio/mpeg": "mp3",
@@ -53,7 +54,7 @@ const extensions: Record<string, string> = {
 };
 /** Recognises the file by its bytes, not by its name or claimed type. */
 export function detectMediaMime(bytes: Uint8Array) {
-  return detectImageMime(bytes) || detectVideoMime(bytes);
+  return detectPictureMime(bytes) || detectVideoMime(bytes);
 }
 const pageName = (p: LessonProject, slideId: string) => {
   const i = p.slides.findIndex((s) => s.id === slideId);
@@ -70,6 +71,8 @@ function shownMedia(p: LessonProject) {
     if (s.media.enabled) use(s.media.assetId, s.id);
     if (s.type === "content" || s.type === "welcome")
       for (const sound of s.data.sounds) use(sound.assetId, s.id);
+    if (s.type === "content" || s.type === "welcome")
+      for (const item of s.data.original?.items ?? []) use(item.assetId, s.id);
     // Pictures on answer cards.
     if (s.type === "warmup")
       for (const item of s.data.items) use(item.imageAssetId, s.id);
