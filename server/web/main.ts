@@ -43,6 +43,8 @@ const config: WebConfig = {
           checksumKey: env.PAYOS_CHECKSUM_KEY,
         }
       : null,
+  appsDir: env.APPS_DIR ? resolve(env.APPS_DIR) : undefined,
+  ttsKey: env.GOOGLE_TTS_API_KEY?.trim() || undefined,
 };
 const store = new Store(join(dataDir, "app.db"));
 const handler = createWebHandler(config, { store });
@@ -53,6 +55,8 @@ createServer((req, res) => void handler(req, res)).listen(port, () => {
       config.google ? "bật" : "chưa cấu hình"
     }. AI: ${config.ai.apiKey ? "đã có khoá" : "chưa có khoá"}. Thanh toán PayOS: ${
       config.payos ? "bật" : "chưa cấu hình"
+    }. Ứng dụng học sinh: ${config.appsDir ?? "chưa cấu hình"}. Giọng đọc Google: ${
+      config.ttsKey ? "bật" : "dùng giọng trình duyệt"
     }.`,
   );
 });

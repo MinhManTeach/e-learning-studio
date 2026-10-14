@@ -19,6 +19,7 @@ import {
   verifyWebhook,
   type PayosConfig,
 } from "./payos";
+import { createTts, TTS_MAX_CHARS } from "./tts";
 
 export interface WebConfig {
   /** Public address, e.g. https://giangvui.vn (no trailing slash). */
@@ -32,6 +33,11 @@ export interface WebConfig {
   staticDir?: string;
   /** PayOS keys; without them buying credits is switched off. */
   payos?: PayosConfig | null;
+  /** Folder of student apps, each built into <name>/dist and served at
+   * /hoc-sinh/<name>/. */
+  appsDir?: string;
+  /** Google Cloud Text-to-Speech key for the apps' read-aloud. */
+  ttsKey?: string;
 }
 export interface WebDeps {
   store: Store;
@@ -83,6 +89,21 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const origin = new URL(config.publicUrl).origin;
   const redirectUri = `${config.publicUrl}/auth/google/callback`;
   const busy = new Set<string>(); // users with an AI design running
+  const speak = createTts(config.ttsKey, transport, now);
+
+  async function tts(res: ServerResponse, url: URL) {
+    const text = (url.searchParams.get("text") ?? "").trim();
+    if (!text || text.length > TTS_MAX_CHARS)
+      return send(res, 400, { error: "TTS_TEXT" });
+    const audio = await speak(text);
+    // The app then reads the phrase with the browser's own voice.
+    if (!audio) return send(res, 503, { error: "TTS_UNAVAILABLE" });
+    res.writeHead(200, {
+      "Content-Type": "audio/mpeg",
+      "Cache-Control": "public, max-age=86400",
+    });
+    res.end(audio);
+  }
 
   /** A 12-digit order number: time-based, with a random tail. */
   const newOrderCode = () =>
@@ -306,9 +327,13 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     }
   }
 
-  async function serveStatic(res: ServerResponse, path: string) {
-    if (!config.staticDir) return send(res, 404, { error: "NOT_FOUND" });
-    const root = normalize(config.staticDir + sep);
+  async function serveStatic(
+    res: ServerResponse,
+    path: string,
+    dir = config.staticDir,
+  ) {
+    if (!dir) return send(res, 404, { error: "NOT_FOUND" });
+    const root = normalize(dir + sep);
     const wanted = normalize(join(root, decodeURIComponent(path)));
     const isFile = (f: string) =>
       stat(f).then(
@@ -318,7 +343,11 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     let file = wanted.startsWith(root) ? wanted : join(root, "index.html");
     // The site's front page is its own plain page; the lesson studio lives
     // at /giao-vien (any unknown path below falls back to it).
-    if (path === "/" && (await isFile(join(root, "trang-chu.html"))))
+    if (
+      dir === config.staticDir &&
+      path === "/" &&
+      (await isFile(join(root, "trang-chu.html")))
+    )
       file = join(root, "trang-chu.html");
     // Plain pages such as /dieu-khoan are served from dieu-khoan.html.
     if (
@@ -357,6 +386,9 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
       // signature is what proves it.
       if (method === "POST" && path === "/api/pay/webhook")
         return await payWebhook(req, res);
+      // Bé Vui Học Cộng also tries the address it had on Netlify.
+      if (method === "GET" && path === "/.netlify/functions/tts")
+        return await tts(res, url);
       if (path.startsWith("/api/") || path === "/auth/logout") {
         if (method === "POST" && !sameOrigin(req))
           return send(res, 403, { error: "AUTH_ORIGIN" });
@@ -404,6 +436,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           });
         if (method === "POST" && path === "/api/pay/create")
           return await buyCredits(req, res);
+        if (method === "GET" && path === "/api/tts") return await tts(res, url);
         if (method === "GET" && path === "/api/lesson-ai/voice/status")
           return send(res, 200, {
             available: false,
@@ -414,6 +447,15 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
       }
       if (method !== "GET" && method !== "HEAD")
         return send(res, 405, { error: "METHOD" });
+      // A student app, e.g. /hoc-sinh/be-vui-hoc-cong/, from its own build.
+      const app = /^\/hoc-sinh\/([a-z0-9-]+)(\/.*)?$/.exec(path);
+      if (app && config.appsDir) {
+        const dir = join(config.appsDir, app[1], "dist");
+        if (await stat(join(dir, "index.html")).catch(() => null)) {
+          if (!app[2]) return redirect(res, `${path}/${url.search}`);
+          return await serveStatic(res, app[2], dir);
+        }
+      }
       return await serveStatic(res, path);
     } catch {
       send(res, 500, { error: "SERVER" });
