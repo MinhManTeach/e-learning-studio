@@ -80,7 +80,7 @@
   /api/me, /api/lesson-ai/studio/*, /api/plans, /api/pay/create, /api/pay/webhook, phục vụ dist + SPA), main.ts.
 - Trừ lượt chỉ khi AI trả kết quả; một yêu cầu AI/người; POST phải cùng origin (trừ webhook).
 - Client: src/account/ (AccountBar, BuyCredits, readAccount: /api/me trả HTML → chế độ máy cá nhân).
-- Gói: TEACHER_MONTH 49k/50 lượt, TEACHER_YEAR 399k/600 lượt; FREE_CREDITS=10 khi đăng ký.
+- Gói: TEACHER_MONTH 49k/50 lượt, TEACHER_YEAR 399k/600 lượt; FREE_CREDITS=3 khi đăng ký.
 - Runner: build-server, web-server (cổng 8080, đọc LESSON_AI_/GOOGLE_/PAYOS_ từ .env.local, restart:true).
 - Hướng dẫn lấy khoá và triển khai: docs/TRIEN_KHAI.md. Chưa có: giọng đọc trên web, Zalo, vẽ tranh.
 

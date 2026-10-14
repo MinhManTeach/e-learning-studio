@@ -32,7 +32,7 @@ const config: WebConfig = {
     apiKey: env.LESSON_AI_API_KEY,
     thinking: env.LESSON_AI_THINKING,
   },
-  freeCredits: Number(env.FREE_CREDITS ?? 10),
+  freeCredits: Number(env.FREE_CREDITS ?? 3),
   sessionDays: Number(env.SESSION_DAYS ?? 30),
   staticDir: resolve(env.STATIC_DIR ?? "dist"),
   payos:
