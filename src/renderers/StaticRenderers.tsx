@@ -1,6 +1,11 @@
+import { useState } from "react";
 import type { Slide } from "../model/schema";
 import { uniqueObjectives } from "../quality/analyzer";
+import { useLessonSession } from "../player/SessionContext";
 export function TextRenderer({ slide }: { slide: Slide }) {
+  // Students see the points one click at a time; the teacher's editor shows all.
+  const student = !!useLessonSession();
+  const [shown, setShown] = useState(1);
   if (slide.type !== "welcome" && slide.type !== "content") return null;
   const d = slide.data;
   // Editors split text on newlines; skip blank lines instead of empty items.
@@ -8,18 +13,31 @@ export function TextRenderer({ slide }: { slide: Slide }) {
   const paragraphs = filled(d.paragraphs);
   const bulletPoints = filled(d.bulletPoints);
   const keywords = filled(d.keywords);
+  const revealing = student && d.revealOnClick && shown < bulletPoints.length;
+  const visible = revealing ? bulletPoints.slice(0, shown) : bulletPoints;
   return (
     <>
       <p className="body-text">{d.body}</p>
       {paragraphs.map((p, i) => (
         <p key={i}>{p}</p>
       ))}
-      {!!bulletPoints.length && (
+      {!!visible.length && (
         <ul>
-          {bulletPoints.map((b, i) => (
-            <li key={i}>{b}</li>
+          {visible.map((b, i) => (
+            <li key={i} className={d.revealOnClick ? "revealed" : undefined}>
+              {b}
+            </li>
           ))}
         </ul>
+      )}
+      {revealing && (
+        <button
+          type="button"
+          className="reveal-next"
+          onClick={() => setShown(shown + 1)}
+        >
+          Hiện ý tiếp theo ({shown}/{bulletPoints.length}) ▸
+        </button>
       )}
       {!!keywords.length && (
         <div className="keywords">

@@ -299,7 +299,13 @@ export function positiveFirst<T extends { group: number }>(
 export function redesigns(project: LessonProject, plan: DesignPlan) {
   return plan.pages.filter((p) => {
     const s = project.slides.find((x) => x.id === p.id);
-    return s?.type === "content" && p.design !== "KEEP" && p.items.length >= 2;
+    // Card pages have no sounds: a page with sounds keeps its own design.
+    return (
+      s?.type === "content" &&
+      !s.data.sounds.length &&
+      p.design !== "KEEP" &&
+      p.items.length >= 2
+    );
   });
 }
 /** Other pages whose title the AI tidied ("TIN HỌC LỚP 3" → "Tin học lớp 3", "Trang 12" → "Khám phá"). */

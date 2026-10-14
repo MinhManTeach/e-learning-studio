@@ -24,6 +24,33 @@ export function detectAudioMime(bytes: Uint8Array) {
     ? "audio/mp4"
     : "";
 }
+/** Sounds and music from a PowerPoint: MP3, WAV, OGG or M4A, recognised by their bytes. */
+export function detectSoundMime(bytes: Uint8Array) {
+  const ascii = (from: number, to: number) =>
+    String.fromCharCode(...bytes.slice(from, to));
+  if (ascii(0, 3) === "ID3") return "audio/mpeg";
+  // An MP3 frame header: 11 set sync bits, MPEG version not "reserved".
+  if (
+    bytes[0] === 0xff &&
+    (bytes[1] & 0xe0) === 0xe0 &&
+    (bytes[1] & 0x18) !== 0x08
+  )
+    return "audio/mpeg";
+  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WAVE") return "audio/wav";
+  if (ascii(0, 4) === "OggS") return "audio/ogg";
+  return detectAudioMime(bytes);
+}
+export const maxSoundBytes = 20 * 1024 * 1024;
+export async function validateSoundBlob(blob: Blob) {
+  if (!blob.size || blob.size > maxSoundBytes)
+    throw new Error("Tệp âm thanh phải lớn hơn 0 và không quá 20 MB.");
+  const detected = detectSoundMime(
+    new Uint8Array(await blob.slice(0, 16).arrayBuffer()),
+  );
+  if (!detected || blob.type !== detected)
+    throw new Error("Chỉ nhận âm thanh MP3, WAV, OGG hoặc M4A hợp lệ.");
+  return detected;
+}
 export const maxAudioBytes = 5 * 1024 * 1024;
 export async function validateAudioBlob(blob: Blob) {
   if (!blob.size || blob.size > maxAudioBytes)
@@ -111,7 +138,7 @@ export class LocalMediaAssetStore {
     const mime = value.mimeType.startsWith("video/")
       ? await validateVideoBlob(value.blob)
       : value.mimeType.startsWith("audio/")
-        ? await validateAudioBlob(value.blob)
+        ? await validateSoundBlob(value.blob)
         : await validateImageBlob(value.blob);
     if (
       mime !== value.mimeType ||

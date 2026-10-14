@@ -89,12 +89,37 @@ export const commonSlideFields = {
     })
     .prefault({}),
 };
+const percent = z.number().min(0).max(100);
+/** A sound the student plays with a button, or by clicking a spot on the slide picture. */
+export const slideSoundSchema = z.object({
+  id: z.string().min(1),
+  /** An AUDIO asset of the lesson. */
+  assetId: z.string().min(1),
+  label: text,
+  /** Where to click on a full-page slide picture, in percent of the slide. */
+  area: z
+    .object({
+      x: percent,
+      y: percent,
+      w: percent,
+      h: percent,
+      /** Width / height of the slide the area was measured on. */
+      slideRatio: z
+        .number()
+        .positive()
+        .default(16 / 9),
+    })
+    .optional(),
+});
 export const basicDataSchema = z.object({
   body: text,
   paragraphs: lines,
   bulletPoints: lines,
   keywords: lines,
   keyTakeaway: text,
+  sounds: z.array(slideSoundSchema).default([]),
+  /** Bullet points appear one at a time as the student clicks, like PowerPoint animations. */
+  revealOnClick: z.boolean().default(false),
 });
 // Optional picture shown on an answer card (an IMAGE asset of the lesson).
 const choicePicture = z.string().min(1).optional();
@@ -408,3 +433,4 @@ export type Layout = (typeof layouts)[number];
 export function parseProject(value: unknown): LessonProject {
   return projectSchema.parse(value);
 }
+export type SlideSound = z.infer<typeof slideSoundSchema>;

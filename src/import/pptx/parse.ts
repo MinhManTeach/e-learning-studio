@@ -41,6 +41,10 @@ export interface PptxSlide {
   elements: PptxElement[];
   notes: string[];
   triggers: PptxTrigger[];
+  /** Shapes that appear with an entrance animation in the normal click order. */
+  appear: string[];
+  /** Sound played when the slide opens (slide transition sound). */
+  sound?: string;
 }
 export interface PptxDeck {
   width: number;
@@ -370,6 +374,28 @@ function readSlide(
     else triggers.push({ trigger, targets });
   }
 
+  // Entrance effects ("Xuất hiện", "Bay vào"...) of the normal click order;
+  // effects inside an interactive (trigger) sequence were handled above.
+  const appear = new Set<string>();
+  (function entrances(list: XmlNode[], interactive: boolean) {
+    for (const node of list) {
+      const tag = tagOf(node);
+      if (tag === "#text") continue;
+      const inner = kids(node, tag);
+      if (tag === "cTn") {
+        const seq = attr(node, "nodeType") === "interactiveSeq";
+        if (attr(node, "presetClass") === "entr" && !interactive && !seq)
+          for (const t of descendants(inner, "spTgt")) {
+            const id = attr(t, "spid");
+            if (id) appear.add(id);
+          }
+        entrances(inner, interactive || seq);
+      } else entrances(inner, interactive);
+    }
+  })(timing ? [timing] : [], false);
+  const transitionSound = descendants(kids(sld, "sld"), "snd")[0];
+  const sound = useMedia(attr(transitionSound, "embed"), "AUDIO")?.path;
+
   let notes: string[] = [];
   const notesRel = [...rels.values()].find((r) => r.type === "notesSlide");
   if (notesRel && files[notesRel.target]) {
@@ -388,6 +414,8 @@ function readSlide(
     elements,
     notes,
     triggers,
+    appear: [...appear],
+    ...(sound ? { sound } : {}),
   };
 }
 

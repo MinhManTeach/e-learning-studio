@@ -16,6 +16,14 @@ export interface DraftQuestion {
   /** How the correct answer was found, for the review screen. */
   evidence: "LINKS" | "SOUNDS" | "NONE";
 }
+/** A sound on a slide: click its spot on the slide, or press its button. */
+export interface DraftSound {
+  /** Zip path of the sound. */
+  audio: string;
+  label: string;
+  /** What the student clicks, in percent of the slide (when it is on the slide). */
+  area?: { x: number; y: number; w: number; h: number; slideRatio: number };
+}
 export type DraftPage =
   | {
       kind: "PAGE";
@@ -23,6 +31,9 @@ export type DraftPage =
       title: string;
       text: string[];
       notes: string[];
+      sounds?: DraftSound[];
+      /** The text appears bit by bit on click in PowerPoint. */
+      reveal?: boolean;
       /** Biggest meaningful picture on the slide, used when no slide image is given. */
       picture?: string;
       /** The slide is only a picture (no text): show it on its own, filling the page. */
@@ -428,6 +439,79 @@ function linkQuestion(slide: PptxSlide, deck: PptxDeck) {
   return [question];
 }
 
+const genericName =
+  /^(audio|sound|âm thanh|media|picture|hình( ảnh)?|graphic|oval|rectangle|hình chữ nhật|textbox|text box)\s*\d*$/i;
+const percentOf = (r: Rect, deck: PptxDeck) => {
+  const clamp = (v: number) => Math.min(100, Math.max(0, v));
+  const round = (v: number) => Math.round(v * 100) / 100;
+  const x = clamp((r.x / deck.width) * 100);
+  const y = clamp((r.y / deck.height) * 100);
+  return {
+    x: round(x),
+    y: round(y),
+    w: round(clamp(((r.x + r.w) / deck.width) * 100) - x),
+    h: round(clamp(((r.y + r.h) / deck.height) * 100) - y),
+    slideRatio: deck.width / deck.height,
+  };
+};
+/**
+ * Sounds of a page: a sound played by clicking a picture or text (trigger),
+ * a sound icon on the slide, a hidden or off-slide sound (often background
+ * music) and the sound of the slide transition.
+ */
+function slideSounds(slide: PptxSlide, deck: PptxDeck): DraftSound[] {
+  const byId = new Map(slide.elements.map((e) => [e.id, e]));
+  const sounds: DraftSound[] = [];
+  const nameOf = (e: PptxElement) => {
+    const words = cleanText(e.text).join(" ") || e.descr || e.name;
+    const file = e.media?.path.split("/").at(-1) ?? "";
+    return genericName.test(words.trim()) || !words.trim()
+      ? file.replace(/\.[a-z0-9]+$/i, "").replace(/^media\d*$/i, "")
+      : words.trim();
+  };
+  const add = (audio: string, label: string, where?: PptxElement) => {
+    const usable =
+      where?.rect && onSlide(where.rect, deck) && area(where.rect, deck) > 0
+        ? percentOf(where.rect, deck)
+        : undefined;
+    if (
+      sounds.some(
+        (s) =>
+          s.audio === audio &&
+          JSON.stringify(s.area) === JSON.stringify(usable),
+      )
+    )
+      return;
+    sounds.push({
+      audio,
+      label: label.slice(0, 80),
+      ...(usable ? { area: usable } : {}),
+    });
+  };
+  for (const e of slide.elements) {
+    if (e.media?.kind !== "AUDIO") continue;
+    const triggers = slide.triggers
+      .filter((t) => t.targets.includes(e.id))
+      .map((t) => byId.get(t.trigger))
+      .filter((t): t is PptxElement => !!t && t.id !== e.id && !t.media);
+    for (const t of triggers) add(e.media.path, nameOf(t) || nameOf(e), t);
+    if (!triggers.length) add(e.media.path, nameOf(e), e);
+  }
+  if (slide.sound) add(slide.sound, "Âm thanh khi mở trang");
+  return sounds.map((s, i) => ({
+    ...s,
+    label: s.label || `Âm thanh ${i + 1}`,
+  }));
+}
+/** Text boxes on the slide that PowerPoint shows one click at a time. */
+function revealsText(slide: PptxSlide, deck: PptxDeck) {
+  const appear = new Set(slide.appear);
+  return slide.elements.some(
+    (e) =>
+      appear.has(e.id) && onSlide(e.rect, deck) && cleanText(e.text).length,
+  );
+}
+
 export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
   const pages: DraftPage[] = [];
   const skipped: SkippedSlide[] = [];
@@ -485,12 +569,15 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
     const text = slideText(slide, deck, title);
     const cover =
       !title && !text.length ? coverPicture(slide, deck) : undefined;
+    const sounds = slideSounds(slide, deck);
     pages.push({
       kind: "PAGE",
       slide: n,
       title: title || `Trang ${n}`,
       text,
       notes: slide.notes,
+      ...(sounds.length ? { sounds } : {}),
+      ...(text.length > 1 && revealsText(slide, deck) ? { reveal: true } : {}),
       ...(cover
         ? { picture: cover, cover: true }
         : { picture: mainPicture(slide, deck) }),
@@ -500,6 +587,7 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
   for (const p of pages) {
     if (p.kind === "VIDEO") media.add(p.video);
     if (p.kind === "PAGE" && p.picture) media.add(p.picture);
+    if (p.kind === "PAGE") for (const s of p.sounds ?? []) media.add(s.audio);
     if (p.kind === "QUESTIONS")
       for (const q of p.questions)
         for (const o of q.options) if (o.image) media.add(o.image);

@@ -1116,3 +1116,100 @@
     outline: 3px solid currentColor;
   }
 }
+/* Âm thanh trên trang: nút nghe, và vùng bấm trên ảnh slide như trong PowerPoint. */
+.lesson.phase1.cover {
+  position: relative;
+}
+.sound-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8cqw;
+  margin-top: 1.2cqw;
+}
+.sound-buttons.over-cover {
+  position: absolute;
+  left: 1.5cqw;
+  bottom: 1.5cqw;
+  margin: 0;
+}
+.phase1 .sound-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6cqw;
+  padding: 0.7cqw 1.4cqw;
+  border: 0;
+  border-radius: 99px;
+  background: var(--lesson-accent, #1a7965);
+  color: var(--lesson-bg, #fff);
+  font: inherit;
+  font-size: calc(1.4cqw * var(--font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0.3cqw 0.8cqw #0003;
+}
+.phase1 .sound-button:disabled,
+.phase1 .sound-spot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sound-spots {
+  position: absolute;
+  pointer-events: none;
+}
+.phase1 .sound-spot {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: 2.4cqw;
+  min-height: 2.4cqw;
+  padding: 0.3cqw;
+  border: 0.2cqw dashed transparent;
+  border-radius: 0.8cqw;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.phase1 .sound-spot svg {
+  width: 2.2cqw;
+  height: 2.2cqw;
+  padding: 0.25cqw;
+  border-radius: 50%;
+  background: var(--lesson-accent, #1a7965);
+  color: var(--lesson-bg, #fff);
+  box-shadow: 0 0.2cqw 0.5cqw #0004;
+}
+.phase1 .sound-spot:hover,
+.phase1 .sound-spot:focus-visible,
+.phase1 .sound-spot[aria-pressed="true"] {
+  border-color: #fff;
+  background: #ffffff26;
+}
+/* Chữ hiện dần khi bấm. */
+.phase1 li.revealed {
+  animation: reveal-in 0.35s ease-out;
+}
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6cqw);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phase1 li.revealed {
+    animation: none;
+  }
+}
+.phase1 .reveal-next {
+  margin-top: 1cqw;
+  padding: 0.7cqw 1.6cqw;
+  border: 0.2cqw solid var(--lesson-accent, #1a7965);
+  border-radius: 99px;
+  background: var(--lesson-button, #fff);
+  color: var(--lesson-accent, #1a7965);
+  font: inherit;
+  font-size: calc(1.4cqw * var(--font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+}

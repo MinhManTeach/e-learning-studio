@@ -1,7 +1,11 @@
 import { strToU8, zipSync, type Zippable } from "fflate";
 import { parseProject, type LessonProject } from "../model/schema";
 import type { StoredMedia } from "../media/model";
-import { detectImageMime, detectVideoMime } from "../media/storage";
+import {
+  detectImageMime,
+  detectSoundMime,
+  detectVideoMime,
+} from "../media/storage";
 import type { PlayerPackageData } from "./playerData";
 import { lessonSpeechPieces } from "../player/readAloud";
 import { detectAudioMime } from "../media/storage";
@@ -28,6 +32,8 @@ export interface LessonPackage {
   scorm: ScormVersion;
   imageCount: number;
   videoCount: number;
+  /** Sounds and music on pages (from PowerPoint). */
+  soundCount: number;
   /** Recorded voice pieces packed in ("Tạo giọng đọc"). */
   voiceCount: number;
   /** Pieces the lesson reads that have no recording yet. */
@@ -40,6 +46,10 @@ const extensions: Record<string, string> = {
   "image/webp": "webp",
   "video/mp4": "mp4",
   "video/webm": "webm",
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a",
 };
 /** Recognises the file by its bytes, not by its name or claimed type. */
 export function detectMediaMime(bytes: Uint8Array) {
@@ -50,7 +60,7 @@ const pageName = (p: LessonProject, slideId: string) => {
   return `trang ${i + 1} “${p.slides[i]?.title ?? ""}”`;
 };
 
-/** Images and videos students will actually see, with the first page showing each. */
+/** Images, videos and sounds students will actually get, with the first page using each. */
 function shownMedia(p: LessonProject) {
   const used = new Map<string, string>(); // assetId -> first slide id
   const use = (id: string | null | undefined, slideId: string) => {
@@ -58,6 +68,8 @@ function shownMedia(p: LessonProject) {
   };
   for (const s of p.slides) {
     if (s.media.enabled) use(s.media.assetId, s.id);
+    if (s.type === "content" || s.type === "welcome")
+      for (const sound of s.data.sounds) use(sound.assetId, s.id);
     // Pictures on answer cards.
     if (s.type === "warmup")
       for (const item of s.data.items) use(item.imageAssetId, s.id);
@@ -70,13 +82,12 @@ function shownMedia(p: LessonProject) {
       for (const item of s.data.items) use(item.imageAssetId, s.id);
   }
   return [...used].flatMap(([id, slideId]) => {
-    const asset = p.assets.find(
-      (a) => a.id === id && (a.kind === "IMAGE" || a.kind === "VIDEO"),
-    );
+    const asset = p.assets.find((a) => a.id === id);
     return asset ? [{ asset, slideId }] : [];
   });
 }
-const mediaWord = (kind: string) => (kind === "VIDEO" ? "video" : "ảnh");
+const mediaWord = (kind: string) =>
+  kind === "VIDEO" ? "video" : kind === "AUDIO" ? "âm thanh" : "ảnh";
 
 /** Problems a teacher should know about before exporting. BLOCK stops the export. */
 export function exportIssues(p: LessonProject): ExportIssue[] {
@@ -89,7 +100,7 @@ export function exportIssues(p: LessonProject): ExportIssue[] {
   if (external.length)
     issues.push({
       level: "WARN",
-      message: `${external.length} ảnh/video lấy từ Internet (ví dụ ${pageName(p, external[0].slideId)}). Học sinh cần có mạng để xem các nội dung này.`,
+      message: `${external.length} ảnh/video/âm thanh lấy từ Internet (ví dụ ${pageName(p, external[0].slideId)}). Học sinh cần có mạng để xem các nội dung này.`,
     });
   const emptyQuiz = p.slides.find(
     (s) => s.type === "quiz" && !s.data.questions.length,
@@ -286,6 +297,7 @@ export async function buildLessonPackage(
   const files: Record<string, string> = {};
   let images = 0;
   let videos = 0;
+  let sounds = 0;
   for (const { asset, slideId } of shownMedia(p)) {
     if (asset.status !== "LOCAL") continue;
     const word = mediaWord(asset.kind);
@@ -295,16 +307,21 @@ export async function buildLessonPackage(
         `Thiếu ${word} “${asset.name || asset.fileName}” ở ${pageName(p, slideId)}. Hãy tải ${word} lên lại rồi xuất gói.`,
       );
     const bytes = new Uint8Array(await stored.blob.arrayBuffer());
-    const mime = detectMediaMime(bytes);
+    const isSound = asset.kind === "AUDIO";
+    // M4A and MP4 share a header, so the asset's kind decides how to read it.
+    const mime = isSound ? detectSoundMime(bytes) : detectMediaMime(bytes);
     const isVideo = mime.startsWith("video/");
     if (!extensions[mime] || isVideo !== (asset.kind === "VIDEO"))
       throw new Error(
         asset.kind === "VIDEO"
           ? `Video ở ${pageName(p, slideId)} không phải MP4 hoặc WebM hợp lệ.`
-          : `Ảnh ở ${pageName(p, slideId)} không phải PNG, JPEG hoặc WebP hợp lệ.`,
+          : isSound
+            ? `Âm thanh ở ${pageName(p, slideId)} không phải MP3, WAV, OGG hoặc M4A hợp lệ.`
+            : `Ảnh ở ${pageName(p, slideId)} không phải PNG, JPEG hoặc WebP hợp lệ.`,
       );
-    const n = isVideo ? ++videos : ++images;
-    const path = `media/${isVideo ? "video-" : ""}${String(n).padStart(4, "0")}.${extensions[mime]}`;
+    const n = isSound ? ++sounds : isVideo ? ++videos : ++images;
+    const prefix = isSound ? "sound-" : isVideo ? "video-" : "";
+    const path = `media/${prefix}${String(n).padStart(4, "0")}.${extensions[mime]}`;
     files[asset.id] = path;
     entries[path] = [bytes, { level: 0 }]; // already compressed
   }
@@ -350,6 +367,7 @@ export async function buildLessonPackage(
     scorm,
     imageCount: images,
     videoCount: videos,
+    soundCount: sounds,
     voiceCount: Object.keys(voice).length,
     voiceMissing,
   };

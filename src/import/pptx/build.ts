@@ -9,8 +9,10 @@ import {
 import type { StoredMedia } from "../../media/model";
 import {
   detectImageMime,
+  detectSoundMime,
   detectVideoMime,
   maxImageBytes,
+  maxSoundBytes,
   maxVideoBytes,
 } from "../../media/storage";
 import type { DraftPage } from "./analyze";
@@ -79,6 +81,7 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
   for (const p of input.pages) {
     if (p.kind === "VIDEO") wanted.add(p.video);
     if (p.kind === "PAGE" && p.picture) wanted.add(p.picture);
+    if (p.kind === "PAGE") for (const s of p.sounds ?? []) wanted.add(s.audio);
     if (p.kind === "QUESTIONS")
       for (const q of p.questions)
         for (const o of q.options) if (o.image) wanted.add(o.image);
@@ -91,15 +94,23 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
     name: string,
     altText: string,
     where: string,
+    sound = false,
   ): string | undefined {
-    const image = detectImageMime(bytes.slice(0, 16));
-    const video = image ? "" : detectVideoMime(bytes.slice(0, 16));
-    const mime = image || video;
+    const head = bytes.slice(0, 16);
+    const image = sound ? "" : detectImageMime(head);
+    const video = sound || image ? "" : detectVideoMime(head);
+    const audio = sound ? detectSoundMime(head) : "";
+    const mime = image || video || audio;
     if (!mime) {
-      warnings.push(`${where}: bỏ qua “${name}” vì định dạng chưa hỗ trợ.`);
+      warnings.push(
+        sound
+          ? `${where}: bỏ qua âm thanh “${name}” vì định dạng chưa hỗ trợ. Hãy đổi tệp sang MP3 trong PowerPoint rồi nhập lại.`
+          : `${where}: bỏ qua “${name}” vì định dạng chưa hỗ trợ.`,
+      );
       return undefined;
     }
-    if (bytes.length > (video ? maxVideoBytes : maxImageBytes)) {
+    const limit = audio ? maxSoundBytes : video ? maxVideoBytes : maxImageBytes;
+    if (bytes.length > limit) {
       warnings.push(
         `${where}: bỏ qua “${name}” vì quá lớn (${(bytes.length / 1048576).toFixed(1)} MB).`,
       );
@@ -107,7 +118,7 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
     }
     assets.push({
       id,
-      kind: video ? "VIDEO" : "IMAGE",
+      kind: audio ? "AUDIO" : video ? "VIDEO" : "IMAGE",
       sourceType: "UPLOAD",
       name,
       fileName: name,
@@ -135,7 +146,12 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
     });
     return id;
   }
-  function partAsset(path: string, altText: string, where: string) {
+  function partAsset(
+    path: string,
+    altText: string,
+    where: string,
+    sound = false,
+  ) {
     if (byPart.has(path)) return byPart.get(path);
     const bytes = parts[path];
     const name = path.split("/").at(-1) ?? path;
@@ -149,6 +165,7 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
       name,
       altText,
       where,
+      sound,
     );
     if (id) byPart.set(path, id);
     return id;
@@ -207,6 +224,27 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
       s.voiceScript = [page.title, ...page.text].join(". ");
     }
     const picture = pictures.get(page.slide);
+    if (page.kind === "PAGE") {
+      s.data.sounds = (page.sounds ?? []).flatMap((sound) => {
+        const assetId = partAsset(sound.audio, sound.label, where, true);
+        if (!assetId) return [];
+        return [
+          {
+            id: crypto.randomUUID(),
+            assetId,
+            label: sound.label,
+            // A clickable spot only fits the teacher's picture of the whole slide.
+            ...(picture && sound.area ? { area: sound.area } : {}),
+          },
+        ];
+      });
+      // On a picture of the whole slide the text is part of the picture.
+      if (page.reveal && picture)
+        warnings.push(
+          `${where}: chữ hiện dần khi bấm không giữ được vì trang dùng ảnh chụp slide.`,
+        );
+      else if (page.reveal) s.data.revealOnClick = true;
+    }
     const assetId =
       page.kind === "VIDEO"
         ? partAsset(page.video, page.title, where)

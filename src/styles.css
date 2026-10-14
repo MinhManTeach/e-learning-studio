@@ -1037,3 +1037,15 @@ button.primary:hover {
 .quiz-multi {
   margin: 0.2em 0 0.4em;
 }
+/* Âm thanh của trang trong trình soạn: tên âm thanh và nút bỏ. */
+.sound-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.sound-row .field {
+  flex: 1;
+}
+.sound-row button {
+  margin-bottom: 12px;
+}

@@ -53,6 +53,46 @@ export function TypeSpecificEditor({ slide: s, edit }: TypeEditorProps) {
             edit({ ...s, data: { ...s.data, keyTakeaway } })
           }
         />
+        <CheckField
+          label="Hiện từng ý chính khi học sinh bấm"
+          value={s.data.revealOnClick}
+          onChange={(revealOnClick) =>
+            edit({ ...s, data: { ...s.data, revealOnClick } })
+          }
+        />
+        {s.data.sounds.map((sound, i) => (
+          <div className="sound-row" key={sound.id}>
+            <Field
+              label={`Âm thanh ${i + 1}${sound.area ? " (bấm trên ảnh slide)" : ""}`}
+              value={sound.label}
+              onChange={(label) =>
+                edit({
+                  ...s,
+                  data: {
+                    ...s.data,
+                    sounds: s.data.sounds.map((x) =>
+                      x.id === sound.id ? { ...x, label } : x,
+                    ),
+                  },
+                })
+              }
+            />
+            <button
+              type="button"
+              onClick={() =>
+                edit({
+                  ...s,
+                  data: {
+                    ...s.data,
+                    sounds: s.data.sounds.filter((x) => x.id !== sound.id),
+                  },
+                })
+              }
+            >
+              Bỏ âm thanh
+            </button>
+          </div>
+        ))}
       </>
     );
   if (s.type === "objectives")

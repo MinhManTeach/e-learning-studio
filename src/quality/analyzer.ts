@@ -384,6 +384,7 @@ export function proposeImprovements(
         first.data.keyTakeaway = "";
         // Preserve media on the original only. References, captions and binary records are never rewritten.
         second.media = { ...second.media, enabled: false };
+        second.data.sounds = [];
         second.layout = "TEXT_ONLY";
         for (const page of [first, second]) {
           page.voiceScript = [

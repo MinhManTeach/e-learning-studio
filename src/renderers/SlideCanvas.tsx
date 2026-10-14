@@ -5,6 +5,7 @@ import { effectiveLayout, stageLabels } from "../model/analysis";
 import { slideRegistry } from "../slides/registry";
 import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
 import { LessonProjectContext } from "./lessonContext";
+import { SlideSounds } from "./SlideSounds";
 export { slideRegistry } from "../slides/registry";
 export function LessonImage({
   url,
@@ -153,6 +154,7 @@ export function SlideCanvas({
           >
             <h1 className="visually-hidden">{slide.title}</h1>
             <div className="cover-media">{image}</div>
+            <SlideSounds slide={slide} project={project} cover />
             <div className="visually-hidden">
               <Renderer key={slide.id} slide={slide} />
             </div>
@@ -185,6 +187,7 @@ export function SlideCanvas({
               )}
               <div className="layout-text">
                 <Renderer key={slide.id} slide={slide} />
+                <SlideSounds slide={slide} project={project} cover={false} />
               </div>
             </div>
           </article>
