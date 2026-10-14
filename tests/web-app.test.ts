@@ -63,6 +63,7 @@ writeFileSync(
 );
 writeFileSync(join(dir, "assets", "app-123.js"), "console.log(1)");
 writeFileSync(join(dir, "dieu-khoan.html"), "<title>Điều khoản</title>");
+writeFileSync(join(dir, "trang-chu.html"), "<title>Trang chủ lopso</title>");
 let store: Store;
 let server: Server;
 let base = "";
@@ -159,7 +160,7 @@ it("signs a teacher in with Google, with state, nonce and PKCE, and gives free c
     `${base}/auth/google/callback`,
   );
   expect(back.status).toBe(302);
-  expect(back.headers.get("location")).toBe("/");
+  expect(back.headers.get("location")).toBe("/giao-vien");
   expect(session).toMatch(/^gv_session=.{30,}/);
   const me = await (
     await fetch(`${base}/api/me`, { headers: { cookie: session } })
@@ -191,17 +192,25 @@ it("refuses a sign-in with a wrong state, a forged token, another app's token or
       headers: { cookie: login },
     },
   );
-  expect(wrongState.headers.get("location")).toBe("/?login=failed");
+  expect(wrongState.headers.get("location")).toBe("/giao-vien?login=failed");
   signingKey = stranger.privateKey;
-  expect((await signIn()).back.headers.get("location")).toBe("/?login=failed");
+  expect((await signIn()).back.headers.get("location")).toBe(
+    "/giao-vien?login=failed",
+  );
   signingKey = google.privateKey;
   const claims = tokenClaims;
   tokenClaims = (n) => ({ ...claims(n), aud: "someone-else" });
-  expect((await signIn()).back.headers.get("location")).toBe("/?login=failed");
+  expect((await signIn()).back.headers.get("location")).toBe(
+    "/giao-vien?login=failed",
+  );
   tokenClaims = (n) => ({ ...claims(n), nonce: n + "x" });
-  expect((await signIn()).back.headers.get("location")).toBe("/?login=failed");
+  expect((await signIn()).back.headers.get("location")).toBe(
+    "/giao-vien?login=failed",
+  );
   tokenClaims = (n) => ({ ...claims(n), exp: 1000 });
-  expect((await signIn()).back.headers.get("location")).toBe("/?login=failed");
+  expect((await signIn()).back.headers.get("location")).toBe(
+    "/giao-vien?login=failed",
+  );
   expect(store.balance("anyone")).toBe(0);
 });
 
@@ -292,7 +301,9 @@ it("signs out", async () => {
 
 it("serves the editor, with the app's own routes falling back to index.html and no way out of the folder", async () => {
   fresh();
-  const index = await fetch(`${base}/`);
+  // The front page is its own page; the studio lives at /giao-vien.
+  expect(await (await fetch(`${base}/`)).text()).toContain("Trang chủ lopso");
+  const index = await fetch(`${base}/giao-vien`);
   expect(await index.text()).toContain("Giảng Vui");
   expect(await (await fetch(`${base}/bai-giang/123`)).text()).toContain(
     "Giảng Vui",

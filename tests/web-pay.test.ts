@@ -157,7 +157,7 @@ it("creates a signed PayOS link for a signed-in teacher's chosen plan", async ()
     orderCode: out.orderCode,
     amount: 49000,
     description: `GV ${out.orderCode}`,
-    returnUrl: `${base}/?paid=${out.orderCode}`,
+    returnUrl: `${base}/giao-vien?paid=${out.orderCode}`,
   });
   expect(String(call.body.description).length).toBeLessThanOrEqual(25);
   expect(call.body.signature).toBe(

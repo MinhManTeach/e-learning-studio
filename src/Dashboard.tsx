@@ -117,7 +117,7 @@ export function Dashboard({
         />
       )}
       <header className="dashboard-header">
-        <div className="brand">
+        <a className="brand" href="/" title="Về trang chủ lopso.vn">
           <span className="brand-icon">
             <GraduationCap size={26} />
           </span>
@@ -127,7 +127,7 @@ export function Dashboard({
             </span>
             <small>Không gian soạn bài của thầy cô</small>
           </span>
-        </div>
+        </a>
         <AccountBar />
       </header>
       <main className="dashboard-main">
@@ -359,6 +359,7 @@ export function Dashboard({
           học.
         </span>
         <nav aria-label="Pháp lý">
+          <a href="/">Trang chủ lopso.vn</a>
           <a href="/dieu-khoan">Điều khoản sử dụng</a>
           <a href="/chinh-sach-bao-mat">Chính sách bảo mật</a>
           <a href="mailto:minhmanteach@gmail.com">Liên hệ</a>
