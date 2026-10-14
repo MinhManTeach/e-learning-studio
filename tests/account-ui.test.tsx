@@ -144,9 +144,17 @@ it("lets a signed-in teacher pick a plan and go on to the PayOS QR page", async 
     return json({ orderCode: 1, checkoutUrl: "https://pay.payos.vn/web/abc" });
   }) as unknown as typeof fetch;
   const { BuyCredits } = await import("../src/account/BuyCredits");
-  render(<AccountBar fetcher={fetcher} />);
+  render(
+    <header>
+      <AccountBar fetcher={fetcher} />
+    </header>,
+  );
   fireEvent.click(await screen.findByRole("button", { name: "Mua thêm lượt" }));
   expect(await screen.findByText(/50 lượt · 49\.000đ/)).toBeTruthy();
+  // The dialog leaves the (blurred) header so it can cover the whole page.
+  expect(
+    screen.getByRole("dialog", { name: "Mua thêm lượt AI" }).closest("header"),
+  ).toBeNull();
   cleanup();
   render(
     <BuyCredits
