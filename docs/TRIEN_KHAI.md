@@ -14,6 +14,7 @@ Mọi thứ chạy trong **một chương trình Node**, không cần cơ sở d
 ## 1. Chạy thử trên máy thầy trước
 
 Runner trên máy thầy đã có sẵn hai việc:
+
 - `build-server`: dựng lại trình soạn bài và máy chủ;
 - `web-server`: chạy máy chủ ở http://localhost:8080, đọc khoá từ `.env.local`.
 
@@ -28,6 +29,7 @@ PAYOS_CHECKSUM_KEY=...
 ```
 
 Ghi chú:
+
 - Các khoá chỉ nằm trong `.env.local`, tệp này không bị đưa lên GitHub.
 - Khi thử trên máy, PayOS không gửi được webhook về `localhost`. Vì vậy lượt AI chỉ được cộng khi đã chạy trên tên miền thật.
 
@@ -58,6 +60,7 @@ Ghi chú:
 Phí và điều kiện của PayOS thầy xem trên trang của họ, vì có thể thay đổi.
 
 Ứng dụng xử lý thanh toán như sau:
+
 - Mỗi đơn có mã riêng. Nội dung chuyển khoản là `GV <mã đơn>`.
 - Lượt chỉ được cộng khi PayOS gửi xác nhận có chữ ký đúng và **đúng số tiền**.
 - Mỗi đơn chỉ được cộng một lần, kể cả khi PayOS gửi lại.
@@ -91,7 +94,11 @@ PAYOS_CLIENT_ID=...
 PAYOS_API_KEY=...
 PAYOS_CHECKSUM_KEY=...
 FREE_CREDITS=3
+APPS_DIR=/opt/giangvui/hoc-sinh
+GOOGLE_TTS_API_KEY=...
 ```
+
+`APPS_DIR` là thư mục chứa các ứng dụng học sinh. Mỗi ứng dụng là một thư mục con đã build sẵn vào `dist`, ví dụ `be-vui-hoc-cong/dist`, và chạy ở địa chỉ `/hoc-sinh/be-vui-hoc-cong/`. Khi build, đặt `--base` đúng địa chỉ đó: `npx vite build --base=/hoc-sinh/be-vui-hoc-cong/`. `GOOGLE_TTS_API_KEY` là khoá Google Cloud Text-to-Speech cho giọng đọc tiếng Việt của Bé Vui Học Cộng. Không có khoá thì ứng dụng dùng giọng có sẵn của trình duyệt.
 
 Tạo dịch vụ `/etc/systemd/system/giangvui.service` để máy chủ tự chạy lại khi khởi động hoặc gặp lỗi:
 
@@ -118,6 +125,7 @@ Cuối cùng bật dịch vụ: `sudo systemctl enable --now giangvui && sudo sy
 **Sao lưu:** chép tệp `/var/lib/giangvui/app.db` mỗi ngày. Đây là sổ tài khoản và lượt đã mua.
 
 **Cập nhật phiên bản:**
+
 ```
 git pull && npm ci && npm run build && npm run build:server && sudo systemctl restart giangvui
 ```

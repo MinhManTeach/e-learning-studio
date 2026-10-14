@@ -40,6 +40,8 @@ function idToken(
 let tokenClaims: (nonce: string) => Record<string, unknown>;
 let signingKey: KeyObject = google.privateKey;
 let lastNonce = "";
+let ttsCalls: string[] = [];
+let ttsDown = false;
 const googleFetch = (async (url: string, init?: RequestInit) => {
   if (url === "https://www.googleapis.com/oauth2/v3/certs")
     return new Response(JSON.stringify({ keys: [google.jwk] }));
@@ -49,6 +51,13 @@ const googleFetch = (async (url: string, init?: RequestInit) => {
       return new Response("{}", { status: 400 });
     return new Response(
       JSON.stringify({ id_token: idToken(tokenClaims(lastNonce), signingKey) }),
+    );
+  }
+  if (url === "https://texttospeech.googleapis.com/v1/text:synthesize") {
+    ttsCalls.push(JSON.parse(String(init?.body)).input.text);
+    if (ttsDown) return new Response("{}", { status: 500 });
+    return new Response(
+      JSON.stringify({ audioContent: Buffer.from("mp3").toString("base64") }),
     );
   }
   throw new Error("unexpected fetch " + url);
@@ -64,6 +73,13 @@ writeFileSync(
 writeFileSync(join(dir, "assets", "app-123.js"), "console.log(1)");
 writeFileSync(join(dir, "dieu-khoan.html"), "<title>Điều khoản</title>");
 writeFileSync(join(dir, "trang-chu.html"), "<title>Trang chủ lopso</title>");
+const apps = mkdtempSync(join(tmpdir(), "apps-"));
+mkdirSync(join(apps, "be-vui", "dist", "assets"), { recursive: true });
+writeFileSync(
+  join(apps, "be-vui", "dist", "index.html"),
+  "<title>Bé Vui</title>",
+);
+writeFileSync(join(apps, "be-vui", "dist", "assets", "a-1.js"), "go()");
 let store: Store;
 let server: Server;
 let base = "";
@@ -75,6 +91,8 @@ const config = (): WebConfig => ({
   freeCredits: 2,
   sessionDays: 30,
   staticDir: dir,
+  appsDir: apps,
+  ttsKey: "tts-key",
 });
 beforeAll(async () => {
   server = createServer((req, res) => void handler(req, res));
@@ -85,6 +103,7 @@ afterAll(async () => {
   server.closeAllConnections();
   await new Promise<void>((r) => server.close(() => r()));
   rmSync(dir, { recursive: true, force: true });
+  rmSync(apps, { recursive: true, force: true });
 });
 let handler: ReturnType<typeof createWebHandler> = () => Promise.resolve();
 function fresh() {
@@ -103,6 +122,8 @@ function fresh() {
     nonce,
   });
   designs = [];
+  ttsCalls = [];
+  ttsDown = false;
   handler = createWebHandler(config(), {
     store,
     transport: googleFetch,
@@ -320,4 +341,52 @@ it("serves the editor, with the app's own routes falling back to index.html and 
   );
   const sneaky = await fetch(`${base}/..%2f..%2fetc%2fpasswd`);
   expect(await sneaky.text()).toContain("Giảng Vui");
+});
+
+it("serves each student app from its own build under /hoc-sinh/<name>/", async () => {
+  fresh();
+  const bare = await fetch(`${base}/hoc-sinh/be-vui`, { redirect: "manual" });
+  expect(bare.status).toBe(302);
+  expect(bare.headers.get("location")).toBe("/hoc-sinh/be-vui/");
+  expect(await (await fetch(`${base}/hoc-sinh/be-vui/`)).text()).toContain(
+    "Bé Vui",
+  );
+  const asset = await fetch(`${base}/hoc-sinh/be-vui/assets/a-1.js`);
+  expect(await asset.text()).toBe("go()");
+  expect(asset.headers.get("cache-control")).toContain("immutable");
+  // The app's own screens fall back to its index.html, never outside it.
+  expect(await (await fetch(`${base}/hoc-sinh/be-vui/bai/2`)).text()).toContain(
+    "Bé Vui",
+  );
+  expect(
+    await (await fetch(`${base}/hoc-sinh/be-vui/..%2f..%2fapp.db`)).text(),
+  ).toContain("Bé Vui");
+  // An app that is not there yet leaves the address to the site.
+  expect(await (await fetch(`${base}/hoc-sinh/chua-co/`)).text()).toContain(
+    "Giảng Vui",
+  );
+});
+
+it("reads short Vietnamese phrases aloud, once per phrase, and says when it cannot", async () => {
+  fresh();
+  const one = await fetch(
+    `${base}/api/tts?text=${encodeURIComponent("Một cộng hai")}`,
+  );
+  expect(one.status).toBe(200);
+  expect(one.headers.get("content-type")).toBe("audio/mpeg");
+  expect(await one.text()).toBe("mp3");
+  // The same phrase again comes from memory; the Netlify address works too.
+  const again = await fetch(
+    `${base}/.netlify/functions/tts?text=${encodeURIComponent("một cộng hai")}`,
+  );
+  expect(again.status).toBe(200);
+  expect(ttsCalls).toEqual(["Một cộng hai"]);
+  expect((await fetch(`${base}/api/tts?text=`)).status).toBe(400);
+  expect((await fetch(`${base}/api/tts?text=${"a".repeat(201)}`)).status).toBe(
+    400,
+  );
+  ttsDown = true;
+  const down = await fetch(`${base}/api/tts?text=ba`);
+  expect(down.status).toBe(503);
+  expect(await down.json()).toEqual({ error: "TTS_UNAVAILABLE" });
 });
