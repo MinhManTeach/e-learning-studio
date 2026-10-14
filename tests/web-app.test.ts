@@ -62,6 +62,7 @@ writeFileSync(
   "<!doctype html><title>Giảng Vui</title>",
 );
 writeFileSync(join(dir, "assets", "app-123.js"), "console.log(1)");
+writeFileSync(join(dir, "dieu-khoan.html"), "<title>Điều khoản</title>");
 let store: Store;
 let server: Server;
 let base = "";
@@ -299,6 +300,13 @@ it("serves the editor, with the app's own routes falling back to index.html and 
   const asset = await fetch(`${base}/assets/app-123.js`);
   expect(asset.headers.get("cache-control")).toContain("immutable");
   expect(asset.headers.get("content-type")).toContain("javascript");
+  // Plain pages are reachable without ".html"; their own address still works.
+  expect(await (await fetch(`${base}/dieu-khoan`)).text()).toContain(
+    "Điều khoản",
+  );
+  expect(await (await fetch(`${base}/dieu-khoan.html`)).text()).toContain(
+    "Điều khoản",
+  );
   const sneaky = await fetch(`${base}/..%2f..%2fetc%2fpasswd`);
   expect(await sneaky.text()).toContain("Giảng Vui");
 });

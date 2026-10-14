@@ -308,13 +308,21 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     if (!config.staticDir) return send(res, 404, { error: "NOT_FOUND" });
     const root = normalize(config.staticDir + sep);
     const wanted = normalize(join(root, decodeURIComponent(path)));
+    const isFile = (f: string) =>
+      stat(f).then(
+        (s) => s.isFile(),
+        () => false,
+      );
     let file = wanted.startsWith(root) ? wanted : join(root, "index.html");
-    try {
-      if (!(await stat(file)).isFile()) file = join(root, "index.html");
-    } catch {
-      // Unknown paths are the single-page app's own routes.
-      file = join(root, "index.html");
-    }
+    // Plain pages such as /dieu-khoan are served from dieu-khoan.html.
+    if (
+      !extname(file) &&
+      !(await isFile(file)) &&
+      (await isFile(file + ".html"))
+    )
+      file += ".html";
+    // Unknown paths are the single-page app's own routes.
+    if (!(await isFile(file))) file = join(root, "index.html");
     try {
       const body = await readFile(file);
       res.writeHead(200, {
