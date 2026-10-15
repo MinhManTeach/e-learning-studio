@@ -10,12 +10,11 @@ import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
 import { explain } from "../ai/AiStudio";
 import {
   keepClip,
-  voiceLecture,
   voiceMessages,
   writeLecture,
   type ClipStore,
 } from "./client";
-import { lectureFor, lectureSlots, slotSummary, voiceOutdated } from "./model";
+import { lectureFor, lectureSlots, slotSummary } from "./model";
 import "./lecture.css";
 
 const errorText = (code: string) => voiceMessages[code] ?? explain(code);
@@ -83,38 +82,6 @@ export function LecturePanel({
     });
   };
 
-  // Pieces with words but no voice yet (or an AI voice of older words).
-  const toVoice = pieces
-    .map((p, i) => ({ p, i }))
-    .filter(
-      ({ p }) =>
-        p.text.trim() &&
-        p.voice !== "TEACHER" &&
-        (!p.assetId || voiceOutdated(p)),
-    );
-  const voice = () =>
-    void task("Đang tạo giọng đọc AI…", async (signal) => {
-      const blobs = await voiceLecture(
-        toVoice.map(({ p }) => p.text.trim()),
-        fetcher,
-        signal,
-      );
-      const assets: AssetReference[] = [];
-      const next = [...pieces];
-      for (const [k, { p, i }] of toVoice.entries()) {
-        const asset = await keepClip(
-          project,
-          blobs[k],
-          `${slide.title} – ${slots[i].label}`,
-          store,
-          false,
-        );
-        assets.push(asset);
-        next[i] = { ...p, assetId: asset.id, voice: "AI", spokenText: p.text };
-      }
-      save(next, assets);
-    });
-
   const recorded = async (i: number, blob: Blob) => {
     const asset = await keepClip(
       project,
@@ -142,25 +109,13 @@ export function LecturePanel({
           </h3>
           <p>
             Khi học sinh bấm “Nghe giảng”, bài đọc từng đoạn và tự hiện lần bấm
-            tiếp theo khi đọc xong. Không cần căn thời gian.
+            tiếp theo khi đọc xong. Không cần căn thời gian. Đoạn chưa ghi âm
+            được đọc bằng giọng của trình duyệt.
           </p>
         </div>
         <div className="lecture-actions">
           <button type="button" disabled={!!busy} onClick={write}>
             <Sparkles size={16} /> AI viết lời giảng
-          </button>
-          <button
-            type="button"
-            disabled={!!busy || !toVoice.length}
-            onClick={voice}
-            title={
-              toVoice.length
-                ? `Tạo giọng AI cho ${toVoice.length} đoạn`
-                : "Mọi đoạn có chữ đều đã có tiếng"
-            }
-          >
-            <Volume2 size={16} /> Tạo giọng AI
-            {toVoice.length ? ` (${toVoice.length})` : ""}
           </button>
         </div>
       </div>
@@ -253,15 +208,13 @@ function PieceRow({
     setPlaying(true);
     void clip.play().catch(() => setPlaying(false));
   };
-  const status = !piece.assetId
-    ? piece.text.trim()
-      ? "Chưa có tiếng"
-      : ""
-    : voiceOutdated(piece)
-      ? "Lời đã sửa, cần tạo lại giọng"
-      : piece.voice === "TEACHER"
-        ? "Giọng thầy cô"
-        : "Giọng AI";
+  const status = piece.assetId
+    ? piece.voice === "TEACHER"
+      ? "Giọng thầy cô"
+      : "Giọng AI (tạo trước đây)"
+    : piece.text.trim()
+      ? "Giọng trình duyệt"
+      : "";
   return (
     <li className="lecture-piece">
       <div className="lecture-piece-head">
@@ -304,15 +257,7 @@ function PieceRow({
             <Trash2 size={14} /> Xoá tiếng
           </button>
         )}
-        {status && (
-          <span
-            className={
-              "lecture-status" + (voiceOutdated(piece) ? " outdated" : "")
-            }
-          >
-            {status}
-          </span>
-        )}
+        {status && <span className="lecture-status">{status}</span>}
       </div>
     </li>
   );

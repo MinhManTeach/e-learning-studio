@@ -401,7 +401,7 @@ it("reads short Vietnamese phrases aloud, once per phrase, and says when it cann
   expect(await down.json()).toEqual({ error: "TTS_UNAVAILABLE" });
 });
 
-it("writes a page's lecture for one credit, and speaks it with Google's voice", async () => {
+it("writes a page's lecture for one credit", async () => {
   fresh();
   const { session } = await signIn();
   const page = {
@@ -423,31 +423,4 @@ it("writes a page's lecture for one credit, and speaks it with Google's voice", 
   expect(written.status).toBe(200);
   expect(await written.json()).toEqual({ pieces: ["Đoạn 0", "Đoạn 1"] });
   expect(written.headers.get("x-credits-left")).toBe("1");
-
-  // Each piece is cut into short phrases; their MP3s make one file.
-  const long = "Các em quan sát bức tranh. ".repeat(12).trim();
-  const spoken = await post("/api/lesson-ai/lecture/voice", session, {
-    texts: ["Chào các em.", long],
-  });
-  expect(spoken.status).toBe(200);
-  const { clips, mimeType } = await spoken.json();
-  expect(mimeType).toBe("audio/mpeg");
-  expect(Buffer.from(clips[0], "base64").toString()).toBe("mp3");
-  const phrases = ttsCalls.length - 1;
-  expect(phrases).toBeGreaterThan(1);
-  expect(ttsCalls.every((t) => t.length <= 200)).toBe(true);
-  expect(Buffer.from(clips[1], "base64").toString()).toBe(
-    "mp3".repeat(phrases),
-  );
-  // Nothing to say, or the voice is down: a clear error, no half answer.
-  expect(
-    (await post("/api/lesson-ai/lecture/voice", session, { texts: [" "] }))
-      .status,
-  ).toBe(400);
-  ttsDown = true;
-  const down = await post("/api/lesson-ai/lecture/voice", session, {
-    texts: ["Một câu khác hẳn."],
-  });
-  expect(down.status).toBe(503);
-  expect(await down.json()).toEqual({ error: "VOICE_BUSY" });
 });

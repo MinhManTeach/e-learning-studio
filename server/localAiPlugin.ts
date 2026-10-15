@@ -95,21 +95,7 @@ export function localAiMiddleware(
             : req.url === "/api/lesson-ai/voice/record"
               ? (_: LocalAiConfig, body: unknown, signal?: AbortSignal) =>
                   voice.record(body, signal)
-              : req.url === "/api/lesson-ai/lecture/voice"
-                ? // The lecture is spoken by the same Windows voice (M4A).
-                  async (
-                    _: LocalAiConfig,
-                    body: unknown,
-                    signal?: AbortSignal,
-                  ) => {
-                    const texts = (body as { texts?: unknown })?.texts;
-                    const out = (await voice.record(
-                      { lang: "vi-VN", texts },
-                      signal,
-                    )) as { clips?: unknown };
-                    return { clips: out.clips, mimeType: "audio/mp4" };
-                  }
-                : undefined;
+              : undefined;
     if (
       (!enhancing && !studio && req.url !== "/api/lesson-ai/analyze") ||
       req.method !== "POST"

@@ -6,7 +6,6 @@ import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
 import type { LocalAiConfig } from "../openai";
 import { designLesson, studioStatus, writeLecture } from "../studio";
-import { speechChunks } from "../../src/player/speech";
 import {
   googleAuthUrl,
   googleSignIn,
@@ -277,38 +276,6 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     }
   }
 
-  /**
-   * The lecture spoken by Google's Vietnamese voice: each piece cut into short
-   * phrases (the voice's limit), their MP3s joined into one file per piece.
-   */
-  async function lectureVoice(req: IncomingMessage, res: ServerResponse) {
-    const user = userOf(req);
-    if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
-    if (!config.ttsKey) return send(res, 503, { error: "VOICE_UNAVAILABLE" });
-    const body = (await readJson(req, 200_000).catch(() => null)) as {
-      texts?: unknown;
-    } | null;
-    const texts = body?.texts;
-    if (
-      !Array.isArray(texts) ||
-      !texts.length ||
-      texts.length > 31 ||
-      texts.some((t) => typeof t !== "string" || !t.trim() || t.length > 4000)
-    )
-      return send(res, 400, { error: "VOICE_INPUT" });
-    const clips: string[] = [];
-    for (const text of texts as string[]) {
-      const parts: Buffer[] = [];
-      for (const phrase of speechChunks(text, TTS_MAX_CHARS)) {
-        const audio = await speak(phrase);
-        if (!audio) return send(res, 503, { error: "VOICE_BUSY" });
-        parts.push(audio);
-      }
-      clips.push(Buffer.concat(parts).toString("base64"));
-    }
-    return send(res, 200, { clips, mimeType: "audio/mpeg" });
-  }
-
   /** One paid AI call: the teacher's credit is spent only when it succeeds. */
   async function aiDesign(
     req: IncomingMessage,
@@ -482,8 +449,6 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
             return send(res, 415, { error: "AI_INPUT" });
           return await aiDesign(req, res, lecture);
         }
-        if (method === "POST" && path === "/api/lesson-ai/lecture/voice")
-          return await lectureVoice(req, res);
         if (method === "GET" && path === "/api/plans")
           return send(res, 200, {
             plans: config.payos ? plans : [],

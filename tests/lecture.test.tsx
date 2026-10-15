@@ -15,12 +15,7 @@ import type { BasicSlide, LessonProject, SlideItem } from "../src/model/schema";
 import { SlideCanvas } from "../src/renderers/SlideCanvas";
 import { SessionContext } from "../src/player/SessionContext";
 import { setSpeechEngine } from "../src/player/speech";
-import {
-  lectureFor,
-  lectureSlots,
-  slotSummary,
-  voiceOutdated,
-} from "../src/lecture/model";
+import { lectureFor, lectureSlots, slotSummary } from "../src/lecture/model";
 import { lectureRequest } from "../src/lecture/client";
 import { lectureRequestSchema } from "../src/lecture/ai";
 import { detectSoundMime } from "../src/media/storage";
@@ -78,29 +73,6 @@ it("cuts the lecture where the slide's clicks are", () => {
     grade: "5",
     pageTitle: "Trước cổng trời",
   });
-});
-
-it("knows when an AI voice no longer matches its words", () => {
-  expect(
-    voiceOutdated({ text: "Mới", assetId: "a", voice: "AI", spokenText: "Cũ" }),
-  ).toBe(true);
-  expect(
-    voiceOutdated({
-      text: "Mới",
-      assetId: "a",
-      voice: "AI",
-      spokenText: "Mới",
-    }),
-  ).toBe(false);
-  // The teacher's own recording is kept as it is.
-  expect(
-    voiceOutdated({
-      text: "Mới",
-      assetId: "a",
-      voice: "TEACHER",
-      spokenText: "Cũ",
-    }),
-  ).toBe(false);
 });
 
 class FakeUtterance {

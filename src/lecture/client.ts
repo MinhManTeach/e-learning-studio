@@ -6,7 +6,6 @@ import type {
   LessonProject,
 } from "../model/schema";
 import type { StoredMedia } from "../media/model";
-import { detectSoundMime } from "../media/storage";
 import type { LectureRequest } from "./ai";
 import { lectureSlots } from "./model";
 
@@ -78,35 +77,6 @@ export async function writeLecture(
   return pieces.map((p) => (typeof p === "string" ? p : ""));
 }
 
-function bytesOf(b64: string) {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-/** The AI voice reading each text: one sound file per text. */
-export async function voiceLecture(
-  texts: string[],
-  fetcher: typeof fetch = fetch,
-  signal?: AbortSignal,
-): Promise<Blob[]> {
-  const data = await post(
-    fetcher,
-    "/api/lesson-ai/lecture/voice",
-    { texts },
-    signal,
-  );
-  const clips = Array.isArray(data.clips) ? data.clips : [];
-  if (clips.length !== texts.length) throw new Error("VOICE_FAILED");
-  return clips.map((clip) => {
-    const bytes = bytesOf(String(clip));
-    const type = detectSoundMime(bytes);
-    if (!type) throw new Error("VOICE_FAILED");
-    return new Blob([bytes], { type });
-  });
-}
-
 export interface ClipStore {
   put(value: StoredMedia): Promise<void>;
 }
@@ -155,13 +125,5 @@ export async function keepClip(
 }
 
 export const voiceMessages: Record<string, string> = {
-  VOICE_UNAVAILABLE:
-    "Máy chủ chưa có giọng đọc AI (thiếu khoá GOOGLE_TTS_API_KEY). Thầy cô có thể tự ghi âm.",
-  VOICE_BUSY: "Giọng đọc AI đang bận. Đợi khoảng một phút rồi thử lại.",
-  VOICE_INPUT: "Có đoạn lời giảng trống hoặc quá dài.",
-  VOICE_FAILED: "Chưa tạo được giọng đọc. Hãy thử lại.",
-  VOICE_NOT_WINDOWS:
-    "Chỉ tạo được giọng đọc khi chạy ứng dụng trên máy Windows có giọng tiếng Việt.",
-  VOICE_MISSING:
-    "Máy chưa có giọng tiếng Việt của Windows. Vào Cài đặt → Thời gian và ngôn ngữ → Ngôn ngữ, thêm Tiếng Việt.",
+  VOICE_FAILED: "Chưa lưu được bản ghi âm. Hãy thử lại.",
 };

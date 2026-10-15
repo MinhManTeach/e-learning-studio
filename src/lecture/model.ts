@@ -36,10 +36,6 @@ export function lectureFor(slide: BasicSlide): LecturePiece[] {
   return slots.map((_, i) => slide.data.lecture[i] ?? { text: "" });
 }
 
-/** The piece was spoken, then its words were changed. */
-export const voiceOutdated = (p: LecturePiece) =>
-  !!p.assetId && p.voice === "AI" && (p.spokenText ?? "") !== p.text;
-
 /** Whether the page has anything to say. */
 export const hasLecture = (slide: BasicSlide) =>
   slide.data.lecture.some((p) => p.text.trim() || p.assetId);
