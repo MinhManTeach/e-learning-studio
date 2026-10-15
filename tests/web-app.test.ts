@@ -451,3 +451,12 @@ it("writes a page's lecture for one credit, and speaks it with Google's voice", 
   expect(down.status).toBe(503);
   expect(await down.json()).toEqual({ error: "VOICE_BUSY" });
 });
+
+it("tells the editor whether the site has an AI voice", async () => {
+  fresh();
+  const status = () =>
+    fetch(`${base}/api/lesson-ai/lecture/voice`).then((r) => r.json());
+  expect(await status()).toEqual({ available: true });
+  handler = createWebHandler({ ...config(), ttsKey: undefined }, { store });
+  expect(await status()).toEqual({ available: false });
+});

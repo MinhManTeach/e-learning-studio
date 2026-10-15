@@ -85,6 +85,23 @@ function bytesOf(b64: string) {
   return out;
 }
 
+/**
+ * Whether the server can make an AI voice. Only a clear "no" hides it: the
+ * desktop app answers nothing here and uses the Windows voice.
+ */
+export async function voiceAvailable(
+  fetcher: typeof fetch = fetch,
+): Promise<boolean> {
+  try {
+    const res = await fetcher("/api/lesson-ai/lecture/voice");
+    if (!res.ok) return true;
+    const data = (await res.json()) as { available?: unknown };
+    return data.available !== false;
+  } catch {
+    return true;
+  }
+}
+
 /** The AI voice reading each text: one sound file per text. */
 export async function voiceLecture(
   texts: string[],

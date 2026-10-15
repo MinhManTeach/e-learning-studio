@@ -9,6 +9,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { createProject, createSlide } from "../src/model/factories";
 import type { BasicSlide, LessonProject, SlideItem } from "../src/model/schema";
@@ -22,6 +23,7 @@ import {
   voiceOutdated,
 } from "../src/lecture/model";
 import { lectureRequest } from "../src/lecture/client";
+import { LecturePanel } from "../src/lecture/LecturePanel";
 import { lectureRequestSchema } from "../src/lecture/ai";
 import { detectSoundMime } from "../src/media/storage";
 
@@ -223,4 +225,30 @@ it("ships the lecture's recordings in the package", async () => {
   });
   const files = unzipSync(pkg.bytes);
   expect(files["media/sound-0001.weba"]).toEqual(webm);
+});
+
+it("hides the AI voice when the site has none; the browser's voice reads", async () => {
+  const project = lesson(["Chào các em."]);
+  const panel = (available: boolean) =>
+    render(
+      <LecturePanel
+        project={project}
+        slide={project.slides[0] as BasicSlide}
+        store={{} as never}
+        onChange={() => {}}
+        fetcher={async () => Response.json({ available })}
+      />,
+    );
+  panel(false);
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: /Tạo giọng AI/ })).toBeNull(),
+  );
+  expect(
+    screen.getByRole("button", { name: /AI viết lời giảng/ }),
+  ).toBeTruthy();
+  cleanup();
+  panel(true);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: /Tạo giọng AI/ })).toBeTruthy(),
+  );
 });

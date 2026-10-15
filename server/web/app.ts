@@ -484,6 +484,10 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         }
         if (method === "POST" && path === "/api/lesson-ai/lecture/voice")
           return await lectureVoice(req, res);
+        // Without a voice key the editor hides "Tạo giọng AI"; the student's
+        // page then reads the lecture with the browser's own voice.
+        if (method === "GET" && path === "/api/lesson-ai/lecture/voice")
+          return send(res, 200, { available: !!config.ttsKey });
         if (method === "GET" && path === "/api/plans")
           return send(res, 200, {
             plans: config.payos ? plans : [],

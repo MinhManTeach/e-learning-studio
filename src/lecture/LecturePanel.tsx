@@ -10,6 +10,7 @@ import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
 import { explain } from "../ai/AiStudio";
 import {
   keepClip,
+  voiceAvailable,
   voiceLecture,
   voiceMessages,
   writeLecture,
@@ -45,6 +46,15 @@ export function LecturePanel({
   const [error, setError] = useState("");
   const abort = useRef<AbortController | null>(null);
   useEffect(() => () => abort.current?.abort(), []);
+  // The site may have no AI voice yet; the browser's voice reads instead.
+  const [canVoice, setCanVoice] = useState(true);
+  useEffect(() => {
+    let live = true;
+    void voiceAvailable(fetcher).then((ok) => live && setCanVoice(ok));
+    return () => {
+      live = false;
+    };
+  }, [fetcher]);
 
   const save = (next: LecturePiece[], assets?: AssetReference[]) =>
     onChange({ ...slide, data: { ...slide.data, lecture: next } }, assets);
@@ -149,19 +159,21 @@ export function LecturePanel({
           <button type="button" disabled={!!busy} onClick={write}>
             <Sparkles size={16} /> AI viết lời giảng
           </button>
-          <button
-            type="button"
-            disabled={!!busy || !toVoice.length}
-            onClick={voice}
-            title={
-              toVoice.length
-                ? `Tạo giọng AI cho ${toVoice.length} đoạn`
-                : "Mọi đoạn có chữ đều đã có tiếng"
-            }
-          >
-            <Volume2 size={16} /> Tạo giọng AI
-            {toVoice.length ? ` (${toVoice.length})` : ""}
-          </button>
+          {canVoice && (
+            <button
+              type="button"
+              disabled={!!busy || !toVoice.length}
+              onClick={voice}
+              title={
+                toVoice.length
+                  ? `Tạo giọng AI cho ${toVoice.length} đoạn`
+                  : "Mọi đoạn có chữ đều đã có tiếng"
+              }
+            >
+              <Volume2 size={16} /> Tạo giọng AI
+              {toVoice.length ? ` (${toVoice.length})` : ""}
+            </button>
+          )}
         </div>
       </div>
       {busy && (
