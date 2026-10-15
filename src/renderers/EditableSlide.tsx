@@ -169,6 +169,15 @@ export function EditableSlide({
     }
   };
 
+  const steps = Math.max(0, ...layout.items.map((i) => i.step ?? 0));
+  const setStep = (id: string, step: number) =>
+    save(
+      packSteps(
+        layout.items.map((i) =>
+          i.id === id ? { ...i, step: step || undefined } : i,
+        ),
+      ),
+    );
   const toolbar = (
     <div className="edit-toolbar" onPointerDown={(e) => e.stopPropagation()}>
       <button type="button" onClick={addText}>
@@ -176,6 +185,20 @@ export function EditableSlide({
       </button>
       {picked && (
         <>
+          <label className="edit-step-pick">
+            Xuất hiện
+            <select
+              value={picked.step ?? 0}
+              onChange={(e) => setStep(picked.id, Number(e.target.value))}
+            >
+              <option value={0}>Ngay từ đầu</option>
+              {Array.from({ length: steps + 1 }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  Lần bấm {i + 1}
+                </option>
+              ))}
+            </select>
+          </label>
           {picked.kind === "TEXT" && (
             <>
               <button
@@ -321,6 +344,18 @@ export function EditableSlide({
       {slot ? createPortal(toolbar, slot) : toolbar}
     </>
   );
+}
+
+/**
+ * Click numbers stay 1, 2, 3… with no empty clicks between them, keeping
+ * their order, so the student never clicks without something appearing.
+ */
+export function packSteps(items: SlideItem[]): SlideItem[] {
+  const used = [...new Set(items.map((i) => i.step ?? 0))]
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+  const renumber = new Map(used.map((n, i) => [n, i + 1]));
+  return items.map((i) => (i.step ? { ...i, step: renumber.get(i.step) } : i));
 }
 
 /** Typing in a text box of the slide; Esc or a click elsewhere saves it. */

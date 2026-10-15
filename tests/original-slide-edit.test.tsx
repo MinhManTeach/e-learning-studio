@@ -195,3 +195,17 @@ it("removes, enlarges and adds items from the toolbar and keyboard", () => {
   fireEvent.click(screen.getByRole("button", { name: "+ Thêm chữ" }));
   expect(screen.getByLabelText("Sửa chữ trên slide")).toBeTruthy();
 });
+
+it("changes when an item appears as the student clicks", () => {
+  const { item, last } = setup();
+  fireEvent.pointerDown(item("picture"), { button: 0 });
+  act(() => window.dispatchEvent(new MouseEvent("pointerup")));
+  fireEvent.change(screen.getByLabelText("Xuất hiện"), {
+    target: { value: "1" },
+  });
+  expect(last("picture").step).toBe(1);
+  fireEvent.change(screen.getByLabelText("Xuất hiện"), {
+    target: { value: "0" },
+  });
+  expect(last("picture").step).toBeUndefined();
+});

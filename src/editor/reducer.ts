@@ -14,6 +14,12 @@ export interface EditorState {
   selectedId: string | null;
   revision: number;
   qualityUndo?: { before: LessonProject; after: string };
+  /** Earlier versions of the lesson, newest last, for Hoàn tác (undo). */
+  past?: LessonProject[];
+  /** Versions undone, newest first, for Làm lại (redo). */
+  future?: LessonProject[];
+  /** The last change, so quick edits of one page (typing) undo together. */
+  last?: { key: string; at: number };
 }
 export type EditorAction =
   | { type: "quality"; proposal: ImprovementProposal }
@@ -30,14 +36,70 @@ export type EditorAction =
   | { type: "edit"; slide: Slide }
   | { type: "duplicate"; id: string }
   | { type: "delete"; id: string }
-  | { type: "move"; id: string; direction: -1 | 1 };
+  | { type: "move"; id: string; direction: -1 | 1 }
+  | { type: "undo" }
+  | { type: "redo" };
+/** How many changes Hoàn tác can take back. */
+const historyLimit = 100;
+/** Edits of the same page closer together than this undo as one (typing). */
+const typingPause = 1000;
 export function editorState(project: LessonProject): EditorState {
   return { project, selectedId: project.slides[0]?.id ?? null, revision: 0 };
 }
+/**
+ * Every change to the lesson can be taken back (Hoàn tác) and redone (Làm
+ * lại), whether the teacher made it or an AI or quality fix did.
+ */
 export function editorReducer(
   state: EditorState,
   action: EditorAction,
 ): EditorState {
+  const past = state.past ?? [];
+  const future = state.future ?? [];
+  if (action.type === "undo" || action.type === "redo") {
+    const undo = action.type === "undo";
+    const target = undo ? past.at(-1) : future[0];
+    if (!target) return state;
+    return {
+      ...state,
+      project: target,
+      selectedId: changedSlide(state.project, target, state.selectedId),
+      revision: state.revision + 1,
+      past: undo ? past.slice(0, -1) : [...past, state.project],
+      future: undo ? [state.project, ...future] : future.slice(1),
+      last: undefined,
+    };
+  }
+  const next = apply(state, action);
+  // Selecting a page, or a change that changes nothing, is not a step.
+  if (next.project === state.project) return next;
+  const key = action.type === "edit" ? `edit:${action.slide.id}` : action.type;
+  const at = Date.now();
+  const together =
+    action.type === "edit" &&
+    state.last?.key === key &&
+    at - state.last.at < typingPause;
+  return {
+    ...next,
+    past: together ? past : [...past, state.project].slice(-historyLimit),
+    future: [],
+    last: { key, at },
+  };
+}
+/** The page an undo or redo changed, so the teacher sees what came back. */
+function changedSlide(
+  from: LessonProject,
+  to: LessonProject,
+  selected: string | null,
+) {
+  const before = new Map(from.slides.map((s) => [s.id, JSON.stringify(s)]));
+  const changed = to.slides.find((s) => before.get(s.id) !== JSON.stringify(s));
+  if (changed) return changed.id;
+  return to.slides.some((s) => s.id === selected)
+    ? selected
+    : (to.slides[0]?.id ?? null);
+}
+function apply(state: EditorState, action: EditorAction): EditorState {
   const project = state.project;
   if (action.type === "quality") {
     const changed = {

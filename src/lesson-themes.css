@@ -1374,6 +1374,19 @@
     13px/1.2 system-ui,
     sans-serif;
 }
+.edit-step-pick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #1d2b25;
+}
+.edit-step-pick select {
+  padding: 3px 4px;
+  border: 1px solid #c9d6cf;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+}
 .edit-toolbar button {
   margin: 0;
   padding: 4px 8px;
