@@ -132,11 +132,43 @@ export const slideItemSchema = z.object({
   color: hexColor,
   fill: hexColor,
   bold: z.boolean().optional(),
-  align: z.enum(["left", "center", "right"]).optional(),
+  align: z.enum(["left", "center", "right", "justify"]).optional(),
   /** Clicking the item plays this sound (id in `sounds`). */
   soundId: z.string().min(1).optional(),
   /** Shown on the student's n-th click (PowerPoint entrance animation). */
   step: z.number().int().positive().optional(),
+  italic: z.boolean().optional(),
+  /** Font name from PowerPoint (shown when the device has it). */
+  font: z.string().max(80).optional(),
+  valign: z.enum(["top", "middle", "bottom"]).optional(),
+  /** Space inside the box: top, right, bottom, left, in percent of the slide width. */
+  pad: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
+  /** Line height, a multiple of the font size. */
+  lineHeight: z.number().positive().max(5).optional(),
+  nowrap: z.boolean().optional(),
+  /** Corner radius in percent of the slide width. */
+  radius: z.number().nonnegative().optional(),
+  ellipse: z.boolean().optional(),
+  /** Drawn shape: an SVG path on a 1000 × 1000 box, filled with `fill`. */
+  path: z.string().max(20000).optional(),
+  /** Outline; width in percent of the slide width. */
+  line: z
+    .object({
+      color: z.string().regex(/^#[0-9a-f]{6}$/i),
+      width: z.number().nonnegative(),
+      dash: z.boolean().optional(),
+    })
+    .optional(),
+  /** Clockwise rotation in degrees. */
+  rotate: z.number().optional(),
+  flipH: z.boolean().optional(),
+  flipV: z.boolean().optional(),
+  /** IMAGE: fraction of the picture cut away on each side. */
+  crop: z
+    .object({ l: z.number(), t: z.number(), r: z.number(), b: z.number() })
+    .optional(),
+  /** Part of the slide design (background, frame): the editor leaves it alone. */
+  locked: z.boolean().optional(),
 });
 /** The slide drawn as PowerPoint laid it out: every picture and text box kept. */
 export const slideLayoutSchema = z.object({
@@ -145,6 +177,8 @@ export const slideLayoutSchema = z.object({
     .number()
     .positive()
     .default(16 / 9),
+  /** Background colour of the slide. */
+  background: hexColor,
   items: z.array(slideItemSchema).default([]),
 });
 export const basicDataSchema = z.object({

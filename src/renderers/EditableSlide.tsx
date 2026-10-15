@@ -7,7 +7,7 @@ import type {
   SlideItem,
   SlideLayout,
 } from "../model/schema";
-import { ItemPicture, itemStyle } from "./OriginalSlide";
+import { ItemPicture, ItemShape, itemLines, itemStyle } from "./OriginalSlide";
 
 type Drag = {
   id: string;
@@ -247,6 +247,24 @@ export function EditableSlide({
       >
         {items.map((item) => {
           const chosen = item.id === selected;
+          // The slide design (background, frames) stays put and is not picked.
+          if (item.locked)
+            return (
+              <div
+                key={item.id}
+                className={`original-item original-${item.kind.toLowerCase()} locked`}
+                style={itemStyle(item)}
+              >
+                {item.kind === "IMAGE" ? (
+                  <ItemPicture item={item} project={project} />
+                ) : (
+                  <>
+                    <ItemShape item={item} />
+                    {itemLines(item)}
+                  </>
+                )}
+              </div>
+            );
           return (
             <div
               key={item.id}
@@ -271,7 +289,10 @@ export function EditableSlide({
                   }}
                 />
               ) : (
-                item.text.map((line, i) => <p key={i}>{line}</p>)
+                <>
+                  <ItemShape item={item} />
+                  {itemLines(item)}
+                </>
               )}
               {item.soundId && (
                 <span className="original-sound-badge" aria-hidden="true">

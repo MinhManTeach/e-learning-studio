@@ -111,8 +111,11 @@ export const wavBytes = strToU8("RIFF\0\0\0\0WAVEfmt ");
 export function buildPptx(
   slides: SlideSpec[],
   media: Record<string, Uint8Array>,
+  /** Extra parts (layouts, masters, themes) by path, as XML text. */
+  parts: Record<string, string> = {},
 ): Uint8Array {
   const files: Zippable = {};
+  for (const [name, xml] of Object.entries(parts)) files[name] = strToU8(xml);
   files["ppt/presentation.xml"] = strToU8(
     `<?xml version="1.0" encoding="UTF-8"?><p:presentation ${ns}><p:sldIdLst>${slides
       .map((_, i) => `<p:sldId id="${256 + i}" r:id="rIdS${i + 1}"/>`)

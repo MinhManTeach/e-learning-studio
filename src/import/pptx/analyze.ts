@@ -42,13 +42,37 @@ export interface DraftItem {
   color?: string;
   fill?: string;
   bold?: boolean;
-  align?: "left" | "center" | "right";
+  align?: "left" | "center" | "right" | "justify";
+  italic?: boolean;
+  font?: string;
+  valign?: "top" | "middle" | "bottom";
+  /** Space inside the box around the text: top, right, bottom, left (percent of the slide width). */
+  pad?: [number, number, number, number];
+  /** Line height, a multiple of the font size. */
+  lineHeight?: number;
+  nowrap?: boolean;
+  /** Corner radius in percent of the slide width, or an ellipse. */
+  radius?: number;
+  ellipse?: boolean;
+  /** Custom shape outline: an SVG path on a 1000 × 1000 box. */
+  path?: string;
+  /** Outline colour and width (percent of the slide width). */
+  line?: { color: string; width: number; dash?: boolean };
+  rotate?: number;
+  flipH?: boolean;
+  flipV?: boolean;
+  /** Fraction of the picture cut away on each side. */
+  crop?: { l: number; t: number; r: number; b: number };
+  /** Part of the slide design (background, master frame): not picked in the editor. */
+  locked?: boolean;
   /** Index in the page's sounds. */
   sound?: number;
   step?: number;
 }
 export interface DraftLayout {
   ratio: number;
+  /** Background colour of the slide. */
+  background?: string;
   items: DraftItem[];
 }
 export type DraftPage =
@@ -544,51 +568,130 @@ function slideLayout(
 ): DraftLayout {
   const slideWidthPt = deck.width / 12700;
   const order = new Map(slide.appear.map((id, i) => [id, i + 1]));
+  const round = (v: number) => Math.round(v * 100) / 100;
+  // EMU to percent of the slide width (the unit of sizes inside the slide).
+  const wide = (emu: number) => round((emu / deck.width) * 100);
   const items: DraftItem[] = [];
-  for (const e of slide.elements) {
-    if (!e.rect || !onSlide(e.rect, deck)) continue;
+  // `shown` is the shape whose animation shows it (a table for its cells).
+  const add = (e: PptxElement, locked: boolean, shown = e.id) => {
+    // A table is drawn cell by cell.
+    if (e.cells) {
+      for (const cell of e.cells) add(cell, locked, e.id);
+      return;
+    }
+    if (!e.rect || !onSlide(e.rect, deck)) return;
     const text = e.text.filter((t) => !isWatermark(t));
-    if (e.text.length && !text.length) continue;
-    if (!e.image && !text.length && !e.style?.fill) continue;
+    if (e.text.length && !text.length) return;
+    const st = e.style;
+    if (!e.image && !text.length && !st?.fill && !st?.line) return;
     // The picture clicked for the sound, or the sound's own speaker icon.
     const clicked = sounds.findIndex((s) => s.from === e.id);
-    const sound =
-      clicked >= 0
+    const sound = locked
+      ? -1
+      : clicked >= 0
         ? clicked
         : e.media?.kind === "AUDIO"
           ? sounds.findIndex((s) => s.audio === e.media!.path)
           : -1;
-    const round = (v: number) => Math.round(v * 100) / 100;
-    items.push({
-      id: e.id,
-      kind: e.image ? "IMAGE" : "TEXT",
+    const box = {
       x: round((e.rect.x / deck.width) * 100),
       y: round((e.rect.y / deck.height) * 100),
       w: round((e.rect.w / deck.width) * 100),
       h: round((e.rect.h / deck.height) * 100),
-      ...(e.image ? { image: e.image } : {}),
-      text: e.image ? [] : text,
-      ...(e.style?.size
-        ? { size: round((e.style.size / slideWidthPt) * 100) }
-        : {}),
-      ...(e.style?.color ? { color: e.style.color } : {}),
-      ...(e.style?.fill ? { fill: e.style.fill } : {}),
-      ...(e.style?.bold ? { bold: true } : {}),
-      ...(e.style?.align ? { align: e.style.align } : {}),
+      ...(e.rotate ? { rotate: e.rotate } : {}),
+      ...(e.flipH ? { flipH: true } : {}),
+      ...(e.flipV ? { flipV: true } : {}),
+      ...(locked ? { locked: true } : {}),
       ...(sound >= 0 ? { sound } : {}),
-      ...(order.has(e.id) ? { step: order.get(e.id) } : {}),
-    });
-    // A picture with text on it (a button): keep the words on top of it.
-    if (e.image && text.length)
+      ...(!locked && order.has(shown) ? { step: order.get(shown) } : {}),
+    };
+    const look = st
+      ? {
+          ...(st.fill ? { fill: st.fill } : {}),
+          ...(st.line
+            ? {
+                line: {
+                  color: st.line.color,
+                  width: Math.max(0.05, wide(st.line.width)),
+                  ...(st.line.dash ? { dash: true } : {}),
+                },
+              }
+            : {}),
+          ...(st.radius
+            ? { radius: wide(Math.min(e.rect.w, e.rect.h) * st.radius) }
+            : {}),
+          ...(st.ellipse ? { ellipse: true } : {}),
+          ...(st.path ? { path: st.path } : {}),
+        }
+      : {};
+    const words = st
+      ? {
+          ...(st.size ? { size: round((st.size / slideWidthPt) * 100) } : {}),
+          ...(st.color ? { color: st.color } : {}),
+          ...(st.bold ? { bold: true } : {}),
+          ...(st.italic ? { italic: true } : {}),
+          ...(st.align ? { align: st.align } : {}),
+          ...(st.font ? { font: st.font } : {}),
+          ...(st.valign && st.valign !== "top" ? { valign: st.valign } : {}),
+          ...(st.inset
+            ? {
+                pad: [
+                  wide(st.inset.t),
+                  wide(st.inset.r),
+                  wide(st.inset.b),
+                  wide(st.inset.l),
+                ] as [number, number, number, number],
+              }
+            : {}),
+          ...(st.lineSpacing
+            ? { lineHeight: round(1.2 * st.lineSpacing) }
+            : {}),
+          ...(st.nowrap ? { nowrap: true } : {}),
+        }
+      : {};
+    if (e.image) {
       items.push({
-        ...items.at(-1)!,
-        kind: "TEXT",
-        image: undefined,
-        text,
-        id: `${e.id}-text`,
+        id: e.id,
+        kind: "IMAGE",
+        ...box,
+        image: e.image,
+        text: [],
+        ...(e.crop ? { crop: e.crop } : {}),
       });
-  }
-  return { ratio: deck.width / deck.height, items };
+      // A picture with text on it (a button): keep the words on top of it.
+      if (text.length)
+        items.push({
+          id: `${e.id}-text`,
+          kind: "TEXT",
+          ...box,
+          text,
+          ...words,
+        });
+    } else
+      items.push({ id: e.id, kind: "TEXT", ...box, text, ...look, ...words });
+  };
+  // The slide's design first (background picture, master and layout
+  // pictures and frames), then the slide's own shapes on top.
+  const bg = slide.background;
+  if (bg?.image)
+    items.push({
+      id: "background",
+      kind: "IMAGE",
+      x: 0,
+      y: 0,
+      w: 100,
+      h: 100,
+      image: bg.image,
+      text: [],
+      locked: true,
+    });
+  for (const e of slide.decor ?? []) add(e, true);
+  for (const e of slide.elements) add(e, false);
+  return {
+    ratio: deck.width / deck.height,
+    ...(bg?.color && bg.color !== "#ffffff" ? { background: bg.color } : {}),
+    items,
+  };
 }
 /** Text boxes on the slide that PowerPoint shows one click at a time. */
 function revealsText(slide: PptxSlide, deck: PptxDeck) {

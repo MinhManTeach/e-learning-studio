@@ -340,5 +340,7 @@ it("reads the size, colour and box fill of a text box", () => {
     bold: true,
     color: "#c00000",
     align: "center",
+    // PowerPoint's default space between a text box's edge and its text.
+    inset: { l: 91440, t: 45720, r: 91440, b: 45720 },
   });
 });
