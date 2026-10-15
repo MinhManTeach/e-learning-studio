@@ -204,6 +204,7 @@ it("signs a teacher in with Google, with state, nonce and PKCE, and gives free c
       picture: "https://lh3.googleusercontent.com/a.png",
     },
     credits: 2,
+    owns: [],
   });
   // Signing in again does not give the free credits again.
   const again = await signIn();
@@ -244,6 +245,29 @@ it("refuses a sign-in with a wrong state, a forged token, another app's token or
     "/giao-vien?login=failed",
   );
   expect(store.balance("anyone")).toBe(0);
+});
+
+it("sends the user back to the student app they signed in from, and nowhere off the site", async () => {
+  fresh();
+  const signInFrom = async (next: string) => {
+    const start = await fetch(
+      `${base}/auth/google?next=${encodeURIComponent(next)}`,
+      { redirect: "manual" },
+    );
+    const to = new URL(start.headers.get("location")!);
+    lastNonce = to.searchParams.get("nonce")!;
+    const back = await fetch(
+      `${base}/auth/google/callback?code=good-code&state=${to.searchParams.get("state")}`,
+      { redirect: "manual", headers: { cookie: cookieOf(start, "gv_login") } },
+    );
+    return back.headers.get("location");
+  };
+  expect(await signInFrom("/hoc-sinh/english-adventure/")).toBe(
+    "/hoc-sinh/english-adventure/",
+  );
+  expect(await signInFrom("https://evil.example/")).toBe("/giao-vien");
+  expect(await signInFrom("//evil.example/")).toBe("/giao-vien");
+  expect(await signInFrom("/hoc-sinh/../api/me")).toBe("/giao-vien");
 });
 
 it("spends one credit per successful AI design, none on failure, and stops at zero", async () => {

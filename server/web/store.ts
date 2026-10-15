@@ -287,6 +287,16 @@ export class Store {
       );
     return payment;
   }
+  /** The plans this user has paid for, e.g. ["ENGLISH_A1"]. */
+  paidPlans(userId: string): string[] {
+    return (
+      this.db
+        .prepare(
+          "select distinct plan from payments where user_id = ? and status = 'PAID' order by plan",
+        )
+        .all(userId) as Row[]
+    ).map((r) => String(r.plan));
+  }
   payment(orderCode: number): Payment | null {
     const r = this.db
       .prepare("select * from payments where order_code = ?")

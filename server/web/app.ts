@@ -17,6 +17,7 @@ import type { Store, User } from "./store";
 import {
   createPaymentLink,
   plans,
+  products,
   verifyWebhook,
   type PayosConfig,
 } from "./payos";
@@ -68,6 +69,10 @@ const sessionCookie = "gv_session";
 const loginCookie = "gv_login";
 /** Where the lesson studio (the single-page app) lives on the site. */
 const STUDIO = "/giao-vien";
+/** Where sign-in may send the user back to: the studio or a student app.
+ * Only these plain paths, so the address can never lead off the site. */
+const returnPath = (next: string | null) =>
+  next && /^\/(giao-vien|hoc-sinh\/[a-z0-9-]+\/?)$/.test(next) ? next : STUDIO;
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -133,8 +138,15 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     const body = (await readJson(req, 10_000).catch(() => ({}))) as {
       plan?: string;
     };
-    const plan = plans.find((p) => p.id === body.plan);
+    const product = products.find((p) => p.id === body.plan);
+    const plan =
+      plans.find((p) => p.id === body.plan) ??
+      (product && { ...product, credits: 0 });
     if (!plan) return send(res, 400, { error: "PAY_PLAN" });
+    // Content is bought once; a second purchase would only take money.
+    if (product && store.paidPlans(user.id).includes(product.id))
+      return send(res, 409, { error: "PAY_OWNED" });
+    const back = product ? `/hoc-sinh/${product.app}/` : STUDIO;
     let orderCode = newOrderCode();
     for (let i = 0; store.payment(orderCode) && i < 5; i++)
       orderCode = newOrderCode();
@@ -153,8 +165,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           amount: plan.amount,
           // Shown on the bank transfer; PayOS allows 25 characters.
           description: `GV ${orderCode}`.slice(0, 25),
-          returnUrl: `${config.publicUrl}${STUDIO}?paid=${orderCode}`,
-          cancelUrl: `${config.publicUrl}${STUDIO}?paid=cancelled`,
+          returnUrl: `${config.publicUrl}${back}?paid=${orderCode}`,
+          cancelUrl: `${config.publicUrl}${back}?paid=cancelled`,
         },
         transport,
       );
@@ -227,7 +239,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     }
   }
 
-  async function googleStart(res: ServerResponse) {
+  async function googleStart(res: ServerResponse, url: URL) {
     if (!config.google) return send(res, 404, { error: "AUTH_UNAVAILABLE" });
     const login = {
       state: randomToken(),
@@ -237,7 +249,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     redirect(res, googleAuthUrl(config.google, redirectUri, login), {
       "Set-Cookie": cookie(
         loginCookie,
-        `${login.state}.${login.nonce}.${login.verifier}`,
+        `${login.state}.${login.nonce}.${login.verifier}.${returnPath(url.searchParams.get("next"))}`,
         600,
       ),
     });
@@ -249,13 +261,14 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     url: URL,
   ) {
     if (!config.google) return send(res, 404, { error: "AUTH_UNAVAILABLE" });
-    const [state, nonce, verifier] = (
+    const [state, nonce, verifier, next] = (
       parseCookies(req.headers.cookie)[loginCookie] ?? ""
     ).split(".");
+    const back = returnPath(next ?? null);
     const clear = cookie(loginCookie, "", 0);
     const code = url.searchParams.get("code");
     if (!state || url.searchParams.get("state") !== state || !code)
-      return redirect(res, `${STUDIO}?login=failed`, { "Set-Cookie": clear });
+      return redirect(res, `${back}?login=failed`, { "Set-Cookie": clear });
     try {
       const profile = await googleSignIn(
         config.google,
@@ -273,11 +286,11 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         store.addCredits(user.id, config.freeCredits, "welcome", user.id);
       const days = config.sessionDays;
       const token = store.createSession(user.id, days * 86_400_000);
-      redirect(res, STUDIO, {
+      redirect(res, back, {
         "Set-Cookie": [clear, cookie(sessionCookie, token, days * 86_400)],
       });
     } catch {
-      redirect(res, `${STUDIO}?login=failed`, { "Set-Cookie": clear });
+      redirect(res, `${back}?login=failed`, { "Set-Cookie": clear });
     }
   }
 
@@ -430,7 +443,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     const method = req.method ?? "GET";
     try {
       if (method === "GET" && path === "/auth/google")
-        return await googleStart(res);
+        return await googleStart(res, url);
       if (method === "GET" && path === "/auth/google/callback")
         return await googleCallback(req, res, url);
       // PayOS calls this from its own servers, so no origin check; the
@@ -462,6 +475,10 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           return send(res, 200, {
             user: { name: user.name, email: user.email, picture: user.picture },
             credits: store.balance(user.id),
+            // Student-app content this account has bought, e.g. ENGLISH_A1.
+            owns: store
+              .paidPlans(user.id)
+              .filter((id) => products.some((p) => p.id === id)),
           });
         }
         if (method === "GET" && path === "/api/lesson-ai/studio/status") {

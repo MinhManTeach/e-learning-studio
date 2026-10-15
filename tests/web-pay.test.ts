@@ -5,6 +5,7 @@ import { createHmac } from "node:crypto";
 import { createWebHandler } from "../server/web/app";
 import {
   plans,
+  products,
   signObject,
   signPaymentRequest,
   verifyWebhook,
@@ -263,4 +264,60 @@ it("does not add credits for a short payment, and answers PayOS's webhook test",
     signature: signObject(test, checksumKey),
   });
   expect(res.status).toBe(200);
+});
+
+it("sells English Adventure A1 once, returns to the app, and lists it as owned", async () => {
+  const { user, session } = setup();
+  const me = async () =>
+    (await fetch(`${base}/api/me`, { headers: { cookie: session } })).json();
+  expect((await me()).owns).toEqual([]);
+  // Teachers' credit packs stay the only plans the studio offers.
+  expect((await (await fetch(`${base}/api/plans`)).json()).plans).toEqual(
+    plans,
+  );
+  const res = await post(
+    "/api/pay/create",
+    { plan: "ENGLISH_A1" },
+    { cookie: session },
+  );
+  expect(res.status).toBe(200);
+  const { orderCode } = await res.json();
+  expect(payosCalls[0].body).toMatchObject({
+    amount: 99000,
+    returnUrl: `${base}/hoc-sinh/english-adventure/?paid=${orderCode}`,
+    cancelUrl: `${base}/hoc-sinh/english-adventure/?paid=cancelled`,
+  });
+  expect(store.payment(orderCode)).toMatchObject({
+    plan: "ENGLISH_A1",
+    credits: 0,
+  });
+  const data = { orderCode, amount: 99000, code: "00" };
+  await post("/api/pay/webhook", {
+    data,
+    signature: signObject(data, checksumKey),
+  });
+  expect((await me()).owns).toEqual(["ENGLISH_A1"]);
+  expect(store.balance(user.id)).toBe(0);
+  // Bought for good: a second purchase is refused, not charged.
+  expect(
+    (await post("/api/pay/create", { plan: "ENGLISH_A1" }, { cookie: session }))
+      .status,
+  ).toBe(409);
+  expect(products.map((p) => p.id)).toEqual(["ENGLISH_A1"]);
+});
+
+it("does not count an unpaid or short English purchase as owned", async () => {
+  const { session } = setup();
+  const { orderCode } = await (
+    await post("/api/pay/create", { plan: "ENGLISH_A1" }, { cookie: session })
+  ).json();
+  const short = { orderCode, amount: 9900, code: "00" };
+  await post("/api/pay/webhook", {
+    data: short,
+    signature: signObject(short, checksumKey),
+  });
+  const me = await (
+    await fetch(`${base}/api/me`, { headers: { cookie: session } })
+  ).json();
+  expect(me.owns).toEqual([]);
 });
