@@ -1325,15 +1325,18 @@
 .original-slide.editing .edit-item:hover {
   outline: 1px dashed #1a7965aa;
 }
+/* The chosen item keeps its layer: a big frame picked must not cover the
+   words and pictures in front of it. */
 .original-slide.editing .edit-item.chosen {
   outline: 2px solid #1a7965;
-  z-index: 1;
 }
 .original-slide.editing .edit-item p {
   overflow-wrap: anywhere;
 }
 .edit-handle {
   position: absolute;
+  /* Above the items in front, so a chosen item can always be resized. */
+  z-index: 5;
   right: -7px;
   bottom: -7px;
   width: 14px;
@@ -1395,4 +1398,16 @@
 }
 .edit-toolbar button.danger {
   color: #b42318;
+}
+.edit-toolbar .edit-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+}
+.edit-toolbar .edit-order select {
+  padding: 3px 4px;
+  border: 1px solid #c9d6cf;
+  border-radius: 6px;
+  font: inherit;
 }

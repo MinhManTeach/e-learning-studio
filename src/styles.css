@@ -504,6 +504,32 @@ button.primary:hover {
   display: flex;
   justify-content: center;
 }
+.page-history {
+  display: flex;
+  gap: 4px;
+}
+.page-history button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid #c9d6cf;
+  border-radius: 6px;
+  background: #fff;
+  color: #1d2b25;
+  font:
+    13px/1.2 system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.page-history button:hover:not(:disabled) {
+  border-color: #1a7965;
+}
+.page-history button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 .canvas-ratio {
   border: 1px solid #dfe5db;
   border-radius: 4px;

@@ -62,6 +62,28 @@ export function EditableSlide({
     const rest = layout.items.filter((i) => i.id !== id);
     save(front ? [...rest, item] : [item, ...rest]);
   };
+  /**
+   * Puts an item at the n-th click (0: always shown). Clicks stay numbered
+   * 1, 2, 3… with no gaps; items on the same click appear together.
+   */
+  const showAt = (id: string, step: number) => {
+    const set = layout.items.map((i) =>
+      i.id === id ? { ...i, step: step || undefined } : i,
+    );
+    const used = [...new Set(set.map((i) => i.step ?? 0).filter(Boolean))].sort(
+      (a, b) => a - b,
+    );
+    save(
+      set.map((i) => {
+        if (!i.step) {
+          const { step: _gone, ...rest } = i;
+          return rest;
+        }
+        return { ...i, step: used.indexOf(i.step) + 1 };
+      }),
+    );
+  };
+  const clicks = Math.max(0, ...layout.items.map((i) => i.step ?? 0));
   const addText = () => {
     const item: SlideItem = {
       id: crypto.randomUUID(),
@@ -213,6 +235,26 @@ export function EditableSlide({
               </button>
             </>
           )}
+          <label
+            className="edit-order"
+            title="Học sinh bấm bao nhiêu lần thì thấy mục này"
+          >
+            Xuất hiện:{" "}
+            <select
+              value={picked.step ?? 0}
+              onChange={(e) => showAt(picked.id, Number(e.target.value))}
+            >
+              <option value={0}>Luôn hiện</option>
+              {Array.from(
+                { length: Math.min(clicks + 1, 30) },
+                (_, n) => n + 1,
+              ).map((n) => (
+                <option key={n} value={n}>
+                  {n > clicks ? `Lần bấm ${n} (mới)` : `Lần bấm ${n}`}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" onClick={() => reorder(picked.id, true)}>
             Đưa lên trên
           </button>

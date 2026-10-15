@@ -9,14 +9,16 @@ import {
   GraduationCap,
   LayoutTemplate,
   Pencil,
+  Redo2,
   Save,
   Trash2,
   Settings,
+  Undo2,
 } from "lucide-react";
 import type { LessonProject } from "../model/schema";
 import { ZodError } from "zod";
 import { ProjectConflictError, type ProjectStore } from "../storage/projects";
-import { editorReducer, editorState } from "./reducer";
+import { canRedo, canUndo, editorReducer, editorState } from "./reducer";
 import { SlideList } from "./SlideList";
 import { Properties } from "./Properties";
 import { SlideCanvas } from "../renderers/SlideCanvas";
@@ -128,9 +130,27 @@ export function Editor({
   }, [dirty]);
   useEffect(() => {
     function shortcut(event: KeyboardEvent) {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      const mod = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+      if (mod && key === "s") {
         event.preventDefault();
         void save();
+        return;
+      }
+      // Ctrl+Z / Ctrl+Y undo and redo the current page; inside a text field
+      // the browser undoes the typing instead.
+      const target = event.target as HTMLElement | null;
+      const typing = !!target?.closest?.(
+        "input, textarea, select, [contenteditable]",
+      );
+      const id = stateRef.current.selectedId;
+      if (!mod || typing || !id || event.altKey) return;
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        dispatch({ type: "undo", id });
+      } else if (key === "y" || (key === "z" && event.shiftKey)) {
+        event.preventDefault();
+        dispatch({ type: "redo", id });
       }
     }
     window.addEventListener("keydown", shortcut);
@@ -304,6 +324,26 @@ export function Editor({
                   ? `Trang ${index + 1} / ${state.project.slides.length}`
                   : "Tổng quan bài giảng"}
               </span>
+              {slide && !preview && (
+                <span className="page-history">
+                  <button
+                    type="button"
+                    disabled={!canUndo(state, slide.id)}
+                    title="Hoàn tác thay đổi trên trang này (Ctrl+Z)"
+                    onClick={() => dispatch({ type: "undo", id: slide.id })}
+                  >
+                    <Undo2 size={15} /> Hoàn tác
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canRedo(state, slide.id)}
+                    title="Làm lại (Ctrl+Y)"
+                    onClick={() => dispatch({ type: "redo", id: slide.id })}
+                  >
+                    <Redo2 size={15} /> Làm lại
+                  </button>
+                </span>
+              )}
               {/* The original slide puts its editing buttons here. */}
               <div id="slide-edit-tools" className="slide-edit-tools" />
               <span className="canvas-ratio">16 : 9</span>

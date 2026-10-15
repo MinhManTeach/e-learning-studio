@@ -9,12 +9,55 @@ import type {
   Slide,
   SlideType,
 } from "../model/schema";
+/** Earlier and undone versions of one page, newest last. */
+export interface PageHistory {
+  past: Slide[];
+  future: Slide[];
+  /** When the last version was kept (typing in a field keeps one version). */
+  at: number;
+}
 export interface EditorState {
   project: LessonProject;
   selectedId: string | null;
   revision: number;
   qualityUndo?: { before: LessonProject; after: string };
+  /** Undo and redo, page by page. */
+  history?: Record<string, PageHistory>;
 }
+/** How many versions of a page are kept. */
+export const historyLimit = 50;
+/** Changes closer together than this (typing a word) are undone together. */
+const typingPause = 800;
+
+/** Keeps `before` as the version to go back to for each page it changed. */
+function remember(
+  history: Record<string, PageHistory> | undefined,
+  before: Slide[],
+  after: Slide[],
+  now = Date.now(),
+) {
+  const next = { ...history };
+  for (const old of before) {
+    const changed = after.find((s) => s.id === old.id);
+    if (!changed || changed === old) continue;
+    const h = next[old.id];
+    // A burst of small edits (typing) is one step back.
+    if (h && h.future.length === 0 && now - h.at < typingPause) {
+      next[old.id] = { ...h, at: now };
+      continue;
+    }
+    next[old.id] = {
+      past: [...(h?.past ?? []), old].slice(-historyLimit),
+      future: [],
+      at: now,
+    };
+  }
+  return next;
+}
+export const canUndo = (state: EditorState, id: string | null) =>
+  !!id && !!state.history?.[id]?.past.length;
+export const canRedo = (state: EditorState, id: string | null) =>
+  !!id && !!state.history?.[id]?.future.length;
 export type EditorAction =
   | { type: "quality"; proposal: ImprovementProposal }
   | { type: "quality-undo" }
@@ -30,7 +73,10 @@ export type EditorAction =
   | { type: "edit"; slide: Slide }
   | { type: "duplicate"; id: string }
   | { type: "delete"; id: string }
-  | { type: "move"; id: string; direction: -1 | 1 };
+  | { type: "move"; id: string; direction: -1 | 1 }
+  /** Back to the page's previous version, or forward again. */
+  | { type: "undo"; id: string }
+  | { type: "redo"; id: string };
 export function editorState(project: LessonProject): EditorState {
   return { project, selectedId: project.slides[0]?.id ?? null, revision: 0 };
 }
@@ -49,6 +95,7 @@ export function editorReducer(
       project: changed,
       revision: state.revision + 1,
       qualityUndo: { before: project, after: JSON.stringify(changed) },
+      history: remember(state.history, project.slides, changed.slides),
     };
   }
   if (action.type === "ai") {
@@ -58,6 +105,39 @@ export function editorReducer(
       project: changed,
       revision: state.revision + 1,
       qualityUndo: { before: project, after: JSON.stringify(changed) },
+      history: remember(state.history, project.slides, changed.slides),
+    };
+  }
+  if (action.type === "undo" || action.type === "redo") {
+    const h = state.history?.[action.id];
+    const current = project.slides.find((s) => s.id === action.id);
+    const back = action.type === "undo";
+    const target = back ? h?.past.at(-1) : h?.future.at(-1);
+    if (!h || !current || !target) return state;
+    return {
+      ...state,
+      project: {
+        ...project,
+        slides: project.slides.map((s) => (s.id === action.id ? target : s)),
+        updatedAt: new Date().toISOString(),
+      },
+      selectedId: action.id,
+      revision: state.revision + 1,
+      qualityUndo: undefined,
+      history: {
+        ...state.history,
+        [action.id]: back
+          ? {
+              past: h.past.slice(0, -1),
+              future: [...h.future, current],
+              at: 0,
+            }
+          : {
+              past: [...h.past, current].slice(-historyLimit),
+              future: h.future.slice(0, -1),
+              at: 0,
+            },
+      },
     };
   }
   if (action.type === "quality-undo") {
@@ -71,6 +151,11 @@ export function editorReducer(
       project: state.qualityUndo.before,
       revision: state.revision + 1,
       qualityUndo: undefined,
+      history: remember(
+        state.history,
+        project.slides,
+        state.qualityUndo.before.slides,
+      ),
     };
   }
   let selectedId = state.selectedId;
@@ -206,5 +291,15 @@ export function editorReducer(
     selectedId,
     revision: state.revision + 1,
     qualityUndo: undefined,
+    history:
+      action.type === "edit"
+        ? remember(state.history, project.slides, slides)
+        : action.type === "delete"
+          ? Object.fromEntries(
+              Object.entries(state.history ?? {}).filter(
+                ([id]) => id !== action.id,
+              ),
+            )
+          : state.history,
   };
 }

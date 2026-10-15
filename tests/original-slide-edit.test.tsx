@@ -195,3 +195,28 @@ it("removes, enlarges and adds items from the toolbar and keyboard", () => {
   fireEvent.click(screen.getByRole("button", { name: "+ Thêm chữ" }));
   expect(screen.getByLabelText("Sửa chữ trên slide")).toBeTruthy();
 });
+
+it("changes on which click an item appears, keeping clicks 1, 2, 3", () => {
+  const { item, last } = setup();
+  const pick = (label: string) => {
+    fireEvent.pointerDown(item(label), { button: 0 });
+    act(() => window.dispatchEvent(new MouseEvent("pointerup")));
+  };
+  const order = () => screen.getByLabelText(/Xuất hiện/) as HTMLSelectElement;
+  pick("picture");
+  expect(order().value).toBe("0");
+  fireEvent.change(order(), { target: { value: "1" } });
+  expect(last("picture").step).toBe(1);
+  // A second click for the text, then the picture moves to a later click.
+  pick("Mạnh – nhẹ.");
+  fireEvent.change(order(), { target: { value: "2" } });
+  expect(last("Mạnh – nhẹ.").step).toBe(2);
+  pick("picture");
+  fireEvent.change(order(), { target: { value: "3" } });
+  // No gap: the text is now click 1 and the picture click 2.
+  expect(last("Mạnh – nhẹ.").step).toBe(1);
+  expect(last("picture").step).toBe(2);
+  // Always shown again.
+  fireEvent.change(order(), { target: { value: "0" } });
+  expect(last("picture").step).toBeUndefined();
+});
