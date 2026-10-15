@@ -303,7 +303,7 @@ it("sells English Adventure A1 once, returns to the app, and lists it as owned",
     (await post("/api/pay/create", { plan: "ENGLISH_A1" }, { cookie: session }))
       .status,
   ).toBe(409);
-  expect(products.map((p) => p.id)).toEqual(["ENGLISH_A1"]);
+  expect(products.map((p) => p.id)).toEqual(["ENGLISH_A1", "ENGLISH_A2"]);
 });
 
 it("does not count an unpaid or short English purchase as owned", async () => {
@@ -320,4 +320,30 @@ it("does not count an unpaid or short English purchase as owned", async () => {
     await fetch(`${base}/api/me`, { headers: { cookie: session } })
   ).json();
   expect(me.owns).toEqual([]);
+});
+
+it("sells A2 separately from A1, each once", async () => {
+  const { session } = setup();
+  const buy = async (plan: string) => {
+    const res = await post("/api/pay/create", { plan }, { cookie: session });
+    if (res.status !== 200) return res.status;
+    const { orderCode } = await res.json();
+    const data = { orderCode, amount: 99000, code: "00" };
+    await post("/api/pay/webhook", {
+      data,
+      signature: signObject(data, checksumKey),
+    });
+    return 200;
+  };
+  const owns = async () =>
+    (
+      await (
+        await fetch(`${base}/api/me`, { headers: { cookie: session } })
+      ).json()
+    ).owns;
+  expect(await buy("ENGLISH_A2")).toBe(200);
+  expect(await owns()).toEqual(["ENGLISH_A2"]);
+  expect(await buy("ENGLISH_A1")).toBe(200);
+  expect(await owns()).toEqual(["ENGLISH_A1", "ENGLISH_A2"]);
+  expect(await buy("ENGLISH_A2")).toBe(409);
 });

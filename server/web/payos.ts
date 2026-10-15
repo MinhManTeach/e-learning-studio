@@ -34,6 +34,12 @@ export const products: Product[] = [
     amount: 99_000,
     app: "english-adventure",
   },
+  {
+    id: "ENGLISH_A2",
+    name: "English Adventure: trọn bộ A2",
+    amount: 99_000,
+    app: "english-adventure",
+  },
 ];
 
 const hmac = (key: string, text: string) =>
