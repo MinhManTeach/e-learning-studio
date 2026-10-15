@@ -39,6 +39,8 @@ export interface WebConfig {
   appsDir?: string;
   /** Google Cloud Text-to-Speech key for the apps' read-aloud. */
   ttsKey?: string;
+  /** Google's voice for lectures too (LECTURE_AI_VOICE=1); off, the browser reads them. */
+  lectureVoice?: boolean;
 }
 export interface WebDeps {
   store: Store;
@@ -100,6 +102,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const redirectUri = `${config.publicUrl}/auth/google/callback`;
   const busy = new Set<string>(); // users with an AI design running
   const speak = createTts(config.ttsKey, transport, now);
+  // Lectures are long and cost money; Google speaks them only when asked to.
+  const lectureVoiceOn = !!(config.ttsKey && config.lectureVoice);
 
   async function tts(res: ServerResponse, url: URL) {
     const text = (url.searchParams.get("text") ?? "").trim();
@@ -284,7 +288,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   async function lectureVoice(req: IncomingMessage, res: ServerResponse) {
     const user = userOf(req);
     if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
-    if (!config.ttsKey) return send(res, 503, { error: "VOICE_UNAVAILABLE" });
+    if (!lectureVoiceOn) return send(res, 503, { error: "VOICE_UNAVAILABLE" });
     const body = (await readJson(req, 200_000).catch(() => null)) as {
       texts?: unknown;
     } | null;
@@ -487,7 +491,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         // Without a voice key the editor hides "Tạo giọng AI"; the student's
         // page then reads the lecture with the browser's own voice.
         if (method === "GET" && path === "/api/lesson-ai/lecture/voice")
-          return send(res, 200, { available: !!config.ttsKey });
+          return send(res, 200, { available: lectureVoiceOn });
         if (method === "GET" && path === "/api/plans")
           return send(res, 200, {
             plans: config.payos ? plans : [],
