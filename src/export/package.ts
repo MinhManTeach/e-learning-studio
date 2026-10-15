@@ -51,6 +51,7 @@ const extensions: Record<string, string> = {
   "audio/wav": "wav",
   "audio/ogg": "ogg",
   "audio/mp4": "m4a",
+  "audio/webm": "weba",
 };
 /** Recognises the file by its bytes, not by its name or claimed type. */
 export function detectMediaMime(bytes: Uint8Array) {
@@ -73,6 +74,9 @@ function shownMedia(p: LessonProject) {
       for (const sound of s.data.sounds) use(sound.assetId, s.id);
     if (s.type === "content" || s.type === "welcome")
       for (const item of s.data.original?.items ?? []) use(item.assetId, s.id);
+    // The spoken lecture of the page.
+    if (s.type === "content" || s.type === "welcome")
+      for (const piece of s.data.lecture) use(piece.assetId, s.id);
     // Pictures on answer cards.
     if (s.type === "warmup")
       for (const item of s.data.items) use(item.imageAssetId, s.id);
@@ -319,7 +323,7 @@ export async function buildLessonPackage(
         asset.kind === "VIDEO"
           ? `Video ở ${pageName(p, slideId)} không phải MP4 hoặc WebM hợp lệ.`
           : isSound
-            ? `Âm thanh ở ${pageName(p, slideId)} không phải MP3, WAV, OGG hoặc M4A hợp lệ.`
+            ? `Âm thanh ở ${pageName(p, slideId)} không phải MP3, WAV, OGG, M4A hoặc WebM hợp lệ.`
             : `Ảnh ở ${pageName(p, slideId)} không phải PNG, JPEG hoặc WebP hợp lệ.`,
       );
     const n = isSound ? ++sounds : isVideo ? ++videos : ++images;

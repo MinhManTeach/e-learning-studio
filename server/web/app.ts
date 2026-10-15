@@ -5,7 +5,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
 import type { LocalAiConfig } from "../openai";
-import { designLesson, studioStatus } from "../studio";
+import { designLesson, studioStatus, writeLecture } from "../studio";
+import { speechChunks } from "../../src/player/speech";
 import {
   googleAuthUrl,
   googleSignIn,
@@ -51,6 +52,14 @@ export interface WebDeps {
     transport?: typeof fetch,
     report?: Parameters<typeof designLesson>[4],
   ) => Promise<unknown>;
+  /** "AI viết lời giảng"; tests pass a stand-in. */
+  lecture?: (
+    ai: LocalAiConfig,
+    body: unknown,
+    signal?: AbortSignal,
+    transport?: typeof fetch,
+    report?: Parameters<typeof writeLecture>[4],
+  ) => Promise<unknown>;
 }
 
 const sessionCookie = "gv_session";
@@ -85,6 +94,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const transport = deps.transport ?? fetch;
   const now = deps.now ?? Date.now;
   const design = deps.design ?? designLesson;
+  const lecture = deps.lecture ?? writeLecture;
   const secure = config.publicUrl.startsWith("https://");
   const origin = new URL(config.publicUrl).origin;
   const redirectUri = `${config.publicUrl}/auth/google/callback`;
@@ -267,7 +277,44 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     }
   }
 
-  async function aiDesign(req: IncomingMessage, res: ServerResponse) {
+  /**
+   * The lecture spoken by Google's Vietnamese voice: each piece cut into short
+   * phrases (the voice's limit), their MP3s joined into one file per piece.
+   */
+  async function lectureVoice(req: IncomingMessage, res: ServerResponse) {
+    const user = userOf(req);
+    if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
+    if (!config.ttsKey) return send(res, 503, { error: "VOICE_UNAVAILABLE" });
+    const body = (await readJson(req, 200_000).catch(() => null)) as {
+      texts?: unknown;
+    } | null;
+    const texts = body?.texts;
+    if (
+      !Array.isArray(texts) ||
+      !texts.length ||
+      texts.length > 31 ||
+      texts.some((t) => typeof t !== "string" || !t.trim() || t.length > 4000)
+    )
+      return send(res, 400, { error: "VOICE_INPUT" });
+    const clips: string[] = [];
+    for (const text of texts as string[]) {
+      const parts: Buffer[] = [];
+      for (const phrase of speechChunks(text, TTS_MAX_CHARS)) {
+        const audio = await speak(phrase);
+        if (!audio) return send(res, 503, { error: "VOICE_BUSY" });
+        parts.push(audio);
+      }
+      clips.push(Buffer.concat(parts).toString("base64"));
+    }
+    return send(res, 200, { clips, mimeType: "audio/mpeg" });
+  }
+
+  /** One paid AI call: the teacher's credit is spent only when it succeeds. */
+  async function aiDesign(
+    req: IncomingMessage,
+    res: ServerResponse,
+    run: typeof design = design,
+  ) {
     const user = userOf(req);
     if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
     if (store.balance(user.id) < 1)
@@ -282,7 +329,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     let usage = { model: "", inputTokens: 0, outputTokens: 0, ms: 0 };
     try {
       const body = await readJson(req, 40_000_000);
-      const plan = await design(
+      const plan = await run(
         config.ai,
         body,
         controller.signal,
@@ -430,6 +477,17 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
             return send(res, 415, { error: "AI_INPUT" });
           return await aiDesign(req, res);
         }
+        if (method === "POST" && path === "/api/lesson-ai/studio/lecture") {
+          if (!req.headers["content-type"]?.startsWith("application/json"))
+            return send(res, 415, { error: "AI_INPUT" });
+          return await aiDesign(req, res, lecture);
+        }
+        if (method === "POST" && path === "/api/lesson-ai/lecture/voice")
+          return await lectureVoice(req, res);
+        // Without a voice key the editor hides "Tạo giọng AI"; the student's
+        // page then reads the lecture with the browser's own voice.
+        if (method === "GET" && path === "/api/lesson-ai/lecture/voice")
+          return send(res, 200, { available: !!config.ttsKey });
         if (method === "GET" && path === "/api/plans")
           return send(res, 200, {
             plans: config.payos ? plans : [],

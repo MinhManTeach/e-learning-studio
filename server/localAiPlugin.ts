@@ -4,7 +4,12 @@ import { z } from "zod";
 import { documentBlockSchema, semanticCategories } from "../src/import/model";
 import { projectSchema } from "../src/model/schema";
 import { enhanceWithOpenAi } from "./enhancement";
-import { designLesson, drawIllustration, studioStatus } from "./studio";
+import {
+  designLesson,
+  drawIllustration,
+  studioStatus,
+  writeLecture,
+} from "./studio";
 import { recordVoice, voiceStatus, type VoiceStatus } from "./windowsVoice";
 import {
   analyzeWithOpenAi,
@@ -85,10 +90,26 @@ export function localAiMiddleware(
         ? designLesson
         : req.url === "/api/lesson-ai/studio/illustrate"
           ? drawIllustration
-          : req.url === "/api/lesson-ai/voice/record"
-            ? (_: LocalAiConfig, body: unknown, signal?: AbortSignal) =>
-                voice.record(body, signal)
-            : undefined;
+          : req.url === "/api/lesson-ai/studio/lecture"
+            ? writeLecture
+            : req.url === "/api/lesson-ai/voice/record"
+              ? (_: LocalAiConfig, body: unknown, signal?: AbortSignal) =>
+                  voice.record(body, signal)
+              : req.url === "/api/lesson-ai/lecture/voice"
+                ? // The lecture is spoken by the same Windows voice (M4A).
+                  async (
+                    _: LocalAiConfig,
+                    body: unknown,
+                    signal?: AbortSignal,
+                  ) => {
+                    const texts = (body as { texts?: unknown })?.texts;
+                    const out = (await voice.record(
+                      { lang: "vi-VN", texts },
+                      signal,
+                    )) as { clips?: unknown };
+                    return { clips: out.clips, mimeType: "audio/mp4" };
+                  }
+                : undefined;
     if (
       (!enhancing && !studio && req.url !== "/api/lesson-ai/analyze") ||
       req.method !== "POST"

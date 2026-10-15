@@ -137,6 +137,16 @@ function fresh() {
       });
       return step ? step() : { echoed: body };
     },
+    lecture: async (_ai, body, _signal, _t, report) => {
+      report?.("", {
+        model: "claude-haiku-5-5",
+        inputTokens: 300,
+        outputTokens: 80,
+        ms: 5,
+      });
+      const slots = (body as { slots: unknown[] }).slots;
+      return { pieces: slots.map((_, i) => `Đoạn ${i}`) };
+    },
   });
 }
 afterEach(() => store?.close());
@@ -389,4 +399,64 @@ it("reads short Vietnamese phrases aloud, once per phrase, and says when it cann
   const down = await fetch(`${base}/api/tts?text=ba`);
   expect(down.status).toBe(503);
   expect(await down.json()).toEqual({ error: "TTS_UNAVAILABLE" });
+});
+
+it("writes a page's lecture for one credit, and speaks it with Google's voice", async () => {
+  fresh();
+  const { session } = await signIn();
+  const page = {
+    pageTitle: "Trước cổng trời",
+    slots: [
+      { step: 0, label: "Khi mở trang", texts: [], pictures: 1 },
+      {
+        step: 1,
+        label: "Lần bấm 1",
+        texts: ["Giữa hai bên vách đá"],
+        pictures: 0,
+      },
+    ],
+  };
+  expect((await post("/api/lesson-ai/studio/lecture", "", page)).status).toBe(
+    401,
+  );
+  const written = await post("/api/lesson-ai/studio/lecture", session, page);
+  expect(written.status).toBe(200);
+  expect(await written.json()).toEqual({ pieces: ["Đoạn 0", "Đoạn 1"] });
+  expect(written.headers.get("x-credits-left")).toBe("1");
+
+  // Each piece is cut into short phrases; their MP3s make one file.
+  const long = "Các em quan sát bức tranh. ".repeat(12).trim();
+  const spoken = await post("/api/lesson-ai/lecture/voice", session, {
+    texts: ["Chào các em.", long],
+  });
+  expect(spoken.status).toBe(200);
+  const { clips, mimeType } = await spoken.json();
+  expect(mimeType).toBe("audio/mpeg");
+  expect(Buffer.from(clips[0], "base64").toString()).toBe("mp3");
+  const phrases = ttsCalls.length - 1;
+  expect(phrases).toBeGreaterThan(1);
+  expect(ttsCalls.every((t) => t.length <= 200)).toBe(true);
+  expect(Buffer.from(clips[1], "base64").toString()).toBe(
+    "mp3".repeat(phrases),
+  );
+  // Nothing to say, or the voice is down: a clear error, no half answer.
+  expect(
+    (await post("/api/lesson-ai/lecture/voice", session, { texts: [" "] }))
+      .status,
+  ).toBe(400);
+  ttsDown = true;
+  const down = await post("/api/lesson-ai/lecture/voice", session, {
+    texts: ["Một câu khác hẳn."],
+  });
+  expect(down.status).toBe(503);
+  expect(await down.json()).toEqual({ error: "VOICE_BUSY" });
+});
+
+it("tells the editor whether the site has an AI voice", async () => {
+  fresh();
+  const status = () =>
+    fetch(`${base}/api/lesson-ai/lecture/voice`).then((r) => r.json());
+  expect(await status()).toEqual({ available: true });
+  handler = createWebHandler({ ...config(), ttsKey: undefined }, { store });
+  expect(await status()).toEqual({ available: false });
 });

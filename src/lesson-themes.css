@@ -1412,3 +1412,28 @@
 .edit-toolbar button.danger {
   color: #b42318;
 }
+/* Lời giảng: the student's play / pause button, bottom left of the slide. */
+.lecture-controls {
+  position: absolute;
+  left: 1.5cqw;
+  bottom: 1.5cqw;
+  z-index: 3;
+}
+/* Same look in every theme (the KIDS theme paints buttons white). */
+.phase1 .lecture-controls button,
+.canvas[data-theme="KIDS"] .phase1 .lecture-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6cqw;
+  margin: 0;
+  padding: 0.8cqw 1.6cqw;
+  border: 0;
+  border-radius: 999px;
+  background: #1a7965;
+  color: #fff;
+  font:
+    700 calc(1.4cqw * var(--font-scale, 1)) / 1.2 system-ui,
+    sans-serif;
+  box-shadow: 0 0.3cqw 0.8cqw #0003;
+  cursor: pointer;
+}
