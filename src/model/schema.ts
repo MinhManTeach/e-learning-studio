@@ -473,3 +473,4 @@ export function parseProject(value: unknown): LessonProject {
 }
 export type SlideSound = z.infer<typeof slideSoundSchema>;
 export type SlideItem = z.infer<typeof slideItemSchema>;
+export type SlideLayout = z.infer<typeof slideLayoutSchema>;

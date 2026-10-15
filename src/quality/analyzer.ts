@@ -358,6 +358,8 @@ export function proposeImprovements(
     if (
       s.type === "content" &&
       s.narration.mode !== "AUDIO_ASSET" &&
+      // The teacher's own slide is never split into two pages.
+      !s.data.original &&
       wordCount(instructionalText(s).join(" ")) > 150 &&
       project.slides.length < 30 &&
       (s.estimatedMinutes ?? 0) >= 2

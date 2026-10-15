@@ -9,41 +9,42 @@ import type {
 import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
 import { useLessonSession } from "../player/SessionContext";
 import { SoundTrigger } from "./SlideSounds";
+import { EditableSlide } from "./EditableSlide";
 
 /**
  * The teacher's slide as PowerPoint laid it out: every picture and text box at
  * its place, sound pictures clickable, and items with an entrance animation
- * shown one click at a time for students. The editor shows everything.
+ * shown one click at a time for students. The editor shows everything, and
+ * with `onChange` the teacher moves, resizes and retypes items with the mouse.
  */
 export function OriginalSlide({
   slide,
   project,
+  onChange,
 }: {
   slide: BasicSlide;
   project: LessonProject;
+  onChange?: (slide: BasicSlide) => void;
 }) {
   const layout = slide.data.original!;
   const student = !!useLessonSession();
   const steps = Math.max(0, ...layout.items.map((i) => i.step ?? 0));
   const [shown, setShown] = useState(0);
+  if (onChange && !student)
+    return (
+      <EditableSlide
+        slide={slide}
+        project={project}
+        box={slideBox(layout.ratio)}
+        onChange={(original) =>
+          onChange({ ...slide, data: { ...slide.data, original } })
+        }
+      />
+    );
   const sounds = new Map(slide.data.sounds.map((s) => [s.id, s]));
-  // The slide keeps its own shape inside the 16:9 page.
-  const page = 16 / 9;
-  const box =
-    layout.ratio >= page
-      ? { width: 100, height: (page / layout.ratio) * 100 }
-      : { width: (layout.ratio / page) * 100, height: 100 };
   const waiting = student && shown < steps;
   return (
-    <div
-      className="original-slide"
-      style={{
-        width: `${box.width}%`,
-        height: `${box.height}%`,
-        left: `${(100 - box.width) / 2}%`,
-        top: `${(100 - box.height) / 2}%`,
-      }}
-    >
+    <div className="original-slide" style={slideBox(layout.ratio)}>
       {layout.items.map((item) => (
         <OriginalItem
           key={item.id}
@@ -66,18 +67,24 @@ export function OriginalSlide({
   );
 }
 
-function OriginalItem({
-  item,
-  project,
-  sound,
-  hidden,
-}: {
-  item: SlideItem;
-  project: LessonProject;
-  sound?: SlideSound;
-  hidden: boolean;
-}) {
-  const style: React.CSSProperties = {
+/** The slide keeps its own shape inside the 16:9 page. */
+export function slideBox(ratio: number): React.CSSProperties {
+  const page = 16 / 9;
+  const box =
+    ratio >= page
+      ? { width: 100, height: (page / ratio) * 100 }
+      : { width: (ratio / page) * 100, height: 100 };
+  return {
+    width: `${box.width}%`,
+    height: `${box.height}%`,
+    left: `${(100 - box.width) / 2}%`,
+    top: `${(100 - box.height) / 2}%`,
+  };
+}
+
+/** Where an item sits and how its text looks, in percent of the slide. */
+export function itemStyle(item: SlideItem): React.CSSProperties {
+  return {
     left: `${item.x}%`,
     top: `${item.y}%`,
     width: `${item.w}%`,
@@ -91,6 +98,22 @@ function OriginalItem({
           textAlign: item.align,
         }
       : {}),
+  };
+}
+
+function OriginalItem({
+  item,
+  project,
+  sound,
+  hidden,
+}: {
+  item: SlideItem;
+  project: LessonProject;
+  sound?: SlideSound;
+  hidden: boolean;
+}) {
+  const style: React.CSSProperties = {
+    ...itemStyle(item),
     visibility: hidden ? "hidden" : undefined,
   };
   const content =
@@ -121,7 +144,7 @@ function OriginalItem({
   );
 }
 
-function ItemPicture({
+export function ItemPicture({
   item,
   project,
 }: {

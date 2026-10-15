@@ -1281,3 +1281,87 @@
   bottom: 1.5cqw;
   margin: 0;
 }
+/* Slide gốc trong trình soạn: chọn, kéo, đổi cỡ và sửa chữ bằng chuột. */
+.original-slide.editing {
+  outline: none;
+}
+.original-slide.editing .edit-item {
+  cursor: move;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+}
+.original-slide.editing .edit-item:hover {
+  outline: 1px dashed #1a7965aa;
+}
+.original-slide.editing .edit-item.chosen {
+  outline: 2px solid #1a7965;
+  z-index: 1;
+}
+.original-slide.editing .edit-item p {
+  overflow-wrap: anywhere;
+}
+.edit-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  background: #1a7965;
+  cursor: nwse-resize;
+}
+.edit-step {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #e8890c;
+  color: #fff;
+  font:
+    700 11px/18px system-ui,
+    sans-serif;
+  text-align: center;
+}
+.edit-typing {
+  min-height: 100%;
+  outline: none;
+  cursor: text;
+  user-select: text;
+  white-space: pre-wrap;
+  background: #fff8;
+}
+.edit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font:
+    13px/1.2 system-ui,
+    sans-serif;
+}
+.edit-toolbar button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid #c9d6cf;
+  border-radius: 6px;
+  background: #fff;
+  color: #1d2b25;
+  box-shadow: none;
+  font: inherit;
+  transform: none;
+  cursor: pointer;
+}
+.edit-toolbar button:hover {
+  border-color: #1a7965;
+}
+.edit-toolbar button[aria-pressed="true"] {
+  background: #e3f1ec;
+  outline: none;
+}
+.edit-toolbar button.danger {
+  color: #b42318;
+}

@@ -657,9 +657,9 @@ export function analyzeDeck(deck: PptxDeck): DeckAnalysis {
     const cover =
       !title && !text.length ? coverPicture(slide, deck) : undefined;
     const sounds = slideSounds(slide, deck);
-    const original = sounds.length
-      ? slideLayout(slide, deck, sounds)
-      : undefined;
+    // Every page keeps the teacher's slide as laid out; the teacher moves,
+    // resizes or removes items in the editor, or picks the text template.
+    const original = slideLayout(slide, deck, sounds);
     pages.push({
       kind: "PAGE",
       slide: n,

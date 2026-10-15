@@ -304,6 +304,8 @@ export function Editor({
                   ? `Trang ${index + 1} / ${state.project.slides.length}`
                   : "Tổng quan bài giảng"}
               </span>
+              {/* The original slide puts its editing buttons here. */}
+              <div id="slide-edit-tools" className="slide-edit-tools" />
               <span className="canvas-ratio">16 : 9</span>
             </div>
             {consistencyWarnings(state.project).map((w) => (
@@ -311,7 +313,11 @@ export function Editor({
                 {w.message}
               </p>
             ))}
-            <SlideCanvas slide={slide} project={state.project} />
+            <SlideCanvas
+              slide={slide}
+              project={state.project}
+              onEdit={(edited) => dispatch({ type: "edit", slide: edited })}
+            />
             {slide && (
               <div className="slide-tools">
                 <div>

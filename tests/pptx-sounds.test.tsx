@@ -261,7 +261,7 @@ it("shows the teacher every item of the original slide in the editor", () => {
   expect(screen.queryByRole("button", { name: /Tiếp theo/ })).toBeNull();
 });
 
-it("still shows the points of a page without sounds one click at a time", () => {
+it("draws a page without sounds as the teacher's slide, one click at a time", () => {
   const bytes = buildPptx(
     [
       {
@@ -284,12 +284,15 @@ it("still shows the points of a page without sounds one click at a time", () => 
   });
   const [page] = project.slides;
   if (page.type !== "content") throw new Error("expected content");
-  expect(page.data.original).toBeUndefined();
-  expect(page.data.revealOnClick).toBe(true);
+  expect(page.data.original?.items).toHaveLength(2);
+  // The original slide keeps PowerPoint's own click order.
+  expect(page.data.revealOnClick).toBe(false);
   const { container } = show(project, true);
-  expect(container.querySelectorAll("li")).toHaveLength(1);
-  fireEvent.click(screen.getByRole("button", { name: /Hiện ý tiếp theo/ }));
-  expect(container.querySelectorAll("li")).toHaveLength(2);
+  const slide = container.querySelector<HTMLElement>(".original-slide")!;
+  const points = within(slide).getByText("Đếm 1 – 2.").parentElement!;
+  expect(points.style.visibility).toBe("hidden");
+  fireEvent.click(screen.getByRole("button", { name: /Tiếp theo \(0\/1\)/ }));
+  expect(points.style.visibility).toBe("");
 });
 
 it("places the sound spot over the slide picture", () => {

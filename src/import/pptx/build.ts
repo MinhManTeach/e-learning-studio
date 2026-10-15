@@ -244,8 +244,8 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
           },
         ];
       });
-      // Without a slide picture, a page with sounds is drawn like the slide:
-      // every picture (sound icons included) and text box where it was.
+      // Without a slide picture, the page is drawn like the slide: every
+      // picture (sound icons included) and text box where it was.
       if (page.original && !picture)
         s.data.original = {
           ratio: page.original.ratio,
