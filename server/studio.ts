@@ -7,6 +7,12 @@ import {
   designWireSchema,
 } from "../src/ai/design";
 import { lessonRequestSchema } from "../src/ai/request";
+import {
+  lectureAnswerSchema,
+  lectureInstruction,
+  lectureRequestSchema,
+  lectureWireSchema,
+} from "../src/lecture/ai";
 import { detectImageMime } from "../src/media/storage";
 import { claudeJson } from "./anthropic";
 import { geminiImage, geminiJson, type GeminiPart } from "./gemini";
@@ -158,4 +164,64 @@ export async function drawIllustration(
   const mimeType = detectImageMime(new Uint8Array(bytes.subarray(0, 16)));
   if (!mimeType) throw new Error("AI_NO_IMAGE");
   return { mimeType, data: bytes.toString("base64") };
+}
+
+/**
+ * "AI viết lời giảng" for one page: one piece per moment of the page (its
+ * opening, then each click), in order. Throws AI_… codes like designLesson.
+ */
+export async function writeLecture(
+  config: LocalAiConfig,
+  body: unknown,
+  signal?: AbortSignal,
+  transport: typeof fetch = fetch,
+  report: (
+    line: string,
+    usage: AiUsage & { model: string; ms: number },
+  ) => void = (line) => console.info(line),
+) {
+  const ready = studioConfig(config);
+  if (!ready) throw new Error("AI_CONFIGURATION");
+  const parsed = lectureRequestSchema.safeParse(body);
+  if (!parsed.success) throw new Error("AI_INPUT");
+  const page = parsed.data;
+  const used: AiUsage = { inputTokens: 0, outputTokens: 0 };
+  const prompt = {
+    system: lectureInstruction,
+    parts: [{ text: JSON.stringify({ UNTRUSTED_PAGE: page }) }],
+    schema: lectureWireSchema(),
+    onUsage: (u: AiUsage) => {
+      used.inputTokens += u.inputTokens;
+      used.outputTokens += u.outputTokens;
+    },
+  };
+  const started = Date.now();
+  let answer: unknown;
+  try {
+    answer =
+      ready.provider === "anthropic"
+        ? await claudeJson(ready, prompt, signal, transport)
+        : await geminiJson(
+            { ...ready, imageModel: ready.image?.imageModel ?? "" },
+            prompt,
+            signal,
+            transport,
+          );
+  } finally {
+    if (used.inputTokens || used.outputTokens) {
+      const ms = Date.now() - started;
+      report(usageLine("AI viết lời giảng", ready.model, used, ms), {
+        ...used,
+        model: ready.model,
+        ms,
+      });
+    }
+  }
+  const result = lectureAnswerSchema.safeParse(answer);
+  if (!result.success) throw new Error("AI_INVALID_RESPONSE");
+  // Exactly one piece per moment: extra pieces dropped, missing ones empty.
+  const pieces = page.slots.map((_, i) =>
+    (result.data.pieces[i] ?? "").replace(/\s+/g, " ").trim(),
+  );
+  return { pieces };
 }

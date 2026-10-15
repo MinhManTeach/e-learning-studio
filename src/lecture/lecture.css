@@ -1,0 +1,126 @@
+.lecture-panel {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #dfe5db;
+  border-radius: 12px;
+  background: #fff;
+}
+.lecture-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.lecture-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.lecture-head p {
+  margin: 0;
+  color: #5b6b63;
+  font-size: 13px;
+  max-width: 46ch;
+}
+.lecture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lecture-actions button,
+.lecture-piece-tools button,
+.lecture-busy button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #c9d6cf;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d2b25;
+  font:
+    13px/1.2 system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.lecture-actions button:first-child {
+  border-color: #1a7965;
+  background: #1a7965;
+  color: #fff;
+}
+.lecture-actions button:disabled,
+.lecture-piece-tools button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.lecture-busy {
+  margin: 10px 0 0;
+  color: #1a7965;
+  font-size: 13px;
+}
+.lecture-error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #8a1c13;
+  font-size: 13px;
+}
+.lecture-pieces {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.lecture-piece {
+  padding: 10px;
+  border: 1px solid #e6ece6;
+  border-radius: 10px;
+  background: #fafcfa;
+}
+.lecture-piece-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.lecture-summary {
+  color: #6b7a72;
+  overflow-wrap: anywhere;
+}
+.lecture-piece textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #c9d6cf;
+  border-radius: 8px;
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+  resize: vertical;
+}
+.lecture-piece-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+.lecture-piece-tools button.recording {
+  border-color: #b42318;
+  color: #b42318;
+}
+.lecture-status {
+  font-size: 12px;
+  color: #1a7965;
+}
+.lecture-status.outdated {
+  color: #b54708;
+}

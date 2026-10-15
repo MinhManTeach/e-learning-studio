@@ -43,6 +43,14 @@ export function detectSoundMime(bytes: Uint8Array) {
     return "audio/mpeg";
   if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WAVE") return "audio/wav";
   if (ascii(0, 4) === "OggS") return "audio/ogg";
+  // A recording from the browser's microphone (Chrome, Edge, Firefox).
+  if (
+    bytes[0] === 0x1a &&
+    bytes[1] === 0x45 &&
+    bytes[2] === 0xdf &&
+    bytes[3] === 0xa3
+  )
+    return "audio/webm";
   return detectAudioMime(bytes);
 }
 export const maxSoundBytes = 20 * 1024 * 1024;

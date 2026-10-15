@@ -170,6 +170,16 @@ export const slideItemSchema = z.object({
   /** Part of the slide design (background, frame): the editor leaves it alone. */
   locked: z.boolean().optional(),
 });
+/** One piece of the teacher's spoken explanation of a page. */
+export const lecturePieceSchema = z.object({
+  text: z.string().max(4000).default(""),
+  /** The piece spoken aloud: an AUDIO asset of the lesson. */
+  assetId: z.string().min(1).optional(),
+  /** Who speaks it: the AI voice or the teacher's own recording. */
+  voice: z.enum(["AI", "TEACHER"]).optional(),
+  /** The words that were spoken, to tell when the text changed since. */
+  spokenText: z.string().max(4000).optional(),
+});
 /** The slide drawn as PowerPoint laid it out: every picture and text box kept. */
 export const slideLayoutSchema = z.object({
   /** Width / height of the slide. */
@@ -192,6 +202,11 @@ export const basicDataSchema = z.object({
   revealOnClick: z.boolean().default(false),
   /** When set, the page shows the original slide instead of the text template. */
   original: slideLayoutSchema.optional(),
+  /**
+   * Lời giảng, in pieces that follow the slide's clicks: piece 0 is spoken
+   * when the page opens, piece n when click n shows its items.
+   */
+  lecture: z.array(lecturePieceSchema).max(31).default([]),
 });
 // Optional picture shown on an answer card (an IMAGE asset of the lesson).
 const choicePicture = z.string().min(1).optional();
@@ -508,3 +523,4 @@ export function parseProject(value: unknown): LessonProject {
 export type SlideSound = z.infer<typeof slideSoundSchema>;
 export type SlideItem = z.infer<typeof slideItemSchema>;
 export type SlideLayout = z.infer<typeof slideLayoutSchema>;
+export type LecturePiece = z.infer<typeof lecturePieceSchema>;
