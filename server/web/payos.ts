@@ -19,6 +19,28 @@ export const plans: Plan[] = [
   { id: "TEACHER_MONTH", name: "Gói tháng", amount: 49_000, credits: 50 },
   { id: "TEACHER_YEAR", name: "Gói năm", amount: 399_000, credits: 600 },
 ];
+/** A student app's content, bought once and kept for good. */
+export interface Product {
+  id: string;
+  name: string;
+  amount: number;
+  /** The app under /hoc-sinh/ that the buyer returns to after paying. */
+  app: string;
+}
+export const products: Product[] = [
+  {
+    id: "ENGLISH_A1",
+    name: "English Adventure: trọn bộ A1",
+    amount: 99_000,
+    app: "english-adventure",
+  },
+  {
+    id: "ENGLISH_A2",
+    name: "English Adventure: trọn bộ A2",
+    amount: 99_000,
+    app: "english-adventure",
+  },
+];
 
 const hmac = (key: string, text: string) =>
   createHmac("sha256", key).update(text).digest("hex");
