@@ -434,10 +434,20 @@ it("turns video slides into video pages, other slides into pages, and skips hidd
       text: ["Chuột có nút trái, nút phải và nút cuộn."],
       notes: [],
       picture: "ppt/media/image2.png",
+      // The slide as laid out, every text box and picture kept.
+      original: expect.objectContaining({ ratio: 16 / 9 }),
     },
   ]);
+  const page = pages[1];
+  if (page.kind !== "PAGE") throw new Error("expected page");
+  expect(page.original!.items.map((i) => i.kind)).toContain("IMAGE");
   expect(skipped.map((s) => s.slide)).toEqual([3, 4]);
-  expect(used.sort()).toEqual(["ppt/media/image2.png", "ppt/media/media1.mp4"]);
+  // The full-slide picture is kept too, on the original slide.
+  expect(used.sort()).toEqual([
+    "ppt/media/image1.png",
+    "ppt/media/image2.png",
+    "ppt/media/media1.mp4",
+  ]);
 });
 
 it("keeps A./B. questions without any answer evidence for the teacher to mark", () => {

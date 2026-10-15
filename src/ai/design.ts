@@ -299,10 +299,12 @@ export function positiveFirst<T extends { group: number }>(
 export function redesigns(project: LessonProject, plan: DesignPlan) {
   return plan.pages.filter((p) => {
     const s = project.slides.find((x) => x.id === p.id);
-    // Card pages have no sounds: a page with sounds keeps its own design.
+    // Card pages have no sounds: a page with sounds, or drawn as the
+    // teacher's slide, keeps its own design.
     return (
       s?.type === "content" &&
       !s.data.sounds.length &&
+      !s.data.original &&
       p.design !== "KEEP" &&
       p.items.length >= 2
     );

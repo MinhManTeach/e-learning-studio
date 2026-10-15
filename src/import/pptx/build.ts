@@ -244,11 +244,14 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
           },
         ];
       });
-      // Without a slide picture, a page with sounds is drawn like the slide:
-      // every picture (sound icons included) and text box where it was.
+      // Without a slide picture, the page is drawn like the slide: every
+      // picture (sound icons included) and text box where it was.
       if (page.original && !picture)
         s.data.original = {
           ratio: page.original.ratio,
+          ...(page.original.background
+            ? { background: page.original.background }
+            : {}),
           items: page.original.items.flatMap((item) => {
             const assetId = item.image
               ? partAsset(item.image, item.text.join(" ") || page.title, where)
@@ -256,23 +259,21 @@ export function buildLessonFromPptx(input: PptxBuildInput): PptxBuildResult {
             if (item.image && !assetId) return [];
             const soundId =
               item.sound !== undefined ? soundIds[item.sound]?.id : undefined;
+            // Everything that describes the look is kept as PowerPoint had it.
+            const {
+              id: _id,
+              image: _image,
+              sound: _sound,
+              size,
+              ...look
+            } = item;
             return [
               {
+                ...look,
                 id: crypto.randomUUID(),
-                kind: item.kind,
-                x: item.x,
-                y: item.y,
-                w: item.w,
-                h: item.h,
                 ...(assetId ? { assetId } : {}),
-                text: item.text,
-                ...(item.size ? { size: Math.min(item.size, 30) } : {}),
-                ...(item.color ? { color: item.color } : {}),
-                ...(item.fill ? { fill: item.fill } : {}),
-                ...(item.bold ? { bold: true } : {}),
-                ...(item.align ? { align: item.align } : {}),
+                ...(size ? { size: Math.min(size, 30) } : {}),
                 ...(soundId ? { soundId } : {}),
-                ...(item.step ? { step: item.step } : {}),
               },
             ];
           }),

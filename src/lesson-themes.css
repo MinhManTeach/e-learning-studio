@@ -1225,20 +1225,51 @@
 }
 .original-item {
   position: absolute;
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
   overflow: hidden;
   color: #1d1d1d;
+  /* PowerPoint's plain text: the lesson theme's weight and spacing do not apply. */
+  font-weight: 400;
+  letter-spacing: normal;
   line-height: 1.2;
 }
-.original-text p {
-  margin: 0 0 0.3em;
+/* PowerPoint lets text run past its box; the box only places it. */
+.original-text {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  white-space: pre-wrap;
 }
+.original-text p {
+  position: relative;
+  margin: 0;
+  white-space: inherit;
+  overflow-wrap: normal;
+}
+.original-crop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.original-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* .phase1 img caps picture height for text pages; a slide picture keeps its box. */
 .original-image img {
   display: block;
   width: 100%;
   height: 100%;
+  max-height: none;
   object-fit: fill;
+}
+.original-slide.editing .original-item.locked {
+  pointer-events: none;
 }
 .phase1 button.original-sound,
 .canvas[data-theme="KIDS"] .phase1 button.original-sound {
@@ -1280,4 +1311,104 @@
   right: 1.5cqw;
   bottom: 1.5cqw;
   margin: 0;
+}
+/* Slide gốc trong trình soạn: chọn, kéo, đổi cỡ và sửa chữ bằng chuột. */
+.original-slide.editing {
+  outline: none;
+}
+.original-slide.editing .edit-item {
+  cursor: move;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+}
+.original-slide.editing .edit-item:hover {
+  outline: 1px dashed #1a7965aa;
+}
+/* The chosen item keeps its layer: a big frame picked must not cover the
+   words and pictures in front of it. */
+.original-slide.editing .edit-item.chosen {
+  outline: 2px solid #1a7965;
+}
+.original-slide.editing .edit-item p {
+  overflow-wrap: anywhere;
+}
+.edit-handle {
+  position: absolute;
+  /* Above the items in front, so a chosen item can always be resized. */
+  z-index: 5;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  background: #1a7965;
+  cursor: nwse-resize;
+}
+.edit-step {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #e8890c;
+  color: #fff;
+  font:
+    700 11px/18px system-ui,
+    sans-serif;
+  text-align: center;
+}
+.edit-typing {
+  min-height: 100%;
+  outline: none;
+  cursor: text;
+  user-select: text;
+  white-space: pre-wrap;
+  background: #fff8;
+}
+.edit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font:
+    13px/1.2 system-ui,
+    sans-serif;
+}
+.edit-step-pick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #1d2b25;
+}
+.edit-step-pick select {
+  padding: 3px 4px;
+  border: 1px solid #c9d6cf;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+}
+.edit-toolbar button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid #c9d6cf;
+  border-radius: 6px;
+  background: #fff;
+  color: #1d2b25;
+  box-shadow: none;
+  font: inherit;
+  transform: none;
+  cursor: pointer;
+}
+.edit-toolbar button:hover {
+  border-color: #1a7965;
+}
+.edit-toolbar button[aria-pressed="true"] {
+  background: #e3f1ec;
+  outline: none;
+}
+.edit-toolbar button.danger {
+  color: #b42318;
 }

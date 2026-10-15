@@ -12,6 +12,8 @@ import {
   Save,
   Trash2,
   Settings,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import type { LessonProject } from "../model/schema";
 import { ZodError } from "zod";
@@ -132,6 +134,22 @@ export function Editor({
         event.preventDefault();
         void save();
       }
+      // Ctrl+Z / Ctrl+Y undo the lesson, except while typing in a field,
+      // where the browser takes back the typing itself.
+      const target = event.target as HTMLElement | null;
+      const typing =
+        !!target &&
+        (target.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      const key = event.key.toLowerCase();
+      if (!(event.ctrlKey || event.metaKey) || typing || event.altKey) return;
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        dispatch({ type: "undo" });
+      } else if (key === "y" || (key === "z" && event.shiftKey)) {
+        event.preventDefault();
+        dispatch({ type: "redo" });
+      }
     }
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
@@ -219,6 +237,24 @@ export function Editor({
               </>
             )}
           </span>
+          <button
+            className="icon-button"
+            aria-label="Hoàn tác"
+            title="Hoàn tác (Ctrl + Z)"
+            disabled={!state.past?.length}
+            onClick={() => dispatch({ type: "undo" })}
+          >
+            <Undo2 size={19} />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Làm lại"
+            title="Làm lại (Ctrl + Y)"
+            disabled={!state.future?.length}
+            onClick={() => dispatch({ type: "redo" })}
+          >
+            <Redo2 size={19} />
+          </button>
           <button onClick={() => setPreview((v) => !v)}>
             <Eye size={17} /> {preview ? "Về chỉnh sửa" : "Xem trước"}
           </button>
@@ -304,6 +340,8 @@ export function Editor({
                   ? `Trang ${index + 1} / ${state.project.slides.length}`
                   : "Tổng quan bài giảng"}
               </span>
+              {/* The original slide puts its editing buttons here. */}
+              <div id="slide-edit-tools" className="slide-edit-tools" />
               <span className="canvas-ratio">16 : 9</span>
             </div>
             {consistencyWarnings(state.project).map((w) => (
@@ -311,7 +349,11 @@ export function Editor({
                 {w.message}
               </p>
             ))}
-            <SlideCanvas slide={slide} project={state.project} />
+            <SlideCanvas
+              slide={slide}
+              project={state.project}
+              onEdit={(edited) => dispatch({ type: "edit", slide: edited })}
+            />
             {slide && (
               <div className="slide-tools">
                 <div>

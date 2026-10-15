@@ -90,11 +90,14 @@ export function SlideCanvas({
   slide,
   project,
   fontBoost = 1,
+  onEdit,
 }: {
   slide: Slide | undefined;
   project: LessonProject;
   /** Extra text size chosen by the student in the exported player. */
   fontBoost?: number;
+  /** In the editor: the teacher changes the original slide with the mouse. */
+  onEdit?: (slide: Slide) => void;
 }) {
   const Renderer = slide ? slideRegistry[slide.type].Renderer : null;
   const asset = slide?.media.enabled
@@ -156,7 +159,12 @@ export function SlideCanvas({
             }
           >
             <h1 className="visually-hidden">{slide.title}</h1>
-            <OriginalSlide key={slide.id} slide={slide} project={project} />
+            <OriginalSlide
+              key={slide.id}
+              slide={slide}
+              project={project}
+              onChange={onEdit}
+            />
             <SlideSounds slide={slide} project={project} cover />
             <div className="visually-hidden">
               <Renderer key={slide.id} slide={slide} />
