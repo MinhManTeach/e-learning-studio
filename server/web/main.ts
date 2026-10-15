@@ -45,6 +45,7 @@ const config: WebConfig = {
       : null,
   appsDir: env.APPS_DIR ? resolve(env.APPS_DIR) : undefined,
   ttsKey: env.GOOGLE_TTS_API_KEY?.trim() || undefined,
+  lectureVoice: env.LECTURE_AI_VOICE === "1",
 };
 const store = new Store(join(dataDir, "app.db"));
 const handler = createWebHandler(config, { store });

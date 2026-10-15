@@ -93,6 +93,7 @@ const config = (): WebConfig => ({
   staticDir: dir,
   appsDir: apps,
   ttsKey: "tts-key",
+  lectureVoice: true,
 });
 beforeAll(async () => {
   server = createServer((req, res) => void handler(req, res));
@@ -458,5 +459,8 @@ it("tells the editor whether the site has an AI voice", async () => {
     fetch(`${base}/api/lesson-ai/lecture/voice`).then((r) => r.json());
   expect(await status()).toEqual({ available: true });
   handler = createWebHandler({ ...config(), ttsKey: undefined }, { store });
+  expect(await status()).toEqual({ available: false });
+  // A Google key for the student apps alone does not voice lectures.
+  handler = createWebHandler({ ...config(), lectureVoice: false }, { store });
   expect(await status()).toEqual({ available: false });
 });
