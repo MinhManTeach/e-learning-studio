@@ -1325,15 +1325,18 @@
 .original-slide.editing .edit-item:hover {
   outline: 1px dashed #1a7965aa;
 }
+/* The chosen item keeps its layer: a big frame picked must not cover the
+   words and pictures in front of it. */
 .original-slide.editing .edit-item.chosen {
   outline: 2px solid #1a7965;
-  z-index: 1;
 }
 .original-slide.editing .edit-item p {
   overflow-wrap: anywhere;
 }
 .edit-handle {
   position: absolute;
+  /* Above the items in front, so a chosen item can always be resized. */
+  z-index: 5;
   right: -7px;
   bottom: -7px;
   width: 14px;
