@@ -10,6 +10,8 @@ import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
 import { useLessonSession } from "../player/SessionContext";
 import { SoundTrigger } from "./SlideSounds";
 import { EditableSlide } from "./EditableSlide";
+import { useLecture } from "../lecture/LecturePlayer";
+import { hasLecture } from "../lecture/model";
 
 /**
  * The teacher's slide as PowerPoint laid it out: every picture and text box at
@@ -30,6 +32,8 @@ export function OriginalSlide({
   const student = !!useLessonSession();
   const steps = Math.max(0, ...layout.items.map((i) => i.step ?? 0));
   const [shown, setShown] = useState(0);
+  // The teacher's lecture, spoken piece by piece as the clicks come.
+  const lecture = useLecture({ slide, project, shown, steps, setShown });
   if (onChange && !student)
     return (
       <EditableSlide
@@ -61,11 +65,15 @@ export function OriginalSlide({
         <button
           type="button"
           className="reveal-next original-next"
-          onClick={() => setShown(shown + 1)}
+          onClick={() => {
+            setShown(shown + 1);
+            lecture.next(shown + 1);
+          }}
         >
           Tiếp theo ({shown}/{steps}) ▸
         </button>
       )}
+      {student && hasLecture(slide) && lecture.controls}
     </div>
   );
 }

@@ -70,7 +70,8 @@ export type EditorAction =
   | { type: "media"; id: string; url: string; alt: string }
   | { type: "attach-media"; id: string; asset: AssetReference; caption: string }
   | { type: "add"; slideType: SlideType }
-  | { type: "edit"; slide: Slide }
+  /** A page changed; `assets` are files it now uses (e.g. recorded voice). */
+  | { type: "edit"; slide: Slide; assets?: AssetReference[] }
   | { type: "duplicate"; id: string }
   | { type: "delete"; id: string }
   | { type: "move"; id: string; direction: -1 | 1 }
@@ -243,6 +244,11 @@ export function editorReducer(
     case "edit": {
       if (!slides.some((s) => s.id === action.slide.id)) return state;
       slides = slides.map((s) => (s.id === action.slide.id ? action.slide : s));
+      if (action.assets?.length)
+        assets = [
+          ...assets.filter((a) => !action.assets!.some((n) => n.id === a.id)),
+          ...action.assets,
+        ];
       break;
     }
     case "duplicate": {

@@ -64,7 +64,7 @@ const messages: Record<string, string> = {
   AI_NO_IMAGE_KEY:
     "Vẽ tranh cần khoá Gemini (dòng LESSON_AI_GEMINI_KEY trong .env.local).",
 };
-const explain = (code: string) =>
+export const explain = (code: string) =>
   messages[code] ?? "Chưa dùng được AI lúc này. Bài giảng vẫn được giữ nguyên.";
 
 class AiError extends Error {}

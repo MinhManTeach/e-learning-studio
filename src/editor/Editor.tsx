@@ -34,6 +34,7 @@ import { ExportButton } from "../export/ExportButton";
 import { AiStudio } from "../ai/AiStudio";
 import { VoiceDialog } from "../voice/VoiceDialog";
 import { localMediaStore } from "../media/storage";
+import { LecturePanel } from "../lecture/LecturePanel";
 import "../backup/backup.css";
 
 export function Editor({
@@ -358,6 +359,18 @@ export function Editor({
               project={state.project}
               onEdit={(edited) => dispatch({ type: "edit", slide: edited })}
             />
+            {slide &&
+              (slide.type === "content" || slide.type === "welcome") &&
+              slide.data.original && (
+                <LecturePanel
+                  project={state.project}
+                  slide={slide}
+                  store={localMediaStore}
+                  onChange={(edited, assets) =>
+                    dispatch({ type: "edit", slide: edited, assets })
+                  }
+                />
+              )}
             {slide && (
               <div className="slide-tools">
                 <div>
