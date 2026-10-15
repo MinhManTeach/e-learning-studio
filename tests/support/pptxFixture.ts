@@ -22,6 +22,10 @@ export interface SlideSpec {
   rels?: Record<string, { type: string; target: string }>;
   /** onClick triggers: trigger shape id -> animated/played shape ids. */
   triggers?: Record<string, string[]>;
+  /** Shape ids with a click entrance effect in the normal order. */
+  appear?: string[];
+  /** rId of the slide transition sound. */
+  transitionSound?: string;
   notes?: string;
 }
 export const text = (
@@ -57,7 +61,15 @@ export const picture = (
 export const group = (box: Box, inner: string[]) =>
   `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="900" name="Group"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="${Math.round((box.x * W) / 100)}" y="${Math.round((box.y * H) / 100)}"/><a:ext cx="${Math.round((box.w * W) / 100)}" cy="${Math.round((box.h * H) / 100)}"/><a:chOff x="0" y="0"/><a:chExt cx="${W}" cy="${H}"/></a:xfrm></p:grpSpPr>${inner.join("")}</p:grpSp>`;
 
-function timing(triggers: Record<string, string[]>) {
+/** Entrance effects in the main click sequence, as PowerPoint writes them. */
+const mainSequence = (ids: string[]) =>
+  `<p:par><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>${ids
+    .map(
+      (id) =>
+        `<p:par><p:cTn id="3" fill="hold"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="4" presetID="1" presetClass="entr" fill="hold" nodeType="clickEffect"><p:childTnLst><p:set><p:cBhvr><p:cTn id="5"/><p:tgtEl><p:spTgt spid="${id}"/></p:tgtEl></p:cBhvr></p:set></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par>`,
+    )
+    .join("")}</p:childTnLst></p:cTn></p:par>`;
+function timing(triggers: Record<string, string[]>, appear: string[] = []) {
   const pars = Object.entries(triggers)
     .map(
       ([trigger, targets]) =>
@@ -69,7 +81,7 @@ function timing(triggers: Record<string, string[]>) {
           .join("")}</p:childTnLst></p:cTn></p:par>`,
     )
     .join("");
-  return `<p:timing><p:tnLst>${pars}</p:tnLst></p:timing>`;
+  return `<p:timing><p:tnLst>${appear.length ? mainSequence(appear) : ""}${pars}</p:tnLst></p:timing>`;
 }
 
 const ns =
@@ -116,7 +128,11 @@ export function buildPptx(
   slides.forEach((s, i) => {
     const n = i + 1;
     files[`ppt/slides/slide${n}.xml`] = strToU8(
-      `<?xml version="1.0" encoding="UTF-8"?><p:sld ${ns}${s.hidden ? ' show="0"' : ""}><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>${s.shapes.join("")}</p:spTree></p:cSld>${s.triggers ? timing(s.triggers) : ""}</p:sld>`,
+      `<?xml version="1.0" encoding="UTF-8"?><p:sld ${ns}${s.hidden ? ' show="0"' : ""}><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>${s.shapes.join("")}</p:spTree></p:cSld>${
+        s.transitionSound
+          ? `<p:transition><p:sndAc><p:stSnd><p:snd r:embed="${s.transitionSound}" name="sound.wav"/></p:stSnd></p:sndAc></p:transition>`
+          : ""
+      }${s.triggers || s.appear ? timing(s.triggers ?? {}, s.appear) : ""}</p:sld>`,
     );
     const items = Object.entries(s.rels ?? {}).map(([id, r]) =>
       rel(id, r.type, r.target),

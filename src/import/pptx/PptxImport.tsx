@@ -163,7 +163,8 @@ export function PptxImport({
           <>
             <p>
               Chọn tệp PowerPoint của một tiết học. Ứng dụng đọc chữ, tranh,
-              video và câu hỏi trong tệp; thầy cô xem lại trước khi tạo bài.
+              video, âm thanh và câu hỏi trong tệp; thầy cô xem lại trước khi
+              tạo bài.
             </p>
             <label className="pptx-file">
               <FileUp size={18} />
@@ -280,6 +281,14 @@ export function PptxImport({
                     )}
                     {review.pictures.some((p) => p.slide === page.slide) && (
                       <span className="pptx-badge">Ảnh slide</span>
+                    )}
+                    {page.kind === "PAGE" && !!page.sounds?.length && (
+                      <span className="pptx-badge">
+                        🔊 {page.sounds.length} âm thanh
+                      </span>
+                    )}
+                    {page.kind === "PAGE" && page.reveal && (
+                      <span className="pptx-badge">Chữ hiện dần</span>
                     )}
                   </div>
                   {page.kind === "QUESTIONS" &&

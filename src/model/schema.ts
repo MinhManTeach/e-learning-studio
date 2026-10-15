@@ -89,12 +89,75 @@ export const commonSlideFields = {
     })
     .prefault({}),
 };
+const percent = z.number().min(0).max(100);
+/** A sound the student plays with a button, or by clicking a spot on the slide picture. */
+export const slideSoundSchema = z.object({
+  id: z.string().min(1),
+  /** An AUDIO asset of the lesson. */
+  assetId: z.string().min(1),
+  label: text,
+  /** Where to click on a full-page slide picture, in percent of the slide. */
+  area: z
+    .object({
+      x: percent,
+      y: percent,
+      w: percent,
+      h: percent,
+      /** Width / height of the slide the area was measured on. */
+      slideRatio: z
+        .number()
+        .positive()
+        .default(16 / 9),
+    })
+    .optional(),
+});
+const hexColor = z
+  .string()
+  .regex(/^#[0-9a-f]{6}$/i)
+  .optional();
+/** A picture or a text box of the teacher's slide, where PowerPoint put it. */
+export const slideItemSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["IMAGE", "TEXT"]),
+  x: z.number(),
+  y: z.number(),
+  w: z.number().nonnegative(),
+  h: z.number().nonnegative(),
+  /** IMAGE: an IMAGE asset of the lesson. */
+  assetId: z.string().min(1).optional(),
+  /** TEXT: its lines. */
+  text: lines,
+  /** Font size in percent of the slide width. */
+  size: z.number().positive().max(30).optional(),
+  color: hexColor,
+  fill: hexColor,
+  bold: z.boolean().optional(),
+  align: z.enum(["left", "center", "right"]).optional(),
+  /** Clicking the item plays this sound (id in `sounds`). */
+  soundId: z.string().min(1).optional(),
+  /** Shown on the student's n-th click (PowerPoint entrance animation). */
+  step: z.number().int().positive().optional(),
+});
+/** The slide drawn as PowerPoint laid it out: every picture and text box kept. */
+export const slideLayoutSchema = z.object({
+  /** Width / height of the slide. */
+  ratio: z
+    .number()
+    .positive()
+    .default(16 / 9),
+  items: z.array(slideItemSchema).default([]),
+});
 export const basicDataSchema = z.object({
   body: text,
   paragraphs: lines,
   bulletPoints: lines,
   keywords: lines,
   keyTakeaway: text,
+  sounds: z.array(slideSoundSchema).default([]),
+  /** Bullet points appear one at a time as the student clicks, like PowerPoint animations. */
+  revealOnClick: z.boolean().default(false),
+  /** When set, the page shows the original slide instead of the text template. */
+  original: slideLayoutSchema.optional(),
 });
 // Optional picture shown on an answer card (an IMAGE asset of the lesson).
 const choicePicture = z.string().min(1).optional();
@@ -408,3 +471,5 @@ export type Layout = (typeof layouts)[number];
 export function parseProject(value: unknown): LessonProject {
   return projectSchema.parse(value);
 }
+export type SlideSound = z.infer<typeof slideSoundSchema>;
+export type SlideItem = z.infer<typeof slideItemSchema>;

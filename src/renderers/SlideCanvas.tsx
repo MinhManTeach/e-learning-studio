@@ -5,6 +5,8 @@ import { effectiveLayout, stageLabels } from "../model/analysis";
 import { slideRegistry } from "../slides/registry";
 import { isDisplayableUrl, useImageResolver } from "../media/imageResolver";
 import { LessonProjectContext } from "./lessonContext";
+import { SlideSounds } from "./SlideSounds";
+import { OriginalSlide } from "./OriginalSlide";
 export { slideRegistry } from "../slides/registry";
 export function LessonImage({
   url,
@@ -140,7 +142,27 @@ export function SlideCanvas({
         data-contrast={slide?.accessibility.highContrast ? "high" : undefined}
         aria-label="Nội dung trang bài giảng"
       >
-        {slide && Renderer && layout === "MEDIA_COVER" && image ? (
+        {slide &&
+        Renderer &&
+        (slide.type === "content" || slide.type === "welcome") &&
+        slide.data.original?.items.length ? (
+          // The teacher's slide as PowerPoint laid it out (pages with sounds).
+          <article
+            className={"lesson phase1 cover original " + slide.type}
+            style={
+              {
+                "--font-scale": slide.accessibility.fontScale * fontBoost,
+              } as React.CSSProperties
+            }
+          >
+            <h1 className="visually-hidden">{slide.title}</h1>
+            <OriginalSlide key={slide.id} slide={slide} project={project} />
+            <SlideSounds slide={slide} project={project} cover />
+            <div className="visually-hidden">
+              <Renderer key={slide.id} slide={slide} />
+            </div>
+          </article>
+        ) : slide && Renderer && layout === "MEDIA_COVER" && image ? (
           // The teacher's own slide picture (or a video) fills the 16:9 page; the
           // text stays in the page for screen readers, read-aloud and search.
           <article
@@ -153,6 +175,7 @@ export function SlideCanvas({
           >
             <h1 className="visually-hidden">{slide.title}</h1>
             <div className="cover-media">{image}</div>
+            <SlideSounds slide={slide} project={project} cover />
             <div className="visually-hidden">
               <Renderer key={slide.id} slide={slide} />
             </div>
@@ -185,6 +208,7 @@ export function SlideCanvas({
               )}
               <div className="layout-text">
                 <Renderer key={slide.id} slide={slide} />
+                <SlideSounds slide={slide} project={project} cover={false} />
               </div>
             </div>
           </article>

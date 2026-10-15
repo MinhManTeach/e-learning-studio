@@ -1116,3 +1116,168 @@
     outline: 3px solid currentColor;
   }
 }
+/* Âm thanh trên trang: nút nghe, và vùng bấm trên ảnh slide như trong PowerPoint. */
+.lesson.phase1.cover {
+  position: relative;
+}
+.sound-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8cqw;
+  margin-top: 1.2cqw;
+}
+.sound-buttons.over-cover {
+  position: absolute;
+  left: 1.5cqw;
+  bottom: 1.5cqw;
+  margin: 0;
+}
+.phase1 .sound-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6cqw;
+  padding: 0.7cqw 1.4cqw;
+  border: 0;
+  border-radius: 99px;
+  background: var(--lesson-accent, #1a7965);
+  color: var(--lesson-bg, #fff);
+  font: inherit;
+  font-size: calc(1.4cqw * var(--font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0.3cqw 0.8cqw #0003;
+}
+.phase1 .sound-button:disabled,
+.phase1 .sound-spot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sound-spots {
+  position: absolute;
+  pointer-events: none;
+}
+.phase1 .sound-spot {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: 2.4cqw;
+  min-height: 2.4cqw;
+  padding: 0.3cqw;
+  border: 0.2cqw dashed transparent;
+  border-radius: 0.8cqw;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.phase1 .sound-spot svg {
+  width: 2.2cqw;
+  height: 2.2cqw;
+  padding: 0.25cqw;
+  border-radius: 50%;
+  background: var(--lesson-accent, #1a7965);
+  color: var(--lesson-bg, #fff);
+  box-shadow: 0 0.2cqw 0.5cqw #0004;
+}
+.phase1 .sound-spot:hover,
+.phase1 .sound-spot:focus-visible,
+.phase1 .sound-spot[aria-pressed="true"] {
+  border-color: #fff;
+  background: #ffffff26;
+}
+/* Chữ hiện dần khi bấm. */
+.phase1 li.revealed {
+  animation: reveal-in 0.35s ease-out;
+}
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6cqw);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phase1 li.revealed {
+    animation: none;
+  }
+}
+.phase1 .reveal-next {
+  margin-top: 1cqw;
+  padding: 0.7cqw 1.6cqw;
+  border: 0.2cqw solid var(--lesson-accent, #1a7965);
+  border-radius: 99px;
+  background: var(--lesson-button, #fff);
+  color: var(--lesson-accent, #1a7965);
+  font: inherit;
+  font-size: calc(1.4cqw * var(--font-scale, 1));
+  font-weight: 700;
+  cursor: pointer;
+}
+/* Slide gốc: mọi hình và chữ đúng chỗ như trong PowerPoint. */
+.lesson.phase1.original {
+  background: #fff;
+}
+.original-slide {
+  position: absolute;
+  overflow: hidden;
+  background: #fff;
+  container-type: inline-size;
+}
+.original-item {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: #1d1d1d;
+  line-height: 1.2;
+}
+.original-text p {
+  margin: 0 0 0.3em;
+}
+.original-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+.phase1 button.original-sound,
+.canvas[data-theme="KIDS"] .phase1 button.original-sound {
+  border: 0.25cqw dashed transparent;
+  border-radius: 0.6cqw;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  transform: none;
+}
+.phase1 button.original-sound:hover,
+.phase1 button.original-sound:focus-visible,
+.phase1 button.original-sound[aria-pressed="true"],
+.canvas[data-theme="KIDS"] .phase1 button.original-sound:hover,
+.canvas[data-theme="KIDS"] .phase1 button.original-sound[aria-pressed="true"] {
+  border-color: var(--lesson-accent, #1a7965);
+}
+.original-sound-badge {
+  position: absolute;
+  top: 0.4cqw;
+  right: 0.4cqw;
+  display: flex;
+  padding: 0.3cqw;
+  border-radius: 50%;
+  background: var(--lesson-accent, #1a7965);
+  color: #fff;
+  box-shadow: 0 0.2cqw 0.5cqw #0004;
+}
+.original-sound-badge svg {
+  width: 1.8cqw;
+  height: 1.8cqw;
+}
+.phase1 .original-next {
+  position: absolute;
+  right: 1.5cqw;
+  bottom: 1.5cqw;
+  margin: 0;
+}

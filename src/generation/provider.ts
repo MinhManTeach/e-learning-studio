@@ -93,6 +93,7 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
       const points = shortPoints(b.proposedSlides[i].contentOutline);
       if (slide.type === "welcome")
         slide.data = {
+          ...slide.data,
           body: "Chúng mình cùng khám phá và thử sức trong bài học này.",
           paragraphs: [],
           bulletPoints: points,
@@ -101,6 +102,7 @@ export class DeterministicLessonGenerationProvider implements LessonGenerationPr
         };
       if (slide.type === "content")
         slide.data = {
+          ...slide.data,
           body: points[0] ?? "",
           paragraphs: [],
           bulletPoints: points.slice(1),

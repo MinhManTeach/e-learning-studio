@@ -53,6 +53,98 @@ export function TypeSpecificEditor({ slide: s, edit }: TypeEditorProps) {
             edit({ ...s, data: { ...s.data, keyTakeaway } })
           }
         />
+        <CheckField
+          label="Hiện từng ý chính khi học sinh bấm"
+          value={s.data.revealOnClick}
+          onChange={(revealOnClick) =>
+            edit({ ...s, data: { ...s.data, revealOnClick } })
+          }
+        />
+        {s.data.original && (
+          <div className="original-items">
+            <strong>Hình và chữ của slide gốc</strong>
+            <small>
+              Trang hiện đúng như slide PowerPoint. Bỏ những gì không muốn dùng.
+            </small>
+            {s.data.original.items.map((item, i) => (
+              <div className="original-item-row" key={item.id}>
+                <span>
+                  {item.kind === "IMAGE" ? "🖼 Hình" : "🔤 Chữ"} {i + 1}
+                  {item.soundId ? " · 🔊 bấm để nghe" : ""}
+                  {item.step ? ` · hiện ở lần bấm ${item.step}` : ""}
+                  {item.text.length
+                    ? `: ${item.text.join(" ").slice(0, 40)}`
+                    : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    edit({
+                      ...s,
+                      data: {
+                        ...s.data,
+                        original: {
+                          ...s.data.original!,
+                          items: s.data.original!.items.filter(
+                            (x) => x.id !== item.id,
+                          ),
+                        },
+                      },
+                    })
+                  }
+                >
+                  Bỏ
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Bỏ bố cục slide gốc và dùng mẫu chữ của ứng dụng cho trang này?",
+                  )
+                )
+                  edit({ ...s, data: { ...s.data, original: undefined } });
+              }}
+            >
+              Dùng mẫu chữ thay cho slide gốc
+            </button>
+          </div>
+        )}
+        {s.data.sounds.map((sound, i) => (
+          <div className="sound-row" key={sound.id}>
+            <Field
+              label={`Âm thanh ${i + 1}${sound.area ? " (bấm trên ảnh slide)" : ""}`}
+              value={sound.label}
+              onChange={(label) =>
+                edit({
+                  ...s,
+                  data: {
+                    ...s.data,
+                    sounds: s.data.sounds.map((x) =>
+                      x.id === sound.id ? { ...x, label } : x,
+                    ),
+                  },
+                })
+              }
+            />
+            <button
+              type="button"
+              onClick={() =>
+                edit({
+                  ...s,
+                  data: {
+                    ...s.data,
+                    sounds: s.data.sounds.filter((x) => x.id !== sound.id),
+                  },
+                })
+              }
+            >
+              Bỏ âm thanh
+            </button>
+          </div>
+        ))}
       </>
     );
   if (s.type === "objectives")

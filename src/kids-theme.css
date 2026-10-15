@@ -586,3 +586,19 @@
   border-color: var(--world-deep);
   color: var(--kid-ink);
 }
+/* Âm thanh: vùng bấm trên ảnh slide luôn trong suốt; nút nghe là nút chính. */
+.canvas[data-theme="KIDS"] .phase1 button.sound-spot {
+  border: 0.2cqw dashed transparent;
+  border-radius: 0.8cqw;
+  background: transparent;
+  box-shadow: none;
+}
+.canvas[data-theme="KIDS"] .phase1 button.sound-spot:hover,
+.canvas[data-theme="KIDS"] .phase1 button.sound-spot:focus-visible,
+.canvas[data-theme="KIDS"] .phase1 button.sound-spot[aria-pressed="true"] {
+  border-color: #fff;
+  background: #ffffff26;
+}
+.canvas[data-theme="KIDS"] .phase1 .sound-spot svg {
+  background: var(--world);
+}
