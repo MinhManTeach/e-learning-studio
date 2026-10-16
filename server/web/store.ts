@@ -82,12 +82,40 @@ create table if not exists payments (
   created_at integer not null,
   paid_at integer
 );
+-- A family account (the parent's Google sign-in) can hold several children;
+-- what they buy is shared, their progress in each student app is their own.
+create table if not exists kids (
+  id text primary key,
+  user_id text not null references users(id),
+  name text not null,
+  created_at integer not null
+);
+create index if not exists kids_user on kids (user_id);
+-- One saved copy of a child's progress per app. rev goes up by one on every
+-- save, so a device holding an older copy cannot overwrite a newer one.
+create table if not exists kid_progress (
+  kid_id text not null references kids(id),
+  app text not null,
+  rev integer not null,
+  data text not null,
+  updated_at integer not null,
+  primary key (kid_id, app)
+);
 `;
 
 const hash = (token: string) =>
   createHash("sha256").update(token).digest("base64url");
 
 type Row = Record<string, unknown>;
+export interface Kid {
+  id: string;
+  name: string;
+}
+export interface Progress {
+  rev: number;
+  data: unknown;
+  updatedAt: number;
+}
 const toUser = (r: Row): User => ({
   id: String(r.id),
   provider: r.provider as User["provider"],
@@ -319,6 +347,73 @@ export class Store {
         .run(paidAt, orderCode);
       this.addCredits(p.userId, p.credits, "payment", String(orderCode));
       return { ...p, status: "PAID", paidAt };
+    });
+  }
+
+  kids(userId: string): Kid[] {
+    return (
+      this.db
+        .prepare(
+          "select id, name from kids where user_id = ? order by created_at, id",
+        )
+        .all(userId) as Row[]
+    ).map((r) => ({ id: String(r.id), name: String(r.name) }));
+  }
+  /** Adds a child to the account; null once it already has `max` children. */
+  addKid(userId: string, name: string, max: number): Kid | null {
+    return this.tx(() => {
+      if (this.kids(userId).length >= max) return null;
+      const kid = { id: randomUUID(), name };
+      this.db
+        .prepare(
+          "insert into kids (id, user_id, name, created_at) values (?, ?, ?, ?)",
+        )
+        .run(kid.id, userId, name, this.now());
+      return kid;
+    });
+  }
+  /** The child, only when it belongs to this account. */
+  kid(userId: string, kidId: string): Kid | null {
+    const r = this.db
+      .prepare("select id, name from kids where id = ? and user_id = ?")
+      .get(kidId, userId) as Row | undefined;
+    return r ? { id: String(r.id), name: String(r.name) } : null;
+  }
+  /** The saved progress, or rev 0 with no data when nothing is saved yet. */
+  progress(kidId: string, app: string): Progress {
+    const r = this.db
+      .prepare(
+        "select rev, data, updated_at from kid_progress where kid_id = ? and app = ?",
+      )
+      .get(kidId, app) as Row | undefined;
+    if (!r) return { rev: 0, data: null, updatedAt: 0 };
+    return {
+      rev: Number(r.rev),
+      data: JSON.parse(String(r.data)),
+      updatedAt: Number(r.updated_at),
+    };
+  }
+  /**
+   * Saves progress on top of `baseRev`, the copy the device last had. When the
+   * server has moved on since (another device saved), nothing is written and
+   * the newer copy comes back for the device to deal with.
+   */
+  saveProgress(
+    kidId: string,
+    app: string,
+    baseRev: number,
+    data: unknown,
+  ): { ok: true; rev: number } | { ok: false; current: Progress } {
+    return this.tx(() => {
+      const current = this.progress(kidId, app);
+      if (current.rev !== baseRev) return { ok: false as const, current };
+      const rev = baseRev + 1;
+      this.db
+        .prepare(
+          "insert into kid_progress (kid_id, app, rev, data, updated_at) values (?, ?, ?, ?, ?) on conflict (kid_id, app) do update set rev = excluded.rev, data = excluded.data, updated_at = excluded.updated_at",
+        )
+        .run(kidId, app, rev, JSON.stringify(data), this.now());
+      return { ok: true as const, rev };
     });
   }
 }

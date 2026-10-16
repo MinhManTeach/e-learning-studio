@@ -528,3 +528,66 @@ it("tells the editor whether the site has an AI voice", async () => {
   handler = createWebHandler({ ...config(), lectureVoice: false }, { store });
   expect(await status()).toEqual({ available: false });
 });
+
+it("keeps each child's progress on the family account, and never lets an older copy overwrite a newer one", async () => {
+  fresh();
+  const { session } = await signIn();
+  const get = (path: string, cookie = session) =>
+    fetch(`${base}${path}`, { headers: { cookie } });
+
+  expect((await get("/api/kids", "")).status).toBe(401);
+  expect(await (await get("/api/kids")).json()).toEqual({ kids: [] });
+  expect((await post("/api/kids", session, { name: "  " })).status).toBe(400);
+  const an = (await (
+    await post("/api/kids", session, { name: "  Bé   An " })
+  ).json()) as { kid: { id: string; name: string } };
+  expect(an.kid.name).toBe("Bé An");
+  for (let i = 0; i < 5; i++)
+    await post("/api/kids", session, { name: `B${i}` });
+  expect((await post("/api/kids", session, { name: "Thừa" })).status).toBe(409);
+
+  const at = `/api/kids/${an.kid.id}/progress/english-adventure`;
+  expect(await (await get(at)).json()).toEqual({
+    rev: 0,
+    data: null,
+    updatedAt: 0,
+  });
+  const first = await post(at, session, { rev: 0, data: { xp: 10 } });
+  expect(await first.json()).toEqual({ rev: 1 });
+  // A second device still thinks rev 0: refused, and handed the newer copy.
+  const stale = await post(at, session, { rev: 0, data: { xp: 1 } });
+  expect(stale.status).toBe(409);
+  expect(await stale.json()).toMatchObject({ rev: 1, data: { xp: 10 } });
+  await post(at, session, { rev: 1, data: { xp: 20 } });
+  expect(await (await get(at)).json()).toMatchObject({
+    rev: 2,
+    data: { xp: 20 },
+  });
+  expect((await post(at, session, { rev: 2, data: [1] })).status).toBe(400);
+  expect(
+    (
+      await post(
+        at,
+        session,
+        { rev: 2, data: { xp: 1 } },
+        "https://evil.example",
+      )
+    ).status,
+  ).toBe(403);
+
+  // Another family cannot read or write this child.
+  tokenClaims = (nonce) => ({
+    iss: "https://accounts.google.com",
+    aud: "client-1",
+    sub: "g-other",
+    email: "khac@example.com",
+    email_verified: true,
+    name: "Khác",
+    exp: Math.floor(Date.now() / 1000) + 600,
+    nonce,
+  });
+  const other = (await signIn()).session;
+  expect(await (await get("/api/kids", other)).json()).toEqual({ kids: [] });
+  expect((await get(at, other)).status).toBe(404);
+  expect((await post(at, other, { rev: 2, data: { xp: 0 } })).status).toBe(404);
+});

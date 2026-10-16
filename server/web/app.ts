@@ -114,6 +114,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const rateWindow = 10 * 60_000;
   const authLimit = 30; // sign-in starts per IP per window
   const payLimit = 15; // payment links per teacher per window
+  const saveLimit = 600; // progress saves per account per window
   function tooMany(key: string, limit: number): boolean {
     const t = now();
     if (hits.size > 10_000)
@@ -206,6 +207,62 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         error: error instanceof Error ? error.message : "PAY_PROVIDER",
       });
     }
+  }
+
+  // ---- children on a family account, and their progress in student apps ----
+  const MAX_KIDS = 6;
+  const MAX_PROGRESS_BYTES = 1_000_000;
+  async function kidsRoute(
+    req: IncomingMessage,
+    res: ServerResponse,
+    method: string,
+  ) {
+    const user = userOf(req);
+    if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
+    if (method === "GET") return send(res, 200, { kids: store.kids(user.id) });
+    const body = (await readJson(req, 10_000).catch(() => ({}))) as {
+      name?: unknown;
+    };
+    const name =
+      typeof body.name === "string"
+        ? body.name.replace(/\s+/g, " ").trim().slice(0, 30)
+        : "";
+    if (!name) return send(res, 400, { error: "KID_NAME" });
+    const kid = store.addKid(user.id, name, MAX_KIDS);
+    if (!kid) return send(res, 409, { error: "KID_LIMIT", max: MAX_KIDS });
+    send(res, 200, { kid });
+  }
+  async function progressRoute(
+    req: IncomingMessage,
+    res: ServerResponse,
+    method: string,
+    kidId: string,
+    app: string,
+  ) {
+    const user = userOf(req);
+    if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
+    // Another account's child looks the same as no child at all.
+    if (!store.kid(user.id, kidId))
+      return send(res, 404, { error: "NOT_FOUND" });
+    if (method === "GET") return send(res, 200, store.progress(kidId, app));
+    if (tooMany(`save:${user.id}`, saveLimit))
+      return send(res, 429, { error: "RATE_LIMIT" }, { "Retry-After": "600" });
+    const body = (await readJson(req, MAX_PROGRESS_BYTES).catch(
+      () => null,
+    )) as { rev?: unknown; data?: unknown } | null;
+    if (
+      !body ||
+      !Number.isInteger(body.rev) ||
+      (body.rev as number) < 0 ||
+      !body.data ||
+      typeof body.data !== "object" ||
+      Array.isArray(body.data)
+    )
+      return send(res, 400, { error: "PROGRESS_INPUT" });
+    const saved = store.saveProgress(kidId, app, body.rev as number, body.data);
+    if (!saved.ok)
+      return send(res, 409, { error: "PROGRESS_STALE", ...saved.current });
+    send(res, 200, { rev: saved.rev });
   }
 
   async function payWebhook(req: IncomingMessage, res: ServerResponse) {
@@ -569,6 +626,20 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         if (method === "POST" && path === "/api/pay/create")
           return await buyCredits(req, res);
         if (method === "GET" && path === "/api/tts") return await tts(res, url);
+        if ((method === "GET" || method === "POST") && path === "/api/kids")
+          return await kidsRoute(req, res, method);
+        const progress =
+          /^\/api\/kids\/([0-9a-f-]{36})\/progress\/([a-z0-9-]{1,40})$/.exec(
+            path,
+          );
+        if (progress && (method === "GET" || method === "POST"))
+          return await progressRoute(
+            req,
+            res,
+            method,
+            progress[1],
+            progress[2],
+          );
         if (method === "GET" && path === "/api/lesson-ai/voice/status")
           return send(res, 200, {
             available: false,
