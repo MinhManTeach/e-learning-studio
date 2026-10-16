@@ -69,14 +69,6 @@ Phí và điều kiện của PayOS thầy xem trên trang của họ, vì có t
 
 Cần một VPS nhỏ chạy Ubuntu (1 CPU, 1–2 GB RAM là đủ lúc đầu) và tên miền trỏ về VPS (bản ghi A).
 
-**Cách nhanh:** sau khi tên miền đã trỏ về VPS, đăng nhập VPS và chạy một lệnh. Lệnh này cài Node và Caddy, build máy chủ cùng English Adventure và Bé Vui Học Cộng, rồi bật HTTPS. Chạy lại đúng lệnh đó mỗi khi muốn cập nhật bản mới.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/MinhManTeach/e-learning-studio/main/deploy/cai-dat-vps.sh | sudo bash -s lopso.vn
-```
-
-Lần đầu, lệnh tạo sẵn `/etc/giangvui.env`. Thầy điền khoá Google và PayOS vào đó rồi chạy `sudo systemctl restart giangvui`. Các bước dưới đây là phần lệnh đó làm, để thầy hiểu hoặc tự làm tay.
-
 ```bash
 # Node 22 và Caddy (tự lấy chứng chỉ HTTPS)
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
