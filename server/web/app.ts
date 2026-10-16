@@ -106,6 +106,34 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const origin = new URL(config.publicUrl).origin;
   const redirectUri = `${config.publicUrl}/auth/google/callback`;
   const busy = new Set<string>(); // users with an AI design running
+
+  // Light in-memory rate limiting (per process). Enough to blunt bursts such
+  // as someone hammering sign-in or spamming payment-link creation on a small
+  // VPS; it is not a defence against a large distributed flood.
+  const hits = new Map<string, { count: number; resetAt: number }>();
+  const rateWindow = 10 * 60_000;
+  const authLimit = 30; // sign-in starts per IP per window
+  const payLimit = 15; // payment links per teacher per window
+  function tooMany(key: string, limit: number): boolean {
+    const t = now();
+    if (hits.size > 10_000)
+      for (const [k, v] of hits) if (v.resetAt <= t) hits.delete(k);
+    const e = hits.get(key);
+    if (!e || e.resetAt <= t) {
+      hits.set(key, { count: 1, resetAt: t + rateWindow });
+      return false;
+    }
+    if (e.count >= limit) return true;
+    e.count++;
+    return false;
+  }
+  // The real caller's address, read from Caddy's X-Forwarded-For when present.
+  const clientIp = (req: IncomingMessage) => {
+    const xff = req.headers["x-forwarded-for"];
+    const first = (Array.isArray(xff) ? xff[0] : (xff ?? "")).split(",")[0];
+    return first.trim() || req.socket.remoteAddress || "?";
+  };
+
   const speak = createTts(config.ttsKey, transport, now);
   // Lectures are long and cost money; Google speaks them only when asked to.
   const lectureVoiceOn = !!(config.ttsKey && config.lectureVoice);
@@ -135,6 +163,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     const user = userOf(req);
     if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
     if (!config.payos) return send(res, 503, { error: "PAY_UNAVAILABLE" });
+    if (tooMany(`pay:${user.id}`, payLimit))
+      return send(res, 429, { error: "RATE_LIMIT" }, { "Retry-After": "600" });
     const body = (await readJson(req, 10_000).catch(() => ({}))) as {
       plan?: string;
     };
@@ -239,8 +269,14 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     }
   }
 
-  async function googleStart(res: ServerResponse, url: URL) {
+  async function googleStart(
+    req: IncomingMessage,
+    res: ServerResponse,
+    url: URL,
+  ) {
     if (!config.google) return send(res, 404, { error: "AUTH_UNAVAILABLE" });
+    if (tooMany(`auth:${clientIp(req)}`, authLimit))
+      return send(res, 429, { error: "RATE_LIMIT" }, { "Retry-After": "600" });
     const login = {
       state: randomToken(),
       nonce: randomToken(),
@@ -398,30 +434,47 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   ) {
     if (!dir) return send(res, 404, { error: "NOT_FOUND" });
     const root = normalize(dir + sep);
+    const indexFile = join(root, "index.html");
     const wanted = normalize(join(root, decodeURIComponent(path)));
     const isFile = (f: string) =>
       stat(f).then(
         (s) => s.isFile(),
         () => false,
       );
-    let file = wanted.startsWith(root) ? wanted : join(root, "index.html");
-    // The site's front page is its own plain page; the lesson studio lives
-    // at /giao-vien (any unknown path below falls back to it).
-    if (
-      dir === config.staticDir &&
-      path === "/" &&
-      (await isFile(join(root, "trang-chu.html")))
-    )
-      file = join(root, "trang-chu.html");
-    // Plain pages such as /dieu-khoan are served from dieu-khoan.html.
-    if (
-      !extname(file) &&
-      !(await isFile(file)) &&
-      (await isFile(file + ".html"))
-    )
-      file += ".html";
-    // Unknown paths are the single-page app's own routes.
-    if (!(await isFile(file))) file = join(root, "index.html");
+    let file: string;
+    if (!wanted.startsWith(root)) {
+      // A path that climbs out of the folder: serve the app shell, never a
+      // file from elsewhere on disk.
+      file = indexFile;
+    } else {
+      file = wanted;
+      // The site's front page is its own plain page; the lesson studio lives
+      // at /giao-vien (any unknown path below falls back to it).
+      if (
+        dir === config.staticDir &&
+        path === "/" &&
+        (await isFile(join(root, "trang-chu.html")))
+      )
+        file = join(root, "trang-chu.html");
+      // Plain pages such as /dieu-khoan are served from dieu-khoan.html.
+      if (
+        !extname(file) &&
+        !(await isFile(file)) &&
+        (await isFile(file + ".html"))
+      )
+        file += ".html";
+      if (!(await isFile(file))) {
+        // Not a real file. Paths that look like the app's own routes (no
+        // extension, nothing hidden) fall back to index.html; a request for a
+        // named file that is not there, or a hidden/dotfile such as /.env, is a
+        // plain 404 instead of quietly handing back the home page.
+        const rel = wanted.slice(root.length);
+        const looksLikeFile =
+          extname(rel) !== "" || rel.split(sep).some((s) => s.startsWith("."));
+        if (looksLikeFile) return send(res, 404, { error: "NOT_FOUND" });
+        file = indexFile;
+      }
+    }
     try {
       const body = await readFile(file);
       res.writeHead(200, {
@@ -443,7 +496,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     const method = req.method ?? "GET";
     try {
       if (method === "GET" && path === "/auth/google")
-        return await googleStart(res, url);
+        return await googleStart(req, res, url);
       if (method === "GET" && path === "/auth/google/callback")
         return await googleCallback(req, res, url);
       // PayOS calls this from its own servers, so no origin check; the

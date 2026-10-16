@@ -378,6 +378,46 @@ it("serves the editor, with the app's own routes falling back to index.html and 
   expect(await sneaky.text()).toContain("Giảng Vui");
 });
 
+it("answers 404 for a missing file or a dotfile, not the home page", async () => {
+  fresh();
+  // A probe for a specific file that isn't there gets a plain 404 instead of
+  // a 200 with the editor shell, which looked like the file might exist.
+  expect((await fetch(`${base}/data/app.db`)).status).toBe(404);
+  expect((await fetch(`${base}/.env`)).status).toBe(404);
+  expect((await fetch(`${base}/missing.js`)).status).toBe(404);
+  // The app's own routes (no extension) still fall back to index.html.
+  expect((await fetch(`${base}/giao-vien`)).status).toBe(200);
+});
+
+it("refuses a Google sign-in whose email is not verified", async () => {
+  fresh();
+  const claims = tokenClaims;
+  tokenClaims = (n) => ({ ...claims(n), email_verified: false });
+  expect((await signIn()).back.headers.get("location")).toBe(
+    "/giao-vien?login=failed",
+  );
+  // A missing email_verified claim is treated the same way, not accepted.
+  tokenClaims = (n) => {
+    const c = claims(n);
+    delete c.email_verified;
+    return c;
+  };
+  expect((await signIn()).back.headers.get("location")).toBe(
+    "/giao-vien?login=failed",
+  );
+});
+
+it("rate-limits repeated sign-in starts from one address", async () => {
+  fresh();
+  for (let i = 0; i < 30; i++)
+    expect(
+      (await fetch(`${base}/auth/google`, { redirect: "manual" })).status,
+    ).toBe(302);
+  expect(
+    (await fetch(`${base}/auth/google`, { redirect: "manual" })).status,
+  ).toBe(429);
+});
+
 it("serves each student app from its own build under /hoc-sinh/<name>/", async () => {
   fresh();
   const bare = await fetch(`${base}/hoc-sinh/be-vui`, { redirect: "manual" });
