@@ -106,8 +106,12 @@ export async function verifyGoogleIdToken(
     typeof claims.sub !== "string"
   )
     throw new Error("AUTH_TOKEN");
-  if (claims.email && claims.email_verified === false)
-    throw new Error("AUTH_EMAIL");
+  // Google almost always sends email_verified; require it to be true rather
+  // than only rejecting an explicit false, so an unverified address can never
+  // slip through on a missing claim.
+  const emailVerified =
+    claims.email_verified === true || claims.email_verified === "true";
+  if (claims.email && !emailVerified) throw new Error("AUTH_EMAIL");
   return {
     subject: claims.sub,
     email: typeof claims.email === "string" ? claims.email : "",

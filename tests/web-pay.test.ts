@@ -242,6 +242,27 @@ it("adds credits when PayOS confirms the transfer, once, and ignores forged webh
   expect(store.payment(orderCode)?.status).toBe("PAID");
 });
 
+it("rate-limits a teacher who creates too many payment links", async () => {
+  const { session } = setup();
+  for (let i = 0; i < 15; i++)
+    expect(
+      (
+        await post(
+          "/api/pay/create",
+          { plan: "TEACHER_MONTH" },
+          { cookie: session },
+        )
+      ).status,
+    ).toBe(200);
+  const blocked = await post(
+    "/api/pay/create",
+    { plan: "TEACHER_MONTH" },
+    { cookie: session },
+  );
+  expect(blocked.status).toBe(429);
+  expect(await blocked.json()).toEqual({ error: "RATE_LIMIT" });
+});
+
 it("does not add credits for a short payment, and answers PayOS's webhook test", async () => {
   const { user, session } = setup();
   const { orderCode } = await (
