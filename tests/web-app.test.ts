@@ -466,6 +466,27 @@ it("reads short Vietnamese phrases aloud, once per phrase, and says when it cann
   expect(await down.json()).toEqual({ error: "TTS_UNAVAILABLE" });
 });
 
+it("caps how much one caller and the whole site can send to Google's voice in a day", async () => {
+  fresh();
+  handler = createWebHandler(
+    { ...config(), ttsDailyChars: 10 },
+    { store, transport: googleFetch },
+  );
+  const say = (text: string) =>
+    fetch(`${base}/api/tts?text=${encodeURIComponent(text)}`);
+  expect((await say("năm sáu")).status).toBe(200);
+  // Past the day's characters, new phrases are refused; old ones still play.
+  expect((await say("bảy tám")).status).toBe(503);
+  expect((await say("năm sáu")).status).toBe(200);
+  expect(ttsCalls).toEqual(["năm sáu"]);
+
+  // One address asking without end is stopped before it reaches Google.
+  fresh();
+  let last = 0;
+  for (let i = 0; i < 301; i++) last = (await say("một")).status;
+  expect(last).toBe(429);
+});
+
 it("writes a page's lecture for one credit, and speaks it with Google's voice", async () => {
   fresh();
   const { session } = await signIn();
@@ -564,6 +585,11 @@ it("keeps each child's progress on the family account, and never lets an older c
     data: { xp: 20 },
   });
   expect((await post(at, session, { rev: 2, data: [1] })).status).toBe(400);
+  // Only real student apps keep progress, so made-up names cannot fill the disk.
+  const madeUp = `/api/kids/${an.kid.id}/progress/a1`;
+  expect(
+    (await post(madeUp, session, { rev: 0, data: { xp: 1 } })).status,
+  ).toBe(404);
   expect(
     (
       await post(

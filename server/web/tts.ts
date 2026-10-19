@@ -7,16 +7,22 @@
 export const TTS_MAX_CHARS = 200;
 /** New (not cached) phrases sent to Google per minute, for the whole site. */
 const PER_MINUTE = 60;
+/** Characters sent to Google per day, for the whole site: Google charges by
+ * the character, so this caps the bill (about 5 USD a day at Neural2 prices). */
+export const TTS_DAILY_CHARS = 300_000;
 const CACHE_SIZE = 500;
 
 export function createTts(
   apiKey: string | undefined,
   transport: typeof fetch = fetch,
   now: () => number = Date.now,
+  dailyChars = TTS_DAILY_CHARS,
 ) {
   const cache = new Map<string, Buffer>();
   let windowStart = 0;
   let used = 0;
+  let dayStart = 0;
+  let charsToday = 0;
 
   /** MP3 audio for the text, or null when it cannot be made right now. */
   return async function speak(text: string): Promise<Buffer | null> {
@@ -28,8 +34,14 @@ export function createTts(
       windowStart = now();
       used = 0;
     }
-    if (used >= PER_MINUTE) return null;
+    if (now() - dayStart >= 86_400_000) {
+      dayStart = now();
+      charsToday = 0;
+    }
+    if (used >= PER_MINUTE || charsToday + text.length > dailyChars)
+      return null;
     used++;
+    charsToday += text.length;
     try {
       const res = await transport(
         "https://texttospeech.googleapis.com/v1/text:synthesize",

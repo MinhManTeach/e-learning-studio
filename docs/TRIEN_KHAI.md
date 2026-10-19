@@ -98,7 +98,7 @@ APPS_DIR=/opt/giangvui/hoc-sinh
 GOOGLE_TTS_API_KEY=...
 ```
 
-`APPS_DIR` là thư mục chứa các ứng dụng học sinh. Mỗi ứng dụng là một thư mục con đã build sẵn vào `dist`, ví dụ `be-vui-hoc-cong/dist`, và chạy ở địa chỉ `/hoc-sinh/be-vui-hoc-cong/`. Khi build, đặt `--base` đúng địa chỉ đó: `npx vite build --base=/hoc-sinh/be-vui-hoc-cong/`. `GOOGLE_TTS_API_KEY` là khoá Google Cloud Text-to-Speech cho giọng đọc tiếng Việt của Bé Vui Học Cộng. Không có khoá thì ứng dụng dùng giọng có sẵn của trình duyệt. Lời giảng trong bài soạn mặc định đọc bằng giọng trình duyệt; muốn dùng giọng Google cho cả lời giảng (tốn phí theo ký tự) thì thêm `LECTURE_AI_VOICE=1`.
+`APPS_DIR` là thư mục chứa các ứng dụng học sinh. Mỗi ứng dụng là một thư mục con đã build sẵn vào `dist`, ví dụ `be-vui-hoc-cong/dist`, và chạy ở địa chỉ `/hoc-sinh/be-vui-hoc-cong/`. Khi build, đặt `--base` đúng địa chỉ đó: `npx vite build --base=/hoc-sinh/be-vui-hoc-cong/`. `GOOGLE_TTS_API_KEY` là khoá Google Cloud Text-to-Speech cho giọng đọc tiếng Việt của Bé Vui Học Cộng. Không có khoá thì ứng dụng dùng giọng có sẵn của trình duyệt. Lời giảng trong bài soạn mặc định đọc bằng giọng trình duyệt; muốn dùng giọng Google cho cả lời giảng (tốn phí theo ký tự) thì thêm `LECTURE_AI_VOICE=1`. Cả web gửi cho Google tối đa 300.000 ký tự mỗi ngày (khoảng 5 USD); muốn đổi mức này thì đặt `TTS_DAILY_CHARS`. Nên bật thêm cảnh báo chi tiêu (budget alert) trong Google Cloud.
 
 Tạo dịch vụ `/etc/systemd/system/giangvui.service` để máy chủ tự chạy lại khi khởi động hoặc gặp lỗi:
 

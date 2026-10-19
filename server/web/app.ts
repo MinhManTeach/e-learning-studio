@@ -42,6 +42,8 @@ export interface WebConfig {
   ttsKey?: string;
   /** Google's voice for lectures too (LECTURE_AI_VOICE=1); off, the browser reads them. */
   lectureVoice?: boolean;
+  /** Most characters sent to Google's voice per day (TTS_DAILY_CHARS). */
+  ttsDailyChars?: number;
 }
 export interface WebDeps {
   store: Store;
@@ -65,6 +67,9 @@ export interface WebDeps {
   ) => Promise<unknown>;
 }
 
+/** Largest AI request: the lesson text plus its pictures, which the studio
+ * shrinks to about 1024 px first. It is held in memory while the AI runs. */
+const MAX_AI_BYTES = 15_000_000;
 const sessionCookie = "gv_session";
 const loginCookie = "gv_login";
 /** Where the lesson studio (the single-page app) lives on the site. */
@@ -115,6 +120,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   const authLimit = 30; // sign-in starts per IP per window
   const payLimit = 15; // payment links per teacher per window
   const saveLimit = 600; // progress saves per account per window
+  const ttsLimit = 300; // read-aloud phrases per IP per window
   function tooMany(key: string, limit: number): boolean {
     const t = now();
     if (hits.size > 10_000)
@@ -135,14 +141,18 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     return first.trim() || req.socket.remoteAddress || "?";
   };
 
-  const speak = createTts(config.ttsKey, transport, now);
+  const speak = createTts(config.ttsKey, transport, now, config.ttsDailyChars);
   // Lectures are long and cost money; Google speaks them only when asked to.
   const lectureVoiceOn = !!(config.ttsKey && config.lectureVoice);
 
-  async function tts(res: ServerResponse, url: URL) {
+  async function tts(req: IncomingMessage, res: ServerResponse, url: URL) {
     const text = (url.searchParams.get("text") ?? "").trim();
     if (!text || text.length > TTS_MAX_CHARS)
       return send(res, 400, { error: "TTS_TEXT" });
+    // Anyone may ask without signing in, so one caller cannot use up the
+    // whole site's share of Google's voice.
+    if (tooMany(`tts:${clientIp(req)}`, ttsLimit))
+      return send(res, 429, { error: "RATE_LIMIT" }, { "Retry-After": "600" });
     const audio = await speak(text);
     // The app then reads the phrase with the browser's own voice.
     if (!audio) return send(res, 503, { error: "TTS_UNAVAILABLE" });
@@ -212,6 +222,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   // ---- children on a family account, and their progress in student apps ----
   const MAX_KIDS = 6;
   const MAX_PROGRESS_BYTES = 1_000_000;
+  /** Student apps that keep a child's progress here; add a new one by name. */
+  const PROGRESS_APPS = ["english-adventure"];
   async function kidsRoute(
     req: IncomingMessage,
     res: ServerResponse,
@@ -241,6 +253,10 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
   ) {
     const user = userOf(req);
     if (!user) return send(res, 401, { error: "AUTH_REQUIRED" });
+    // Only the student apps that save progress: each new name would be a new
+    // row, so an open list would let one account fill the server's disk.
+    if (!PROGRESS_APPS.includes(app))
+      return send(res, 404, { error: "NOT_FOUND" });
     // Another account's child looks the same as no child at all.
     if (!store.kid(user.id, kidId))
       return send(res, 404, { error: "NOT_FOUND" });
@@ -438,7 +454,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
     res.on("close", cancel);
     let usage = { model: "", inputTokens: 0, outputTokens: 0, ms: 0 };
     try {
-      const body = await readJson(req, 40_000_000);
+      const body = await readJson(req, MAX_AI_BYTES);
       const plan = await run(
         config.ai,
         body,
@@ -562,7 +578,7 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
         return await payWebhook(req, res);
       // Bé Vui Học Cộng also tries the address it had on Netlify.
       if (method === "GET" && path === "/.netlify/functions/tts")
-        return await tts(res, url);
+        return await tts(req, res, url);
       if (path.startsWith("/api/") || path === "/auth/logout") {
         if (method === "POST" && !sameOrigin(req))
           return send(res, 403, { error: "AUTH_ORIGIN" });
@@ -625,7 +641,8 @@ export function createWebHandler(config: WebConfig, deps: WebDeps) {
           });
         if (method === "POST" && path === "/api/pay/create")
           return await buyCredits(req, res);
-        if (method === "GET" && path === "/api/tts") return await tts(res, url);
+        if (method === "GET" && path === "/api/tts")
+          return await tts(req, res, url);
         if ((method === "GET" || method === "POST") && path === "/api/kids")
           return await kidsRoute(req, res, method);
         const progress =

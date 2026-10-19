@@ -33,6 +33,9 @@ interface Status {
 const providerName = (p: string) => (p === "anthropic" ? "Claude" : "Gemini");
 /** Pictures bigger than this are not sent to the AI (it still sees the page text). */
 const maxPictureBytes = 1_500_000;
+/** Longest side of a picture sent to the AI: enough to read it, and it keeps
+ * a lesson with many pictures small enough for the server to accept. */
+const maxPictureSide = 1024;
 
 const messages: Record<string, string> = {
   AI_CONFIGURATION:
@@ -92,21 +95,50 @@ async function toBase64(blob: Blob) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(binary);
 }
+/** The picture at most 1024 px wide or tall, as JPEG; as it was when the
+ * browser cannot redraw it. */
+async function shrinkPicture(blob: Blob, mimeType: string) {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(
+      1,
+      maxPictureSide / Math.max(bitmap.width, bitmap.height),
+    );
+    if (scale === 1 && blob.size <= 300_000) return { blob, mimeType };
+    const canvas = new OffscreenCanvas(
+      Math.round(bitmap.width * scale),
+      Math.round(bitmap.height * scale),
+    );
+    const ctx = canvas.getContext("2d")!;
+    // JPEG has no transparency: see-through parts become white, not black.
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const small = await canvas.convertToBlob({
+      type: "image/jpeg",
+      quality: 0.85,
+    });
+    return small.size < blob.size
+      ? { blob: small, mimeType: "image/jpeg" }
+      : { blob, mimeType };
+  } catch {
+    return { blob, mimeType };
+  }
+}
 async function pagePictures(project: LessonProject, media: StudioMedia) {
   const images = new Map<string, LessonImage>();
   for (const { slideId, asset } of pictureAssets(project)) {
     const stored = await media
       .get(asset.id, project.projectId)
       .catch(() => undefined);
-    if (
-      stored &&
-      stored.size <= maxPictureBytes &&
-      /^image\/(png|jpeg|webp)$/.test(stored.mimeType)
-    )
-      images.set(slideId, {
-        mimeType: stored.mimeType,
-        data: await toBase64(stored.blob),
-      });
+    if (!stored || !/^image\/(png|jpeg|webp)$/.test(stored.mimeType)) continue;
+    const { blob, mimeType } = await shrinkPicture(
+      stored.blob,
+      stored.mimeType,
+    );
+    if (blob.size <= maxPictureBytes)
+      images.set(slideId, { mimeType, data: await toBase64(blob) });
   }
   return images;
 }
